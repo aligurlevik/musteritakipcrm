@@ -14,5 +14,11 @@
       "database_name": "musteri-takip-crm",
       "database_id": "3518201b-e647-4b7f-8d08-7e41814ff7dd"
     }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEETING_IMAGES",
+      "bucket_name": "musteri-takip-gorusme-fotograflari"
+    }
   ]
 }
