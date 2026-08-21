@@ -161,6 +161,19 @@ async function api(request, env) {
   const trash=path.match(/^\/api\/customers\/(\d+)\/trash$/); if(trash&&request.method==='POST'){await env.DB.prepare("UPDATE customers SET record_status='Silindi',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(Number(trash[1])).run();return json({ok:true})}
   const restore=path.match(/^\/api\/customers\/(\d+)\/restore$/); if(restore&&request.method==='POST'){await env.DB.prepare("UPDATE customers SET record_status='Aktif',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(Number(restore[1])).run();return json({ok:true})}
 
+  const history=path.match(/^\/api\/customers\/(\d+)\/history$/);
+  if(history && request.method==='GET') {
+    const customerId=Number(history[1]);
+    const customer=await env.DB.prepare('SELECT * FROM customers WHERE id=?').bind(customerId).first();
+    if(!customer)return json({error:'Müşteri bulunamadı'},404);
+    const [meetings,mails,offers]=await Promise.all([
+      env.DB.prepare('SELECT * FROM meetings WHERE customer_id=? ORDER BY meeting_no ASC, COALESCE(meeting_date,created_at) ASC').bind(customerId).all(),
+      env.DB.prepare('SELECT * FROM mails WHERE customer_id=? ORDER BY COALESCE(mail_date,created_at) DESC').bind(customerId).all(),
+      env.DB.prepare('SELECT * FROM offers WHERE customer_id=? ORDER BY COALESCE(offer_date,created_at) DESC').bind(customerId).all()
+    ]);
+    return json({customer,meetings:meetings.results||[],mails:mails.results||[],offers:offers.results||[]});
+  }
+
   if(path==='/api/meetings' && request.method==='GET') {
     const status=url.searchParams.get('status')||'Aktif'; let where=" WHERE c.record_status<>'Silindi'";
     if(status==='Aktif') where=" WHERE c.record_status='Aktif' AND COALESCE(m.result,'Beklemede') IN ('Olumlu','Tekrar Görüşülecek')";
@@ -171,12 +184,16 @@ async function api(request, env) {
   }
   if(path==='/api/meetings' && request.method==='POST') {
     const b=await body(request);
+    const customerId=Number(b.customer_id||0);
+    if(!customerId)return json({error:'Firma seçimi zorunlu'},400);
+    const last=await env.DB.prepare('SELECT COALESCE(MAX(meeting_no),0) last_no FROM meetings WHERE customer_id=?').bind(customerId).first();
+    const meetingNo=Number(last?.last_no||0)+1;
     await env.DB.prepare(`INSERT INTO meetings(customer_id,meeting_no,meeting_date,note,next_follow_date,remind_at,remind_note,reminder_status,result,result_note) VALUES(?,?,?,?,?,?,?,?,?,?)`)
-      .bind(b.customer_id,b.meeting_no||1,b.meeting_date||'',b.note||'',b.next_follow_date||'',b.remind_at||'',b.remind_note||'',b.remind_at?'Açık':'',b.result||'Beklemede',b.result_note||'').run();
-    if(b.next_follow_date) await env.DB.prepare('UPDATE customers SET follow_date=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.next_follow_date,b.customer_id).run();
-    if(b.result==='Olumsuz') await env.DB.prepare("UPDATE customers SET record_status='Pasif',stage='Kaybedildi',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(b.customer_id).run();
-    else if(b.result==='Olumlu'||b.result==='Tekrar Görüşülecek') await env.DB.prepare("UPDATE customers SET record_status='Aktif',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(b.customer_id).run();
-    return json({ok:true},201);
+      .bind(customerId,meetingNo,b.meeting_date||'',b.note||'',b.next_follow_date||'',b.remind_at||'',b.remind_note||'',b.remind_at?'Açık':'',b.result||'Beklemede',b.result_note||'').run();
+    if(b.next_follow_date) await env.DB.prepare('UPDATE customers SET follow_date=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.next_follow_date,customerId).run();
+    if(b.result==='Olumsuz') await env.DB.prepare("UPDATE customers SET record_status='Pasif',stage='Kaybedildi',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
+    else if(b.result==='Olumlu'||b.result==='Tekrar Görüşülecek') await env.DB.prepare("UPDATE customers SET record_status='Aktif',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
+    return json({ok:true,meeting_no:meetingNo},201);
   }
   const md=path.match(/^\/api\/meetings\/(\d+)$/); if(md&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM meetings WHERE id=?').bind(Number(md[1])).run();return json({ok:true})}
 
@@ -185,6 +202,7 @@ async function api(request, env) {
 
   if(path==='/api/mails'&&request.method==='GET'){return json((await env.DB.prepare('SELECT m.*,c.company FROM mails m LEFT JOIN customers c ON c.id=m.customer_id ORDER BY COALESCE(m.mail_date,m.created_at) DESC').all()).results)}
   if(path==='/api/mails'&&request.method==='POST'){const b=await body(request);await env.DB.prepare('INSERT INTO mails(customer_id,direction,mail_date,email,subject,summary,follow_date,external_id) VALUES(?,?,?,?,?,?,?,?)').bind(b.customer_id||null,b.direction||'',b.mail_date||'',b.email||'',b.subject||'',b.summary||'',b.follow_date||'',b.external_id||'').run();return json({ok:true},201)}
+
 
   if(path==='/api/demo-seed'&&request.method==='POST'){
     const ex=await env.DB.prepare("SELECT COUNT(*) c FROM customers WHERE company='Atlas Tekstil'").first();
