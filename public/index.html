@@ -113,8 +113,16 @@
 
 <div id="mailModal" class="modal"><div class="box"><h3>Mail Kaydı</h3><div class="grid"><div><label>Firma</label><select id="e_customer"></select></div><div><label>Gelen/Giden</label><select id="e_dir"><option>Gelen</option><option>Giden</option></select></div><div><label>Tarih</label><input id="e_date" type="datetime-local"></div><div><label>Mail</label><input id="e_email"></div><div class="full"><label>Konu</label><input id="e_subject"></div><div class="full"><label>Özet</label><textarea id="e_summary" rows="4"></textarea></div><div><label>Takip</label><input id="e_follow" type="date"></div></div><div style="text-align:right;margin-top:12px"><button class="btn" onclick="closeM('mailModal')">İptal</button> <button class="btn primary" onclick="saveMail()">Kaydet</button></div></div></div>
 
+<div id="reminderPopup" class="modal"><div class="box" style="width:min(520px,94vw);border-top:7px solid var(--red)">
+  <div class="small" style="font-weight:800;color:var(--red)">GÖRÜŞME HATIRLATMASI</div>
+  <h2 id="reminderCompany" style="margin-bottom:6px"></h2>
+  <div id="reminderTime" class="small"></div>
+  <div id="reminderNote" class="card" style="margin:16px 0;font-size:16px"></div>
+  <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap"><button class="btn" onclick="snoozeReminder()">1 Saat Ertele</button><button class="btn green" onclick="completeReminder()">Tamamlandı</button></div>
+</div></div>
+
 <script>
-const $=id=>document.getElementById(id); const today=()=>new Date().toISOString().slice(0,10); let currentMeetingFilter='Aktif'; let currentCategoryFilter=''; let allCustomers=[]; let allMeetings=[];
+const $=id=>document.getElementById(id); const today=()=>new Date().toISOString().slice(0,10); let currentMeetingFilter='Aktif'; let currentCategoryFilter=''; let allCustomers=[]; let allMeetings=[]; let activeReminder=null;
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 $('date').textContent=new Date().toLocaleDateString('tr-TR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
@@ -130,6 +138,7 @@ async function login(){const r=await fetch('/api/login',{method:'POST',headers:{
 async function logout(){await fetch('/api/logout');location.reload()}
 document.querySelectorAll('.menu button[data-page]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.menu button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));$(b.dataset.page).classList.add('active');$('title').textContent=b.textContent});
 function cls(d){return !d?'':d<today()?'overdue':d===today()?'due':''}
+function localDateTimeValue(date=new Date()){const local=new Date(date.getTime()-date.getTimezoneOffset()*60000);return local.toISOString().slice(0,16)}
 function meetingUrgency(d){if(!d)return '';const raw=String(d);const target=new Date(raw.length<=10?raw+'T23:59:59':raw);if(Number.isNaN(target.getTime()))return '';const days=Math.ceil((target-Date.now())/86400000);if(days<0)return 'urgency-overdue';if(days===0)return 'urgency-today';if(days<=2)return 'urgency-near';if(days<=5)return 'urgency-soon';if(days<=10)return 'urgency-watch';return ''}
 
 async function loadDashboard(){const d=await req('/api/dashboard');$('k1').textContent=d.total;$('k2').textContent=d.today;$('k3').textContent=d.overdue;$('k4').textContent=d.openOffers;$('due').innerHTML=(d.due||[]).map(x=>`<div class="card ${cls(x.follow_date)}" style="margin:8px 0"><b>${x.company}</b> — ${x.contact_name||''}<div class="small">${x.priority} • ${x.stage} • Takip: ${x.follow_date||''}</div></div>`).join('')||'<div class="small">Takip yok.</div>'}
@@ -213,6 +222,11 @@ async function restoreCustomer(id){try{await req('/api/customers/'+id+'/restore'
 async function saveMeeting(){try{const id=Number($('m_id').value||0);const payload={customer_id:Number($('m_customer').value),meeting_date:$('m_date').value,note:$('m_note').value.trim(),next_follow_date:$('m_follow').value,remind_at:$('m_remind_at').value,remind_note:$('m_remind_note').value.trim(),result:$('m_result').value,result_note:$('m_result_note').value.trim()};const d=await req(id?'/api/meetings/'+id:'/api/meetings',{method:id?'PUT':'POST',body:JSON.stringify(payload)});closeM('meetingModal');showMsg(id?'Görüşme güncellendi.':d.meeting_no+'. görüşme kaydedildi.');loadAll()}catch(e){showMsg(e.message,'err')}}
 async function deleteMeeting(id){if(!confirm('Bu görüşme silinsin mi? Müşteri silinmeyecek.'))return;try{await req('/api/meetings/'+id,{method:'DELETE'});showMsg('Görüşme silindi.');loadAll()}catch(e){showMsg(e.message,'err')}}
 
+function showReminder(x){activeReminder=x;$('reminderCompany').textContent=x.company+' — '+x.meeting_no+'. Görüşme';$('reminderTime').textContent='Hatırlatma: '+new Date(x.remind_at).toLocaleString('tr-TR');$('reminderNote').textContent=x.remind_note||x.note||'Bu görüşmeyi takip et.';openM('reminderPopup')}
+async function pollMeetingReminders(){try{const items=await req('/api/meetings?status=Tümü');const now=localDateTimeValue();const due=items.filter(x=>x.remind_at&&x.reminder_status==='Açık'&&x.remind_at<=now).sort((a,b)=>a.remind_at.localeCompare(b.remind_at));if(!activeReminder&&due.length)showReminder(due[0]);checkMeetingNotifications(items)}catch(e){if(e.message!=='Oturum süresi doldu.')console.error(e)}}
+async function completeReminder(){if(!activeReminder)return;try{await req('/api/meetings/'+activeReminder.id+'/reminder-complete',{method:'POST'});activeReminder=null;closeM('reminderPopup');showMsg('Hatırlatma tamamlandı.');await loadMeetings();await pollMeetingReminders()}catch(e){showMsg(e.message,'err')}}
+async function snoozeReminder(){if(!activeReminder)return;try{const later=localDateTimeValue(new Date(Date.now()+60*60*1000));await req('/api/meetings/'+activeReminder.id+'/reminder-snooze',{method:'POST',body:JSON.stringify({remind_at:later})});activeReminder=null;closeM('reminderPopup');showMsg('Hatırlatma 1 saat ertelendi.');await loadMeetings()}catch(e){showMsg(e.message,'err')}}
+
 async function saveOffer(){try{if(!$('o_subject').value.trim())return showMsg('Teklif konusu zorunlu.','err');await req('/api/offers',{method:'POST',body:JSON.stringify({customer_id:Number($('o_customer').value),offer_no:$('o_no').value.trim(),subject:$('o_subject').value.trim(),amount:Number($('o_amount').value||0),currency:$('o_currency').value,status:$('o_status').value,offer_date:$('o_date').value,follow_date:$('o_follow').value,note:$('o_note').value.trim()})});closeM('offerModal');showMsg('Teklif kaydedildi.');loadAll()}catch(e){showMsg(e.message,'err')}}
 async function saveMail(){try{await req('/api/mails',{method:'POST',body:JSON.stringify({customer_id:Number($('e_customer').value),direction:$('e_dir').value,mail_date:$('e_date').value,email:$('e_email').value.trim(),subject:$('e_subject').value.trim(),summary:$('e_summary').value.trim(),follow_date:$('e_follow').value})});closeM('mailModal');showMsg('Mail kaydı eklendi.');loadAll()}catch(e){showMsg(e.message,'err')}}
 
@@ -222,5 +236,5 @@ const notifiedMeetings=new Set();
 async function enableNotifications(){if(!('Notification'in window))return alert('Tarayıcı bildirim desteklemiyor.');const p=await Notification.requestPermission();alert(p==='granted'?'Bildirim izni verildi.':'Bildirim izni verilmedi.')}
 function checkMeetingNotifications(items){if(!('Notification'in window)||Notification.permission!=='granted')return;const now=Date.now();for(const x of items){if(!x.remind_at||x.reminder_status==='Tamamlandı'||notifiedMeetings.has(x.id))continue;const when=new Date(x.remind_at).getTime();if(when<=now&&now-when<24*60*60*1000){new Notification('CRM Görüşme Hatırlatıcısı',{body:`${x.company}: ${x.remind_note||x.note||'Görüşmeyi takip et.'}`,tag:`crm-meeting-${x.id}`});notifiedMeetings.add(x.id)}}}
 
-loadAll(); setInterval(()=>loadMeetings().catch(()=>{}),60000);
+loadAll().then(()=>pollMeetingReminders()); setInterval(()=>{loadMeetings().catch(()=>{});pollMeetingReminders()},60000);
 </script></body></html>
