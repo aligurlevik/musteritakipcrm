@@ -38,7 +38,7 @@ async function ensureSchema(env) {
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS offers (
     id INTEGER PRIMARY KEY AUTOINCREMENT, customer_id INTEGER NOT NULL, offer_no TEXT, subject TEXT,
     amount REAL DEFAULT 0, currency TEXT DEFAULT 'TRY', status TEXT DEFAULT 'Taslak', offer_date TEXT,
-    follow_date TEXT, note TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    follow_date TEXT, note TEXT, result_reason TEXT DEFAULT '', created_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`).run();
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS mails (
     id INTEGER PRIMARY KEY AUTOINCREMENT, customer_id INTEGER, direction TEXT, mail_date TEXT, email TEXT,
@@ -57,6 +57,8 @@ async function ensureSchema(env) {
     ['remind_at',"TEXT DEFAULT ''"],['remind_note',"TEXT DEFAULT ''"],['reminder_status',"TEXT DEFAULT ''"],
     ['result',"TEXT DEFAULT 'Beklemede'"],['result_note',"TEXT DEFAULT ''"]
   ]) await ensureColumn(env,'meetings',name,def);
+
+  await ensureColumn(env,'offers','result_reason',"TEXT DEFAULT ''");
 
   for (const sql of [
     'CREATE INDEX IF NOT EXISTS idx_customers_record_status ON customers(record_status)',
@@ -221,7 +223,9 @@ async function api(request, env) {
   if(md&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM meetings WHERE id=?').bind(Number(md[1])).run();return json({ok:true})}
 
   if(path==='/api/offers'&&request.method==='GET'){return json((await env.DB.prepare('SELECT o.*,c.company FROM offers o JOIN customers c ON c.id=o.customer_id ORDER BY COALESCE(o.offer_date,o.created_at) DESC').all()).results)}
-  if(path==='/api/offers'&&request.method==='POST'){const b=await body(request);await env.DB.prepare('INSERT INTO offers(customer_id,offer_no,subject,amount,currency,status,offer_date,follow_date,note) VALUES(?,?,?,?,?,?,?,?,?)').bind(b.customer_id,b.offer_no||'',b.subject||'',Number(b.amount||0),b.currency||'TRY',b.status||'Taslak',b.offer_date||'',b.follow_date||'',b.note||'').run();return json({ok:true},201)}
+  if(path==='/api/offers'&&request.method==='POST'){const b=await body(request);const status=b.status||'Taslak';const reason=(b.result_reason||'').trim();if((status==='Onaylandı'||status==='Reddedildi')&&!reason)return json({error:'Olumlu veya olumsuz teklif sonucu için neden zorunludur.'},400);await env.DB.prepare('INSERT INTO offers(customer_id,offer_no,subject,amount,currency,status,offer_date,follow_date,note,result_reason) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(b.customer_id,b.offer_no||'',b.subject||'',Number(b.amount||0),b.currency||'TRY',status,b.offer_date||'',b.follow_date||'',b.note||'',reason).run();return json({ok:true},201)}
+  const od=path.match(/^\/api\/offers\/(\d+)$/);
+  if(od&&request.method==='PUT'){const offerId=Number(od[1]);const existing=await env.DB.prepare('SELECT id FROM offers WHERE id=?').bind(offerId).first();if(!existing)return json({error:'Teklif bulunamadı.'},404);const b=await body(request);const status=b.status||'Taslak';const reason=(b.result_reason||'').trim();if((status==='Onaylandı'||status==='Reddedildi')&&!reason)return json({error:'Olumlu veya olumsuz teklif sonucu için neden zorunludur.'},400);await env.DB.prepare('UPDATE offers SET offer_no=?,subject=?,amount=?,currency=?,status=?,offer_date=?,follow_date=?,note=?,result_reason=? WHERE id=?').bind(b.offer_no||'',b.subject||'',Number(b.amount||0),b.currency||'TRY',status,b.offer_date||'',b.follow_date||'',b.note||'',reason,offerId).run();return json({ok:true})}
 
   if(path==='/api/mails'&&request.method==='GET'){return json((await env.DB.prepare('SELECT m.*,c.company FROM mails m LEFT JOIN customers c ON c.id=m.customer_id ORDER BY COALESCE(m.mail_date,m.created_at) DESC').all()).results)}
   if(path==='/api/mails'&&request.method==='POST'){const b=await body(request);await env.DB.prepare('INSERT INTO mails(customer_id,direction,mail_date,email,subject,summary,follow_date,external_id) VALUES(?,?,?,?,?,?,?,?)').bind(b.customer_id||null,b.direction||'',b.mail_date||'',b.email||'',b.subject||'',b.summary||'',b.follow_date||'',b.external_id||'').run();return json({ok:true},201)}
