@@ -59,23 +59,12 @@ CREATE TABLE IF NOT EXISTS mails (
   FOREIGN KEY(customer_id) REFERENCES customers(id) ON DELETE SET NULL
 );
 
-CREATE TABLE IF NOT EXISTS meeting_images (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  meeting_id INTEGER NOT NULL,
-  object_key TEXT NOT NULL UNIQUE,
-  file_name TEXT,
-  content_type TEXT,
-  file_size INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY(meeting_id) REFERENCES meetings(id) ON DELETE CASCADE
-);
 
 CREATE INDEX IF NOT EXISTS idx_customers_follow ON customers(follow_date);
 CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
 CREATE INDEX IF NOT EXISTS idx_offers_customer ON offers(customer_id);
 CREATE INDEX IF NOT EXISTS idx_meetings_customer ON meetings(customer_id);
 CREATE INDEX IF NOT EXISTS idx_mails_customer ON mails(customer_id);
-CREATE INDEX IF NOT EXISTS idx_meeting_images_meeting ON meeting_images(meeting_id);
 
 INSERT INTO customers (company,contact_name,phone,email,region,sector,priority,stage,follow_date)
 SELECT 'Atlas Tekstil','Murat Yılmaz','0532 111 22 33','murat@atlastekstil.com','Bursa','Tekstil','KRİTİK','Teklif','2026-08-21'
