@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS offers (
   offer_date TEXT,
   follow_date TEXT,
   note TEXT,
+  result_reason TEXT DEFAULT '',
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(customer_id) REFERENCES customers(id) ON DELETE CASCADE
 );
