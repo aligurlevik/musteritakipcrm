@@ -1,0 +1,40 @@
+, teklif dönüşünü sor."></textarea></div>
+</div><div style="text-align:right;margin-top:12px"><button class="btn" onclick="closeM('meetingModal')">İptal</button> <button class="btn primary" onclick="saveMeeting()">Kaydet</button></div></div></div>
+
+<div id="offerModal" class="modal"><div class="box"><h3>Teklif Ekle</h3><div class="grid"><div><label>Firma</label><select id="o_customer"></select></div><div><label>Teklif No</label><input id="o_no"></div><div class="full"><label>Konu</label><input id="o_subject"></div><div><label>Tutar</label><input id="o_amount" type="number"></div><div><label>Para Birimi</label><select id="o_currency"><option>TRY</option><option>EUR</option><option>USD</option><option>GBP</option></select></div><div><label>Durum</label><select id="o_status"><option>Taslak</option><option>Gönderildi</option><option>Revize</option><option>Bekliyor</option><option>Onaylandı</option><option>Reddedildi</option></select></div><div><label>Teklif Tarihi</label><input id="o_date" type="date"></div><div><label>Takip Tarihi</label><input id="o_follow" type="date"></div><div class="full"><label>Not</label><textarea id="o_note"></textarea></div></div><div style="text-align:right;margin-top:12px"><button class="btn" onclick="closeM('offerModal')">İptal</button> <button class="btn primary" onclick="saveOffer()">Kaydet</button></div></div></div>
+
+<div id="mailModal" class="modal"><div class="box"><h3>Mail Kaydı</h3><div class="grid"><div><label>Firma</label><select id="e_customer"></select></div><div><label>Gelen/Giden</label><select id="e_dir"><option>Gelen</option><option>Giden</option></select></div><div><label>Tarih</label><input id="e_date" type="datetime-local"></div><div><label>Mail</label><input id="e_email"></div><div class="full"><label>Konu</label><input id="e_subject"></div><div class="full"><label>Özet</label><textarea id="e_summary" rows="4"></textarea></div><div><label>Takip</label><input id="e_follow" type="date"></div></div><div style="text-align:right;margin-top:12px"><button class="btn" onclick="closeM('mailModal')">İptal</button> <button class="btn primary" onclick="saveMail()">Kaydet</button></div></div></div>
+
+<script>
+const $=id=>document.getElementById(id); const today=()=>new Date().toISOString().slice(0,10); let currentMeetingFilter='Aktif'; let currentCategoryFilter=''; let allCustomers=[];
+$('date').textContent=new Date().toLocaleDateString('tr-TR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+async function req(url,opt={}){
+  const r=await fetch(url,{...opt,headers:{'content-type':'application/json',...(opt.headers||{})}});
+  let d={}; try{d=await r.json()}catch{}
+  if(r.status===401){$('login').classList.add('show');throw new Error('Oturum süresi doldu.')}
+  if(!r.ok) throw new Error(d.error||d.message||('Sunucu hatası: '+r.status));
+  return d;
+}
+function showMsg(msg,type='ok'){let el=$('appMsg');if(!el){el=document.createElement('div');el.id='appMsg';el.style.cssText='position:fixed;right:20px;bottom:20px;z-index:60;padding:14px 18px;border-radius:10px;color:white;font-weight:700;box-shadow:0 8px 30px #0003';document.body.appendChild(el)}el.style.background=type==='err'?'#dc2626':'#059669';el.textContent=msg;el.style.display='block';clearTimeout(window.__msgTimer);window.__msgTimer=setTimeout(()=>el.style.display='none',3000)}
+async function login(){const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:$('pw').value})});if(r.ok){$('login').classList.remove('show');loadAll()}else $('loginErr').textContent='Şifre hatalı.'}
+async function logout(){await fetch('/api/logout');location.reload()}
+document.querySelectorAll('.menu button[data-page]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.menu button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));$(b.dataset.page).classList.add('active');$('title').textContent=b.textContent});
+function cls(d){return !d?'':d<today()?'overdue':d===today()?'due':''}
+
+async function loadDashboard(){const d=await req('/api/dashboard');$('k1').textContent=d.total;$('k2').textContent=d.today;$('k3').textContent=d.overdue;$('k4').textContent=d.openOffers;$('due').innerHTML=(d.due||[]).map(x=>`<div class="card ${cls(x.follow_date)}" style="margin:8px 0"><b>${x.company}</b> — ${x.contact_name||''}<div class="small">${x.priority} • ${x.stage} • Takip: ${x.follow_date||''}</div></div>`).join('')||'<div class="small">Takip yok.</div>'}
+
+async function loadCustomers(){
+  const q=encodeURIComponent($('search')?.value||'');
+  const s=encodeURIComponent($('customerStatusFilter')?.value||'Aktif');
+  const cat=encodeURIComponent(currentCategoryFilter||'');
+  const a=await req('/api/customers?q='+q+'&status='+s+'&category='+cat); allCustomers=a;
+  $('customerRows').innerHTML=a.map(x=>{
+    let phones=[],emails=[];
+    try{phones=JSON.parse(x.phones_json||'[]')}catch{}
+    try{emails=JSON.parse(x.emails_json||'[]')}catch{}
+    if(!phones.length&&x.phone)phones=[x.phone];
+    if(!emails.length&&x.email)emails=[x.email];
+    const phoneText=phones.slice(0,2).join('<br>')+(phones.length>2?`<br><span class="small">+${phones.length-2} telefon</span>`:'');
+    const emailText=emails.slice(0,2).map(e=>`<a href="mailto:${e}">${e}</a>`).join('<br>')+(emails.length>2?`<br><span class="small">+${emails.length-2} mail</span>`:'');
+    return `<tr class="${cls(x.follow_date)}"><td>${x.priority}</td><td><b>${x.company}</b></td><td>${x.contact_name||''}</td><td>${phoneText}</td><td>${emailText}</td><td>${x.region||''}</td><td>${(x.categories||x.sector||'').replaceAll(',',', ')}</td><td>${x.stage||''}</td><td>${x.follow_date||''}</td><td><button class="btn primary" onclick="editCustomer(${x.id})">Düzenle</button> <button class="btn" onclick="openInvoice(${x.id})">Fatura</button> ${x.record_status==='Silindi'?`<button class="btn green" onclick="restoreCustomer(${x.id})">Ger
