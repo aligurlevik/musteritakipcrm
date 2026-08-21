@@ -209,6 +209,14 @@ async function api(request, env) {
     await env.DB.prepare("UPDATE meetings SET remind_at=?,reminder_status='Açık' WHERE id=?").bind(b.remind_at,Number(reminderSnooze[1])).run();
     return json({ok:true,remind_at:b.remind_at});
   }
+  const reminderUpdate=path.match(/^\/api\/meetings\/(\d+)\/reminder$/);
+  if(reminderUpdate&&request.method==='PUT'){
+    const meetingId=Number(reminderUpdate[1]),b=await body(request),remindAt=b.remind_at||'';
+    const existing=await env.DB.prepare('SELECT id FROM meetings WHERE id=?').bind(meetingId).first();
+    if(!existing)return json({error:'Görüşme bulunamadı'},404);
+    await env.DB.prepare('UPDATE meetings SET remind_at=?,remind_note=?,reminder_status=? WHERE id=?').bind(remindAt,b.remind_note||'',remindAt?'Açık':'',meetingId).run();
+    return json({ok:true});
+  }
   if(md&&request.method==='PUT'){
     const meetingId=Number(md[1]), b=await body(request);
     const existing=await env.DB.prepare('SELECT customer_id FROM meetings WHERE id=?').bind(meetingId).first();
