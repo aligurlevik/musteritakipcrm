@@ -99,7 +99,7 @@
   <h4>Teklifler</h4><div id="historyOffers" class="history-list"></div>
 </div></div>
 
-<div id="meetingModal" class="modal"><div class="box"><h3>Görüşme Ekle</h3><div class="grid">
+<div id="meetingModal" class="modal"><div class="box"><h3 id="meetingModalTitle">Görüşme Ekle</h3><input id="m_id" type="hidden"><div class="grid">
 <div><label>Firma</label><select id="m_customer"></select></div><div><label>Görüşme No</label><input value="Otomatik verilecek" disabled></div>
 <div><label>Görüşme Tarihi</label><input id="m_date" type="date"></div><div><label>Sonraki Takip</label><input id="m_follow" type="date"></div>
 <div class="full"><label>Görüşme Notu</label><textarea id="m_note" rows="5"></textarea></div>
@@ -114,7 +114,7 @@
 <div id="mailModal" class="modal"><div class="box"><h3>Mail Kaydı</h3><div class="grid"><div><label>Firma</label><select id="e_customer"></select></div><div><label>Gelen/Giden</label><select id="e_dir"><option>Gelen</option><option>Giden</option></select></div><div><label>Tarih</label><input id="e_date" type="datetime-local"></div><div><label>Mail</label><input id="e_email"></div><div class="full"><label>Konu</label><input id="e_subject"></div><div class="full"><label>Özet</label><textarea id="e_summary" rows="4"></textarea></div><div><label>Takip</label><input id="e_follow" type="date"></div></div><div style="text-align:right;margin-top:12px"><button class="btn" onclick="closeM('mailModal')">İptal</button> <button class="btn primary" onclick="saveMail()">Kaydet</button></div></div></div>
 
 <script>
-const $=id=>document.getElementById(id); const today=()=>new Date().toISOString().slice(0,10); let currentMeetingFilter='Aktif'; let currentCategoryFilter=''; let allCustomers=[];
+const $=id=>document.getElementById(id); const today=()=>new Date().toISOString().slice(0,10); let currentMeetingFilter='Aktif'; let currentCategoryFilter=''; let allCustomers=[]; let allMeetings=[];
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 $('date').textContent=new Date().toLocaleDateString('tr-TR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
@@ -155,7 +155,7 @@ function fillCustomerSelects(a){const op=a.map(x=>`<option value="${x.id}">${x.c
 
 function setCategoryFilter(cat,btn){currentCategoryFilter=cat;document.querySelectorAll('.category-filter-btn').forEach(b=>b.classList.remove('primary'));if(btn)btn.classList.add('primary');loadCustomers()}
 function setMeetingFilter(filter,btn){currentMeetingFilter=filter;document.querySelectorAll('.meeting-filter-btn').forEach(b=>b.classList.remove('primary'));if(btn)btn.classList.add('primary');loadMeetings()}
-async function loadMeetings(){const a=await req('/api/meetings?status='+encodeURIComponent(currentMeetingFilter));$('meetingRows').innerHTML=a.map(x=>{const target=x.remind_at&&x.reminder_status==='Açık'?x.remind_at:x.next_follow_date;return `<tr class="${meetingUrgency(target)}"><td><b>${x.company}</b></td><td>${x.contact_name||''}</td><td>${x.meeting_no}</td><td>${x.meeting_date||''}</td><td>${x.note||''}</td><td>${x.next_follow_date||''}</td><td>${x.remind_at?new Date(x.remind_at).toLocaleString('tr-TR'):''}</td><td>${x.remind_note||''}</td><td>${x.result||'Beklemede'}</td><td>${x.result_note||''}</td><td><button class="btn red" onclick="deleteMeeting(${x.id})">Sil</button></td></tr>`}).join('');checkMeetingNotifications(a)}
+async function loadMeetings(){const a=await req('/api/meetings?status='+encodeURIComponent(currentMeetingFilter));allMeetings=a;$('meetingRows').innerHTML=a.map(x=>{const target=x.remind_at&&x.reminder_status==='Açık'?x.remind_at:x.next_follow_date;return `<tr class="${meetingUrgency(target)}"><td><b>${x.company}</b></td><td>${x.contact_name||''}</td><td>${x.meeting_no}</td><td>${x.meeting_date||''}</td><td>${x.note||''}</td><td>${x.next_follow_date||''}</td><td>${x.remind_at?new Date(x.remind_at).toLocaleString('tr-TR'):''}</td><td>${x.remind_note||''}</td><td>${x.result||'Beklemede'}</td><td>${x.result_note||''}</td><td><button class="btn primary" onclick="editMeeting(${x.id})">Düzenle</button> <button class="btn red" onclick="deleteMeeting(${x.id})">Sil</button></td></tr>`}).join('');checkMeetingNotifications(a)}
 async function loadOffers(){const a=await req('/api/offers');$('offerRows').innerHTML=a.map(x=>`<tr class="${cls(x.follow_date)}"><td>${x.offer_no||''}</td><td><b>${x.company}</b></td><td>${x.subject||''}</td><td>${Number(x.amount||0).toLocaleString('tr-TR')} ${x.currency}</td><td>${x.status}</td><td>${x.offer_date||''}</td><td>${x.follow_date||''}</td><td>${x.note||''}</td></tr>`).join('')}
 async function loadMails(){const a=await req('/api/mails');$('mailRows').innerHTML=a.map(x=>`<tr class="${cls(x.follow_date)}"><td>${x.mail_date||''}</td><td><b>${x.company||''}</b></td><td>${x.direction||''}</td><td>${x.subject||''}</td><td>${x.summary||''}</td><td><a href="mailto:${x.email||''}">${x.email||''}</a></td><td>${x.follow_date||''}</td></tr>`).join('')}
 
@@ -188,7 +188,9 @@ function editCustomer(id){
   const cats=(x.categories||x.sector||'').split(',').map(s=>s.trim()).filter(Boolean);document.querySelectorAll('.cat-check').forEach(c=>c.checked=cats.includes(c.value));
   openM('customerModal');
 }
-async function openMeeting(){await loadCustomers();$('m_date').value=today();openM('meetingModal')} async function openOffer(){await loadCustomers();$('o_date').value=today();openM('offerModal')} async function openMail(){await loadCustomers();$('e_date').value=new Date().toISOString().slice(0,16);openM('mailModal')}
+async function openMeeting(){await loadCustomers();$('m_id').value='';$('meetingModalTitle').textContent='Görüşme Ekle';$('m_customer').disabled=false;$('m_date').value=today();$('m_follow').value='';$('m_note').value='';$('m_result').value='Beklemede';$('m_result_note').value='';$('m_remind_at').value='';$('m_remind_note').value='';openM('meetingModal')}
+function editMeeting(id){const x=allMeetings.find(item=>item.id===id);if(!x)return showMsg('Görüşme bulunamadı.','err');$('m_id').value=x.id;$('meetingModalTitle').textContent=x.meeting_no+'. Görüşmeyi Düzenle';$('m_customer').value=x.customer_id;$('m_customer').disabled=true;$('m_date').value=x.meeting_date||'';$('m_follow').value=x.next_follow_date||'';$('m_note').value=x.note||'';$('m_result').value=x.result||'Beklemede';$('m_result_note').value=x.result_note||'';$('m_remind_at').value=(x.remind_at||'').slice(0,16);$('m_remind_note').value=x.remind_note||'';openM('meetingModal')}
+async function openOffer(){await loadCustomers();$('o_date').value=today();openM('offerModal')} async function openMail(){await loadCustomers();$('e_date').value=new Date().toISOString().slice(0,16);openM('mailModal')}
 
 async function saveCustomer(){
   try{
@@ -208,7 +210,7 @@ async function saveInvoice(){try{await req('/api/customers/'+Number($('i_custome
 async function trashCustomer(id){if(!confirm('Bu müşteri Silinenler bölümüne taşınsın mı?'))return;try{await req('/api/customers/'+id+'/trash',{method:'POST'});showMsg('Silinenler bölümüne taşındı.');loadAll()}catch(e){showMsg(e.message,'err')}}
 async function restoreCustomer(id){try{await req('/api/customers/'+id+'/restore',{method:'POST'});showMsg('Müşteri geri alındı.');loadAll()}catch(e){showMsg(e.message,'err')}}
 
-async function saveMeeting(){try{const d=await req('/api/meetings',{method:'POST',body:JSON.stringify({customer_id:Number($('m_customer').value),meeting_date:$('m_date').value,note:$('m_note').value.trim(),next_follow_date:$('m_follow').value,remind_at:$('m_remind_at').value,remind_note:$('m_remind_note').value.trim(),result:$('m_result').value,result_note:$('m_result_note').value.trim()})});closeM('meetingModal');showMsg(d.meeting_no+'. görüşme kaydedildi.');loadAll()}catch(e){showMsg(e.message,'err')}}
+async function saveMeeting(){try{const id=Number($('m_id').value||0);const payload={customer_id:Number($('m_customer').value),meeting_date:$('m_date').value,note:$('m_note').value.trim(),next_follow_date:$('m_follow').value,remind_at:$('m_remind_at').value,remind_note:$('m_remind_note').value.trim(),result:$('m_result').value,result_note:$('m_result_note').value.trim()};const d=await req(id?'/api/meetings/'+id:'/api/meetings',{method:id?'PUT':'POST',body:JSON.stringify(payload)});closeM('meetingModal');showMsg(id?'Görüşme güncellendi.':d.meeting_no+'. görüşme kaydedildi.');loadAll()}catch(e){showMsg(e.message,'err')}}
 async function deleteMeeting(id){if(!confirm('Bu görüşme silinsin mi? Müşteri silinmeyecek.'))return;try{await req('/api/meetings/'+id,{method:'DELETE'});showMsg('Görüşme silindi.');loadAll()}catch(e){showMsg(e.message,'err')}}
 
 async function saveOffer(){try{if(!$('o_subject').value.trim())return showMsg('Teklif konusu zorunlu.','err');await req('/api/offers',{method:'POST',body:JSON.stringify({customer_id:Number($('o_customer').value),offer_no:$('o_no').value.trim(),subject:$('o_subject').value.trim(),amount:Number($('o_amount').value||0),currency:$('o_currency').value,status:$('o_status').value,offer_date:$('o_date').value,follow_date:$('o_follow').value,note:$('o_note').value.trim()})});closeM('offerModal');showMsg('Teklif kaydedildi.');loadAll()}catch(e){showMsg(e.message,'err')}}

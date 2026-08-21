@@ -195,7 +195,19 @@ async function api(request, env) {
     else if(b.result==='Olumlu'||b.result==='Tekrar Görüşülecek') await env.DB.prepare("UPDATE customers SET record_status='Aktif',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
     return json({ok:true,meeting_id:created.meta.last_row_id,meeting_no:meetingNo},201);
   }
-  const md=path.match(/^\/api\/meetings\/(\d+)$/); if(md&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM meetings WHERE id=?').bind(Number(md[1])).run();return json({ok:true})}
+  const md=path.match(/^\/api\/meetings\/(\d+)$/);
+  if(md&&request.method==='PUT'){
+    const meetingId=Number(md[1]), b=await body(request);
+    const existing=await env.DB.prepare('SELECT customer_id FROM meetings WHERE id=?').bind(meetingId).first();
+    if(!existing)return json({error:'Görüşme bulunamadı'},404);
+    await env.DB.prepare(`UPDATE meetings SET meeting_date=?,note=?,next_follow_date=?,remind_at=?,remind_note=?,reminder_status=?,result=?,result_note=? WHERE id=?`)
+      .bind(b.meeting_date||'',b.note||'',b.next_follow_date||'',b.remind_at||'',b.remind_note||'',b.remind_at?'Açık':'',b.result||'Beklemede',b.result_note||'',meetingId).run();
+    if(b.next_follow_date)await env.DB.prepare('UPDATE customers SET follow_date=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.next_follow_date,existing.customer_id).run();
+    if(b.result==='Olumsuz')await env.DB.prepare("UPDATE customers SET record_status='Pasif',stage='Kaybedildi',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(existing.customer_id).run();
+    else if(b.result==='Olumlu'||b.result==='Tekrar Görüşülecek')await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage=CASE WHEN stage='Kaybedildi' THEN 'İlk Görüşme' ELSE stage END,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(existing.customer_id).run();
+    return json({ok:true});
+  }
+  if(md&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM meetings WHERE id=?').bind(Number(md[1])).run();return json({ok:true})}
 
   if(path==='/api/offers'&&request.method==='GET'){return json((await env.DB.prepare('SELECT o.*,c.company FROM offers o JOIN customers c ON c.id=o.customer_id ORDER BY COALESCE(o.offer_date,o.created_at) DESC').all()).results)}
   if(path==='/api/offers'&&request.method==='POST'){const b=await body(request);await env.DB.prepare('INSERT INTO offers(customer_id,offer_no,subject,amount,currency,status,offer_date,follow_date,note) VALUES(?,?,?,?,?,?,?,?,?)').bind(b.customer_id,b.offer_no||'',b.subject||'',Number(b.amount||0),b.currency||'TRY',b.status||'Taslak',b.offer_date||'',b.follow_date||'',b.note||'').run();return json({ok:true},201)}
