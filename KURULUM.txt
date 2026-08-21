@@ -1,0 +1,24 @@
+GELİŞMİŞ MÜŞTERİ KARTI
+
+Eklenenler:
+- Mevcut müşteriyi Düzenle / Güncelle
+- Özel Notlar
+- Makine Bilgileri
+- Birden fazla telefon
+- Birden fazla mail
+- Sektör yerine kategori: Matbaa / Etiket / Ambalaj / PVC / Otomotiv
+- Kategori filtre tuşları
+- Bir müşteri birden fazla kategoriye atanabilir
+
+Kurulum:
+1) ZIP'i aç.
+2) public/index.html -> cloud\public\index.html üzerine kopyala.
+3) src/index.js -> cloud\src\index.js üzerine kopyala.
+4) wrangler.jsonc dosyasına dokunma.
+5) Migration çalıştırma.
+6) CMD:
+   cd Desktop\cloud
+   npm run deploy
+7) CRM sayfasında Ctrl+F5.
+
+Backend yeni alanları D1'e otomatik ekler. Mevcut kayıtlar silinmez.

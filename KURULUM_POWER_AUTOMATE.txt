@@ -1,0 +1,43 @@
+OUTLOOK / POWER AUTOMATE MAIL ENTEGRASYONU
+
+Bu güncelleme CRM'ye:
+POST /api/mail-webhook
+endpoint'ini ekler.
+
+Power Automate bu adrese mail bilgisini gönderir.
+Mail adresi customers.email alanında bulunursa mail otomatik olarak o müşteriye bağlanır.
+
+KURULUM
+
+1) src/index.js -> cloud\src\index.js üzerine kopyala.
+2) public/index.html -> cloud\public\index.html üzerine kopyala.
+3) CMD'de cloud klasöründeyken webhook anahtarı oluştur:
+
+   npx wrangler secret put MAIL_WEBHOOK_KEY
+
+   Buraya uzun ve rastgele bir değer gir.
+   Örnek kullanma; kendi anahtarını belirle ve kimseyle paylaşma.
+
+4) Yayınla:
+   npm run deploy
+
+POWER AUTOMATE'TE KULLANILACAK WEBHOOK
+
+URL:
+https://musteri-takip-crm.musteritakipcrm.workers.dev/api/mail-webhook
+
+Header:
+x-crm-webhook-key = senin MAIL_WEBHOOK_KEY değerin
+
+JSON gövdesi örneği:
+{
+  "direction": "Gelen",
+  "mail_date": "2026-08-21T11:45:00",
+  "email": "murat@atlastekstil.com",
+  "subject": "RE: Teklif",
+  "summary": "Müşteri fiyat revizyonu istedi.",
+  "external_id": "OUTLOOK_MESSAGE_ID"
+}
+
+Not:
+HTTP action bazı Power Automate lisanslarında Premium olabilir. Eğer hesabında HTTP action yoksa sonraki adımda alternatif bağlantı yöntemi kurabiliriz.
