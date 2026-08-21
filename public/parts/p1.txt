@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CRM Müşteri Takip</title>
+<style>
+:root{--nav:#0f172a;--blue:#2563eb;--bg:#f3f4f6;--panel:#fff;--line:#dbe2ea;--muted:#64748b;--red:#dc2626;--amber:#d97706;--green:#059669}
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial;background:var(--bg);color:#111827}.app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}.side{background:var(--nav);color:white;padding:20px}.logo{font-size:20px;font-weight:800;margin-bottom:24px}.menu{display:grid;gap:8px}.menu button{border:0;background:transparent;color:#cbd5e1;padding:12px;border-radius:9px;text-align:left;cursor:pointer}.menu button.active,.menu button:hover{background:var(--blue);color:white}.main{padding:24px}.top{display:flex;justify-content:space-between;align-items:center}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:18px 0}.card{background:white;border:1px solid var(--line);border-radius:14px;padding:16px}.kpi b{font-size:28px;display:block}.kpi span{font-size:12px;color:var(--muted)}.section{display:none}.section.active{display:block}.table{overflow:auto;background:white;border:1px solid var(--line);border-radius:14px}table{width:100%;border-collapse:collapse;min-width:900px}th,td{padding:11px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:top}th{background:#eef2f7}.btn{border:0;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer}.primary{background:var(--blue);color:white}.green{background:var(--green);color:white}.red{background:var(--red);color:white}.toolbar{display:flex;justify-content:space-between;gap:10px;margin:14px 0;align-items:center;flex-wrap:wrap}.toolbar input{max-width:320px}.modal{display:none;position:fixed;inset:0;background:#0006;align-items:center;justify-content:center;z-index:30}.modal.open{display:flex}.box{width:min(760px,94vw);max-height:90vh;overflow:auto;background:white;border-radius:14px;padding:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}input,select,textarea{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px}.login{display:none;position:fixed;inset:0;background:var(--nav);align-items:center;justify-content:center;z-index:50}.login.show{display:flex}.loginbox{background:white;width:min(400px,92vw);padding:26px;border-radius:16px}.due{background:#fef3c7}.overdue{background:#fee2e2}.small{font-size:12px;color:var(--muted)}.filterbar{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:900px){.app{grid-template-columns:1fr}.side{position:static}.menu{grid-template-columns:repeat(3,1fr)}.cards{grid-template-columns:1fr 1fr}}
+</style></head>
+<body>
+<div id="login" class="login"><div class="loginbox"><h2>CRM Giriş</h2><input id="pw" type="password" placeholder="Şifre"><button class="btn primary" style="width:100%;margin-top:10px" onclick="login()">Giriş Yap</button><div id="loginErr" class="small" style="color:#b91c1c;margin-top:8px"></div></div></div>
+<div class="app">
+<aside class="side"><div class="logo">CRM Müşteri Takip</div><div class="menu">
+<button class="active" data-page="dash">Ana Ekran</button><button data-page="customers">Müşteriler</button><button data-page="meetings">Görüşmeler</button><button data-page="offers">Teklifler</button><button data-page="mails">Mailler</button><button onclick="logout()">Çıkış</button>
+</div></aside>
+<main class="main">
+<div class="top"><div><h1 id="title">Ana Ekran</h1><div class="small" id="date"></div></div><div style="display:flex;gap:8px"><button class="btn green" onclick="seedDemo()">Örnek Şablonu Yükle</button><button class="btn primary" onclick="openCustomer()">+ Yeni Müşteri</button></div></div>
+
+<section id="dash" class="section active"><div class="cards">
+<div class="card kpi"><span>Aktif Müşteri</span><b id="k1">0</b></div><div class="card kpi"><span>Bugün Takip</span><b id="k2">0</b></div><div class="card kpi"><span>Geciken</span><b id="k3">0</b></div><div class="card kpi"><span>Açık Teklif</span><b id="k4">0</b></div></div>
+<div class="card"><h3>Bugün ve geciken takipler</h3><div id="due"></div></div></section>
+
+<section id="customers" class="section">
+<div class="toolbar">
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div class="filterbar">
+      <select id="customerStatusFilter" onchange="loadCustomers()"><option>Aktif</option><option>Pasif</option><option>Silindi</option><option>Tümü</option></select>
+      <input id="search" placeholder="Firma, kişi, telefon, mail ara..." oninput="loadCustomers()">
+    </div>
+    <div id="categoryFilterBar" class="filterbar">
+      <button class="btn primary category-filter-btn" onclick="setCategoryFilter('',this)">Tümü</button>
+      <button class="btn category-filter-btn" onclick="setCategoryFilter('Matbaa',this)">Matbaa</button>
+      <button class="btn category-filter-btn" onclick="setCategoryFilter('Etiket',this)">Etiket</button>
+      <button class="btn category-filter-btn" onclick="setCategoryFilter('Ambalaj',this)">Ambalaj</button>
+      <button class="btn category-filter-btn" onclick="setCategoryFilter('PVC',this)">PVC</button>
+      <button class="btn category-filter-btn" onclick="setCategoryFilter('Otomotiv',this)">Otomotiv</button>
+    </div>
+  </div>
+  <button class="btn primary" onclick="openCustomer()">+ Yeni Müşteri</button>
+</div>
+<div class="table"><table><thead><tr><th>Öncelik</th><th>Firma</th><th>Kişi</th><th>Telefonlar</th><th>Mailler</th><th>Bölge</th><th>Kategori</th><th>Aşama</th><th>Takip</th><th>Aksiyon</th></tr></thead><tbody id="customerRows"></tbody></table></div>
+</section>
+
+<section id="meetings" class="section">
+<div class="toolbar">
+  <div><h3>Görüşme Geçmişi</h3><div class="filterbar">
+    <button class="btn primary meeting-filter-btn" onclick="setMeetingFilter('Aktif',this)">Aktif</button>
+    <button class="btn meeting-filter-btn" onclick="setMeetingF
