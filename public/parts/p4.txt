@@ -1,0 +1,46 @@
+i Al</button>`:`<button class="btn red" onclick="trashCustomer(${x.id})">Silinenlere At</button>`}</td></tr>`;
+  }).join('');
+  fillCustomerSelects(await req('/api/customers?status=Aktif'));
+}
+function fillCustomerSelects(a){const op=a.map(x=>`<option value="${x.id}">${x.company}</option>`).join('');['m_customer','o_customer','e_customer'].forEach(id=>$(id).innerHTML=op)}
+
+function setCategoryFilter(cat,btn){currentCategoryFilter=cat;document.querySelectorAll('.category-filter-btn').forEach(b=>b.classList.remove('primary'));if(btn)btn.classList.add('primary');loadCustomers()}
+function setMeetingFilter(filter,btn){currentMeetingFilter=filter;document.querySelectorAll('.meeting-filter-btn').forEach(b=>b.classList.remove('primary'));if(btn)btn.classList.add('primary');loadMeetings()}
+async function loadMeetings(){const a=await req('/api/meetings?status='+encodeURIComponent(currentMeetingFilter));$('meetingRows').innerHTML=a.map(x=>{const over=x.remind_at&&x.reminder_status==='Açık'&&x.remind_at<new Date().toISOString().slice(0,16);return `<tr class="${over?'overdue':cls(x.next_follow_date)}"><td><b>${x.company}</b></td><td>${x.contact_name||''}</td><td>${x.meeting_no}</td><td>${x.meeting_date||''}</td><td>${x.note||''}</td><td>${x.next_follow_date||''}</td><td>${x.remind_at?new Date(x.remind_at).toLocaleString('tr-TR'):''}</td><td>${x.remind_note||''}</td><td>${x.result||'Beklemede'}</td><td>${x.result_note||''}</td><td><button class="btn red" onclick="deleteMeeting(${x.id})">Sil</button></td></tr>`}).join('');checkMeetingNotifications(a)}
+async function loadOffers(){const a=await req('/api/offers');$('offerRows').innerHTML=a.map(x=>`<tr class="${cls(x.follow_date)}"><td>${x.offer_no||''}</td><td><b>${x.company}</b></td><td>${x.subject||''}</td><td>${Number(x.amount||0).toLocaleString('tr-TR')} ${x.currency}</td><td>${x.status}</td><td>${x.offer_date||''}</td><td>${x.follow_date||''}</td><td>${x.note||''}</td></tr>`).join('')}
+async function loadMails(){const a=await req('/api/mails');$('mailRows').innerHTML=a.map(x=>`<tr class="${cls(x.follow_date)}"><td>${x.mail_date||''}</td><td><b>${x.company||''}</b></td><td>${x.direction||''}</td><td>${x.subject||''}</td><td>${x.summary||''}</td><td><a href="mailto:${x.email||''}">${x.email||''}</a></td><td>${x.follow_date||''}</td></tr>`).join('')}
+
+async function loadAll(){try{await Promise.all([loadDashboard(),loadCustomers(),loadMeetings(),loadOffers(),loadMails()])}catch(e){console.error(e);if(e.message!=='Oturum süresi doldu.')showMsg(e.message,'err')}}
+function openM(id){$(id).classList.add('open')} function closeM(id){$(id).classList.remove('open')}
+function clearCustomerForm(){
+  $('c_id').value='';$('customerModalTitle').textContent='Yeni Müşteri';
+  ['c_company','c_name','c_phones','c_emails','c_region','c_follow','c_special_notes','c_machine_info','c_invoice_title','c_tax_office','c_tax_number','c_invoice_address'].forEach(id=>$(id).value='');
+  $('c_priority').value='NORMAL';$('c_stage').value='Yeni Lead';document.querySelectorAll('.cat-check').forEach(c=>c.checked=false);
+}
+function openCustomer(){clearCustomerForm();openM('customerModal')}
+function editCustomer(id){
+  const x=allCustomers.find(c=>c.id===id);if(!x)return showMsg('Müşteri bulunamadı.','err');
+  $('c_id').value=x.id;$('customerModalTitle').textContent='Müşteri Güncelle';$('c_company').value=x.company||'';$('c_name').value=x.contact_name||'';
+  let ph=[],em=[];try{ph=JSON.parse(x.phones_json||'[]')}catch{}try{em=JSON.parse(x.emails_json||'[]')}catch{}
+  if(!ph.length&&x.phone)ph=[x.phone];if(!em.length&&x.email)em=[x.email];
+  $('c_phones').value=ph.join('\n');$('c_emails').value=em.join('\n');$('c_region').value=x.region||'';$('c_priority').value=x.priority||'NORMAL';$('c_stage').value=x.stage||'Yeni Lead';$('c_follow').value=x.follow_date||'';
+  $('c_special_notes').value=x.special_notes||'';$('c_machine_info').value=x.machine_info||'';$('c_invoice_title').value=x.invoice_title||'';$('c_tax_office').value=x.tax_office||'';$('c_tax_number').value=x.tax_number||'';$('c_invoice_address').value=x.invoice_address||'';
+  const cats=(x.categories||x.sector||'').split(',').map(s=>s.trim()).filter(Boolean);document.querySelectorAll('.cat-check').forEach(c=>c.checked=cats.includes(c.value));
+  openM('customerModal');
+}
+async function openMeeting(){await loadCustomers();$('m_date').value=today();openM('meetingModal')} async function openOffer(){await loadCustomers();$('o_date').value=today();openM('offerModal')} async function openMail(){await loadCustomers();$('e_date').value=new Date().toISOString().slice(0,16);openM('mailModal')}
+
+async function saveCustomer(){
+  try{
+    const company=$('c_company').value.trim();if(!company)return showMsg('Firma adı zorunlu.','err');
+    const phones=$('c_phones').value.split(/\n|,/).map(s=>s.trim()).filter(Boolean);
+    const emails=$('c_emails').value.split(/\n|,/).map(s=>s.trim()).filter(Boolean);
+    const categories=[...document.querySelectorAll('.cat-check:checked')].map(c=>c.value);
+    const payload={company,contact_name:$('c_name').value.trim(),phones,emails,region:$('c_region').value.trim(),priority:$('c_priority').value,stage:$('c_stage').value,follow_date:$('c_follow').value,categories,special_notes:$('c_special_notes').value.trim(),machine_info:$('c_machine_info').value.trim(),invoice_title:$('c_invoice_title').value.trim(),tax_office:$('c_tax_office').value.trim(),tax_number:$('c_tax_number').value.trim(),invoice_address:$('c_invoice_address').value.trim()};
+    const id=Number($('c_id').value||0);
+    if(id)await req('/api/customers/'+id,{method:'PUT',body:JSON.stringify(payload)});else await req('/api/customers',{method:'POST',body:JSON.stringify(payload)});
+    closeM('customerModal');showMsg(id?'Müşteri güncellendi.':'Müşteri kaydedildi.');await loadAll();
+  }catch(e){showMsg(e.message,'err')}
+}
+
+function openInvoice(id){const x=allCustomers.find(c=>c.id===id);if(!x)return showMsg('Müşteri bulunamadı.','err');$('i_customer_id')
