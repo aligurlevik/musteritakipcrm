@@ -104,3 +104,4 @@ Ardından:
 `npm run deploy`
 
 Tarayıcı bildirimi için Görüşmeler ekranındaki **Bildirim İzni** düğmesine basın. CRM açıkken zamanı gelen görüşme hatırlatması Windows bildirimi olarak gösterilir.
+Cloudflare otomatik deploy aktif.
