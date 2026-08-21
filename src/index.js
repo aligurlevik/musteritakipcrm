@@ -44,6 +44,10 @@ async function ensureSchema(env) {
     id INTEGER PRIMARY KEY AUTOINCREMENT, customer_id INTEGER, direction TEXT, mail_date TEXT, email TEXT,
     subject TEXT, summary TEXT, follow_date TEXT, external_id TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`).run();
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS meeting_images (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, meeting_id INTEGER NOT NULL, object_key TEXT NOT NULL UNIQUE,
+    file_name TEXT, content_type TEXT, file_size INTEGER DEFAULT 0, created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  )`).run();
 
   for (const [name,def] of [
     ['invoice_title',"TEXT DEFAULT ''"],['tax_office',"TEXT DEFAULT ''"],['tax_number',"TEXT DEFAULT ''"],
@@ -64,6 +68,7 @@ async function ensureSchema(env) {
     'CREATE INDEX IF NOT EXISTS idx_meetings_remind_at ON meetings(remind_at)',
     'CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email)',
     'CREATE INDEX IF NOT EXISTS idx_mails_external_id ON mails(external_id)'
+    ,'CREATE INDEX IF NOT EXISTS idx_meeting_images_meeting ON meeting_images(meeting_id)'
   ]) await env.DB.prepare(sql).run();
 }
 
@@ -166,12 +171,15 @@ async function api(request, env) {
     const customerId=Number(history[1]);
     const customer=await env.DB.prepare('SELECT * FROM customers WHERE id=?').bind(customerId).first();
     if(!customer)return json({error:'Müşteri bulunamadı'},404);
-    const [meetings,mails,offers]=await Promise.all([
+    const [meetings,mails,offers,images]=await Promise.all([
       env.DB.prepare('SELECT * FROM meetings WHERE customer_id=? ORDER BY meeting_no ASC, COALESCE(meeting_date,created_at) ASC').bind(customerId).all(),
       env.DB.prepare('SELECT * FROM mails WHERE customer_id=? ORDER BY COALESCE(mail_date,created_at) DESC').bind(customerId).all(),
-      env.DB.prepare('SELECT * FROM offers WHERE customer_id=? ORDER BY COALESCE(offer_date,created_at) DESC').bind(customerId).all()
+      env.DB.prepare('SELECT * FROM offers WHERE customer_id=? ORDER BY COALESCE(offer_date,created_at) DESC').bind(customerId).all(),
+      env.DB.prepare('SELECT mi.* FROM meeting_images mi JOIN meetings m ON m.id=mi.meeting_id WHERE m.customer_id=? ORDER BY mi.created_at').bind(customerId).all()
     ]);
-    return json({customer,meetings:meetings.results||[],mails:mails.results||[],offers:offers.results||[]});
+    const imageRows=images.results||[];
+    const meetingRows=(meetings.results||[]).map(meeting=>({...meeting,images:imageRows.filter(image=>image.meeting_id===meeting.id)}));
+    return json({customer,meetings:meetingRows,mails:mails.results||[],offers:offers.results||[]});
   }
 
   if(path==='/api/meetings' && request.method==='GET') {
@@ -188,14 +196,65 @@ async function api(request, env) {
     if(!customerId)return json({error:'Firma seçimi zorunlu'},400);
     const last=await env.DB.prepare('SELECT COALESCE(MAX(meeting_no),0) last_no FROM meetings WHERE customer_id=?').bind(customerId).first();
     const meetingNo=Number(last?.last_no||0)+1;
-    await env.DB.prepare(`INSERT INTO meetings(customer_id,meeting_no,meeting_date,note,next_follow_date,remind_at,remind_note,reminder_status,result,result_note) VALUES(?,?,?,?,?,?,?,?,?,?)`)
+    const created=await env.DB.prepare(`INSERT INTO meetings(customer_id,meeting_no,meeting_date,note,next_follow_date,remind_at,remind_note,reminder_status,result,result_note) VALUES(?,?,?,?,?,?,?,?,?,?)`)
       .bind(customerId,meetingNo,b.meeting_date||'',b.note||'',b.next_follow_date||'',b.remind_at||'',b.remind_note||'',b.remind_at?'Açık':'',b.result||'Beklemede',b.result_note||'').run();
     if(b.next_follow_date) await env.DB.prepare('UPDATE customers SET follow_date=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.next_follow_date,customerId).run();
     if(b.result==='Olumsuz') await env.DB.prepare("UPDATE customers SET record_status='Pasif',stage='Kaybedildi',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
     else if(b.result==='Olumlu'||b.result==='Tekrar Görüşülecek') await env.DB.prepare("UPDATE customers SET record_status='Aktif',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
-    return json({ok:true,meeting_no:meetingNo},201);
+    return json({ok:true,meeting_id:created.meta.last_row_id,meeting_no:meetingNo},201);
   }
-  const md=path.match(/^\/api\/meetings\/(\d+)$/); if(md&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM meetings WHERE id=?').bind(Number(md[1])).run();return json({ok:true})}
+  const meetingImages=path.match(/^\/api\/meetings\/(\d+)\/images$/);
+  if(meetingImages&&request.method==='POST'){
+    if(!env.MEETING_IMAGES)return json({error:'Fotoğraf deposu bağlı değil'},503);
+    const meetingId=Number(meetingImages[1]);
+    const meeting=await env.DB.prepare('SELECT id FROM meetings WHERE id=?').bind(meetingId).first();
+    if(!meeting)return json({error:'Görüşme bulunamadı'},404);
+    const form=await request.formData();
+    const files=form.getAll('images').filter(file=>file instanceof File&&file.size>0);
+    if(!files.length)return json({error:'Fotoğraf seçilmedi'},400);
+    if(files.length>10)return json({error:'Bir görüşmeye en fazla 10 fotoğraf eklenebilir'},400);
+    const allowed=new Set(['image/jpeg','image/png','image/webp','image/gif']);
+    const saved=[];
+    for(const file of files){
+      if(!allowed.has(file.type))return json({error:`Desteklenmeyen dosya: ${file.name}`},400);
+      if(file.size>8*1024*1024)return json({error:`${file.name} 8 MB sınırını aşıyor`},400);
+      const extension=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif' })[file.type];
+      const key=`meetings/${meetingId}/${crypto.randomUUID()}.${extension}`;
+      await env.MEETING_IMAGES.put(key,file,{httpMetadata:{contentType:file.type}});
+      try{
+        const result=await env.DB.prepare('INSERT INTO meeting_images(meeting_id,object_key,file_name,content_type,file_size) VALUES(?,?,?,?,?)')
+          .bind(meetingId,key,file.name,file.type,file.size).run();
+        saved.push({id:result.meta.last_row_id,file_name:file.name});
+      }catch(error){await env.MEETING_IMAGES.delete(key);throw error}
+    }
+    return json({ok:true,images:saved},201);
+  }
+  const imageRoute=path.match(/^\/api\/meeting-images\/(\d+)$/);
+  if(imageRoute&&request.method==='GET'){
+    const image=await env.DB.prepare('SELECT * FROM meeting_images WHERE id=?').bind(Number(imageRoute[1])).first();
+    if(!image)return json({error:'Fotoğraf bulunamadı'},404);
+    const object=await env.MEETING_IMAGES.get(image.object_key);
+    if(!object)return json({error:'Fotoğraf dosyası bulunamadı'},404);
+    const headers=new Headers();object.writeHttpMetadata(headers);headers.set('etag',object.httpEtag);headers.set('cache-control','private, max-age=86400');
+    return new Response(object.body,{headers});
+  }
+  if(imageRoute&&request.method==='DELETE'){
+    const image=await env.DB.prepare('SELECT object_key FROM meeting_images WHERE id=?').bind(Number(imageRoute[1])).first();
+    if(!image)return json({error:'Fotoğraf bulunamadı'},404);
+    await env.MEETING_IMAGES.delete(image.object_key);
+    await env.DB.prepare('DELETE FROM meeting_images WHERE id=?').bind(Number(imageRoute[1])).run();
+    return json({ok:true});
+  }
+  const md=path.match(/^\/api\/meetings\/(\d+)$/);
+  if(md&&request.method==='DELETE'){
+    const meetingId=Number(md[1]);
+    const images=await env.DB.prepare('SELECT object_key FROM meeting_images WHERE meeting_id=?').bind(meetingId).all();
+    const keys=(images.results||[]).map(image=>image.object_key);
+    if(keys.length&&env.MEETING_IMAGES)await env.MEETING_IMAGES.delete(keys);
+    await env.DB.prepare('DELETE FROM meeting_images WHERE meeting_id=?').bind(meetingId).run();
+    await env.DB.prepare('DELETE FROM meetings WHERE id=?').bind(meetingId).run();
+    return json({ok:true});
+  }
 
   if(path==='/api/offers'&&request.method==='GET'){return json((await env.DB.prepare('SELECT o.*,c.company FROM offers o JOIN customers c ON c.id=o.customer_id ORDER BY COALESCE(o.offer_date,o.created_at) DESC').all()).results)}
   if(path==='/api/offers'&&request.method==='POST'){const b=await body(request);await env.DB.prepare('INSERT INTO offers(customer_id,offer_no,subject,amount,currency,status,offer_date,follow_date,note) VALUES(?,?,?,?,?,?,?,?,?)').bind(b.customer_id,b.offer_no||'',b.subject||'',Number(b.amount||0),b.currency||'TRY',b.status||'Taslak',b.offer_date||'',b.follow_date||'',b.note||'').run();return json({ok:true},201)}
