@@ -196,6 +196,17 @@ async function api(request, env) {
     return json({ok:true,meeting_id:created.meta.last_row_id,meeting_no:meetingNo},201);
   }
   const md=path.match(/^\/api\/meetings\/(\d+)$/);
+  const reminderDone=path.match(/^\/api\/meetings\/(\d+)\/reminder-complete$/);
+  if(reminderDone&&request.method==='POST'){
+    await env.DB.prepare("UPDATE meetings SET reminder_status='Tamamlandı' WHERE id=?").bind(Number(reminderDone[1])).run();
+    return json({ok:true});
+  }
+  const reminderSnooze=path.match(/^\/api\/meetings\/(\d+)\/reminder-snooze$/);
+  if(reminderSnooze&&request.method==='POST'){
+    const b=await body(request);if(!b.remind_at)return json({error:'Yeni hatırlatma zamanı zorunlu'},400);
+    await env.DB.prepare("UPDATE meetings SET remind_at=?,reminder_status='Açık' WHERE id=?").bind(b.remind_at,Number(reminderSnooze[1])).run();
+    return json({ok:true,remind_at:b.remind_at});
+  }
   if(md&&request.method==='PUT'){
     const meetingId=Number(md[1]), b=await body(request);
     const existing=await env.DB.prepare('SELECT customer_id FROM meetings WHERE id=?').bind(meetingId).first();
