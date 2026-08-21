@@ -1,0 +1,53 @@
+ilter('Bekleyen',this)">Bekleyen</button>
+    <button class="btn meeting-filter-btn" onclick="setMeetingFilter('Pasif',this)">Pasif</button>
+    <button class="btn meeting-filter-btn" onclick="setMeetingFilter('Tümü',this)">Tümü</button>
+  </div></div>
+  <div><button class="btn" onclick="enableNotifications()">Bildirim İzni</button> <button class="btn green" onclick="openMeeting()">+ Görüşme</button></div>
+</div>
+<div class="table"><table><thead><tr><th>Firma</th><th>Kişi</th><th>No</th><th>Tarih</th><th>Görüşme Notu</th><th>Sonraki Takip</th><th>Hatırlatma</th><th>Hatırlatma Notu</th><th>Sonuç</th><th>Sonuç Notu</th><th>Aksiyon</th></tr></thead><tbody id="meetingRows"></tbody></table></div>
+</section>
+
+<section id="offers" class="section"><div class="toolbar"><h3>Teklif Yönetimi</h3><button class="btn green" onclick="openOffer()">+ Teklif</button></div><div class="table"><table><thead><tr><th>No</th><th>Firma</th><th>Konu</th><th>Tutar</th><th>Durum</th><th>Tarih</th><th>Takip</th><th>Not</th></tr></thead><tbody id="offerRows"></tbody></table></div></section>
+
+<section id="mails" class="section"><div class="toolbar"><h3>Mail Geçmişi</h3><button class="btn green" onclick="openMail()">+ Mail Kaydı</button></div><div class="card small" style="margin-bottom:12px">Power Automate / webhook hazırsa gelen-giden mailler otomatik düşebilir. Mail adresi müşteride kayıtlıysa firma otomatik eşleşir.</div><div class="table"><table><thead><tr><th>Tarih</th><th>Firma</th><th>Gelen/Giden</th><th>Konu</th><th>Özet</th><th>Mail</th><th>Takip</th></tr></thead><tbody id="mailRows"></tbody></table></div></section>
+</main></div>
+
+<div id="customerModal" class="modal"><div class="box">
+<h3 id="customerModalTitle">Yeni Müşteri</h3><input id="c_id" type="hidden">
+<div class="grid">
+<div><label>Firma</label><input id="c_company"></div>
+<div><label>Görüşme Yapılan Kişi</label><input id="c_name"></div>
+<div class="full"><label>Telefonlar <span class="small">(her satıra bir telefon)</span></label><textarea id="c_phones" rows="3"></textarea></div>
+<div class="full"><label>Mail Adresleri <span class="small">(her satıra bir mail)</span></label><textarea id="c_emails" rows="3"></textarea></div>
+<div><label>Bölge</label><input id="c_region"></div>
+<div><label>Öncelik</label><select id="c_priority"><option>KRİTİK</option><option>YÜKSEK</option><option selected>NORMAL</option><option>DÜŞÜK</option></select></div>
+<div><label>Aşama</label><select id="c_stage"><option>Yeni Lead</option><option>İlk Görüşme</option><option>Teklif</option><option>Pazarlık</option><option>Beklemede</option><option>Kazanıldı</option><option>Kaybedildi</option></select></div>
+<div><label>Takip Tarihi</label><input id="c_follow" type="date"></div>
+<div class="full" style="border-top:1px solid var(--line);padding-top:10px"><b>Müşteri Kategorileri</b></div>
+<div class="full" style="display:flex;gap:16px;flex-wrap:wrap">
+<label><input type="checkbox" class="cat-check" value="Matbaa" style="width:auto"> Matbaa</label>
+<label><input type="checkbox" class="cat-check" value="Etiket" style="width:auto"> Etiket</label>
+<label><input type="checkbox" class="cat-check" value="Ambalaj" style="width:auto"> Ambalaj</label>
+<label><input type="checkbox" class="cat-check" value="PVC" style="width:auto"> PVC</label>
+<label><input type="checkbox" class="cat-check" value="Otomotiv" style="width:auto"> Otomotiv</label>
+</div>
+<div class="full"><label>Özel Notlar</label><textarea id="c_special_notes" rows="4"></textarea></div>
+<div class="full"><label>Makine Bilgileri</label><textarea id="c_machine_info" rows="4"></textarea></div>
+<div class="full" style="border-top:1px solid var(--line);padding-top:10px"><b>Fatura Bilgileri</b></div>
+<div><label>Fatura Ünvanı</label><input id="c_invoice_title"></div>
+<div><label>Vergi Dairesi</label><input id="c_tax_office"></div>
+<div><label>Vergi / TC No</label><input id="c_tax_number"></div>
+<div class="full"><label>Fatura Adresi</label><textarea id="c_invoice_address" rows="3"></textarea></div>
+</div>
+<div style="text-align:right;margin-top:12px"><button class="btn" onclick="closeM('customerModal')">İptal</button> <button class="btn primary" onclick="saveCustomer()">Kaydet</button></div>
+</div></div>
+<div id="invoiceModal" class="modal"><div class="box"><h3>Fatura Bilgileri</h3><input id="i_customer_id" type="hidden"><div class="grid"><div class="full"><label>Firma</label><input id="i_company" disabled></div><div><label>Fatura Ünvanı</label><input id="i_invoice_title"></div><div><label>Vergi Dairesi</label><input id="i_tax_office"></div><div><label>Vergi / TC No</label><input id="i_tax_number"></div><div class="full"><label>Fatura Adresi</label><textarea id="i_invoice_address" rows="4"></textarea></div></div><div style="text-align:right;margin-top:12px"><button class="btn" onclick="closeM('invoiceModal')">İptal</button> <button class="btn primary" onclick="saveInvoice()">Kaydet</button></div></div></div>
+
+<div id="meetingModal" class="modal"><div class="box"><h3>Görüşme Ekle</h3><div class="grid">
+<div><label>Firma</label><select id="m_customer"></select></div><div><label>Görüşme No</label><select id="m_no"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+<div><label>Görüşme Tarihi</label><input id="m_date" type="date"></div><div><label>Sonraki Takip</label><input id="m_follow" type="date"></div>
+<div class="full"><label>Görüşme Notu</label><textarea id="m_note" rows="5"></textarea></div>
+<div><label>Görüşme Sonucu</label><select id="m_result"><option>Beklemede</option><option>Olumlu</option><option>Olumsuz</option><option>Tekrar Görüşülecek</option></select></div>
+<div class="full"><label>Sonuç Notu</label><textarea id="m_result_note" rows="3"></textarea></div>
+<div><label>Hatırlatma Tarihi / Saati</label><input id="m_remind_at" type="datetime-local"></div>
+<div class="full"><label>Hatırlatma Notu</label><textarea id="m_remind_note" rows="3" placeholder="Örn: Murat Bey'i ara
