@@ -7,7 +7,8 @@
 :root{--nav:#0f172a;--blue:#2563eb;--bg:#f3f4f6;--panel:#fff;--line:#dbe2ea;--muted:#64748b;--red:#dc2626;--amber:#d97706;--green:#059669}
 *{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial;background:var(--bg);color:#111827}.app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}.side{background:var(--nav);color:white;padding:20px}.logo{font-size:20px;font-weight:800;margin-bottom:24px}.menu{display:grid;gap:8px}.menu button{border:0;background:transparent;color:#cbd5e1;padding:12px;border-radius:9px;text-align:left;cursor:pointer}.menu button.active,.menu button:hover{background:var(--blue);color:white}.main{padding:24px}.top{display:flex;justify-content:space-between;align-items:center}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:18px 0}.card{background:white;border:1px solid var(--line);border-radius:14px;padding:16px}.kpi b{font-size:28px;display:block}.kpi span{font-size:12px;color:var(--muted)}.section{display:none}.section.active{display:block}.table{overflow:auto;background:white;border:1px solid var(--line);border-radius:14px}table{width:100%;border-collapse:collapse;min-width:900px}th,td{padding:11px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:top}th{background:#eef2f7}.btn{border:0;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer}.primary{background:var(--blue);color:white}.green{background:var(--green);color:white}.red{background:var(--red);color:white}.toolbar{display:flex;justify-content:space-between;gap:10px;margin:14px 0;align-items:center;flex-wrap:wrap}.toolbar input{max-width:320px}.modal{display:none;position:fixed;inset:0;background:#0006;align-items:center;justify-content:center;z-index:30}.modal.open{display:flex}.box{width:min(760px,94vw);max-height:90vh;overflow:auto;background:white;border-radius:14px;padding:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}input,select,textarea{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px}.login{display:none;position:fixed;inset:0;background:var(--nav);align-items:center;justify-content:center;z-index:50}.login.show{display:flex}.loginbox{background:white;width:min(400px,92vw);padding:26px;border-radius:16px}.due{background:#fef3c7}.overdue{background:#fee2e2}.small{font-size:12px;color:var(--muted)}.filterbar{display:flex;gap:8px;flex-wrap:wrap}
 .history-list{display:grid;gap:10px}.history-item{border-left:4px solid var(--blue);background:#f8fafc;border-radius:8px;padding:12px}.history-item.mail{border-left-color:var(--green)}.history-item.offer{border-left-color:var(--amber)}.history-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px}.history-empty{padding:14px;background:#f8fafc;border-radius:8px;color:var(--muted)}tr.urgency-watch td{background:#fffbea}tr.urgency-soon td{background:#ffedb5}tr.urgency-near td{background:#ffc66d}tr.urgency-today td{background:#ef7b55;color:#3f0b00}tr.urgency-overdue td{background:#b91c1c;color:white}tr.urgency-overdue a{color:white}
-@media(max-width:900px){.app{grid-template-columns:1fr}.side{position:static}.menu{grid-template-columns:repeat(3,1fr)}.cards{grid-template-columns:1fr 1fr}}
+.customer-card-box{width:min(1120px,97vw);padding:0;overflow:hidden}.customer-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;background:linear-gradient(135deg,#0f172a,#1e3a8a);color:white}.customer-card-head h3{margin:0}.customer-card-actions{display:flex;gap:7px;flex-wrap:wrap}.customer-card-actions .btn{background:#fff;color:#0f172a}.customer-card-actions .save{background:#22c55e;color:#052e16}.customer-card-actions .danger{background:#fee2e2;color:#991b1b}.customer-card-body{padding:18px;max-height:calc(90vh - 76px);overflow:auto}.customer-card-grid{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:14px}.form-panel{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff}.form-panel h4{margin:0 0 12px;color:#1e3a8a;border-bottom:1px solid var(--line);padding-bottom:8px}.form-stack{display:grid;gap:10px}.field-row{display:grid;grid-template-columns:125px 1fr;gap:8px;align-items:center}.field-row label{font-size:13px;font-weight:700}.category-box{display:flex;gap:10px;flex-wrap:wrap}.customer-card-foot{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:14px;padding:12px 14px;background:#f8fafc;border:1px solid var(--line);border-radius:12px}.customer-card-foot-actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:900px){.app{grid-template-columns:1fr}.side{position:static}.menu{grid-template-columns:repeat(3,1fr)}.cards{grid-template-columns:1fr 1fr}.customer-card-grid{grid-template-columns:1fr}.customer-card-head{align-items:flex-start;flex-direction:column}.field-row{grid-template-columns:1fr}.customer-card-foot{align-items:flex-start;flex-direction:column}}
 </style></head>
 <body>
 <div id="login" class="login"><div class="loginbox"><h2>CRM Giriş</h2><input id="pw" type="password" placeholder="Şifre"><button class="btn primary" style="width:100%;margin-top:10px" onclick="login()">Giriş Yap</button><div id="loginErr" class="small" style="color:#b91c1c;margin-top:8px"></div></div></div>
@@ -61,35 +62,16 @@
 <section id="mails" class="section"><div class="toolbar"><h3>Mail Geçmişi</h3><button class="btn green" onclick="openMail()">+ Mail Kaydı</button></div><div class="card small" style="margin-bottom:12px">Power Automate / webhook hazırsa gelen-giden mailler otomatik düşebilir. Mail adresi müşteride kayıtlıysa firma otomatik eşleşir.</div><div class="table"><table><thead><tr><th>Tarih</th><th>Firma</th><th>Gelen/Giden</th><th>Konu</th><th>Özet</th><th>Mail</th><th>Takip</th></tr></thead><tbody id="mailRows"></tbody></table></div></section>
 </main></div>
 
-<div id="customerModal" class="modal"><div class="box">
-<h3 id="customerModalTitle">Yeni Müşteri</h3><input id="c_id" type="hidden">
-<div class="grid">
-<div><label>Firma</label><input id="c_company"></div>
-<div><label>Görüşme Yapılan Kişi</label><input id="c_name"></div>
-<div class="full"><label>Telefonlar <span class="small">(her satıra bir telefon)</span></label><textarea id="c_phones" rows="3"></textarea></div>
-<div class="full"><label>Mail Adresleri <span class="small">(her satıra bir mail)</span></label><textarea id="c_emails" rows="3"></textarea></div>
-<div><label>Bölge</label><input id="c_region"></div>
-<div><label>Öncelik</label><select id="c_priority"><option>KRİTİK</option><option>YÜKSEK</option><option selected>NORMAL</option><option>DÜŞÜK</option></select></div>
-<div><label>Aşama</label><select id="c_stage"><option>Yeni Lead</option><option>İlk Görüşme</option><option>Teklif</option><option>Pazarlık</option><option>Beklemede</option><option>Kazanıldı</option><option>Kaybedildi</option></select></div>
-<div><label>Takip Tarihi</label><input id="c_follow" type="date"></div>
-<div class="full" style="border-top:1px solid var(--line);padding-top:10px"><b>Müşteri Kategorileri</b></div>
-<div class="full" style="display:flex;gap:16px;flex-wrap:wrap">
-<label><input type="checkbox" class="cat-check" value="Matbaa" style="width:auto"> Matbaa</label>
-<label><input type="checkbox" class="cat-check" value="Etiket" style="width:auto"> Etiket</label>
-<label><input type="checkbox" class="cat-check" value="Ambalaj" style="width:auto"> Ambalaj</label>
-<label><input type="checkbox" class="cat-check" value="PVC" style="width:auto"> PVC</label>
-<label><input type="checkbox" class="cat-check" value="Otomotiv" style="width:auto"> Otomotiv</label>
-</div>
-<div class="full"><label>Özel Notlar</label><textarea id="c_special_notes" rows="4"></textarea></div>
-<div class="full"><label>Makine Bilgileri</label><textarea id="c_machine_info" rows="4"></textarea></div>
-<div class="full" style="border-top:1px solid var(--line);padding-top:10px"><b>Fatura Bilgileri</b></div>
-<div><label>Fatura Ünvanı</label><input id="c_invoice_title"></div>
-<div><label>Vergi Dairesi</label><input id="c_tax_office"></div>
-<div><label>Vergi / TC No</label><input id="c_tax_number"></div>
-<div class="full"><label>Fatura Adresi</label><textarea id="c_invoice_address" rows="3"></textarea></div>
-</div>
-<div style="text-align:right;margin-top:12px"><button class="btn" onclick="closeM('customerModal')">İptal</button> <button class="btn primary" onclick="saveCustomer()">Kaydet</button></div>
-</div></div>
+<div id="customerModal" class="modal"><div class="box customer-card-box">
+<div class="customer-card-head"><div><div class="small" style="color:#bfdbfe">MÜŞTERİ KARTI</div><h3 id="customerModalTitle">Yeni Müşteri</h3></div><div class="customer-card-actions"><button class="btn" onclick="openCustomer()">＋ Yeni</button><button class="btn save" onclick="saveCustomer()">✓ Kaydet</button><button id="customerTrashBtn" class="btn danger" onclick="trashCurrentCustomer()">Silinenlere At</button><button class="btn" onclick="closeM('customerModal')">Kapat</button></div></div>
+<input id="c_id" type="hidden"><div class="customer-card-body"><div class="customer-card-grid">
+<section class="form-panel"><h4>Müşteri Bilgileri</h4><div class="form-stack">
+<div class="field-row"><label>Müşteri No</label><input id="c_number" value="Otomatik" disabled></div><div class="field-row"><label>Firma</label><input id="c_company" placeholder="Firma adı"></div><div class="field-row"><label>Yetkili Kişi</label><input id="c_name" placeholder="Görüşülen kişi"></div><div class="field-row"><label>Bölge</label><input id="c_region"></div><div class="field-row"><label>Öncelik</label><select id="c_priority"><option>KRİTİK</option><option>YÜKSEK</option><option selected>NORMAL</option><option>DÜŞÜK</option></select></div><div class="field-row"><label>Aşama</label><select id="c_stage"><option>Yeni Lead</option><option>İlk Görüşme</option><option>Teklif</option><option>Pazarlık</option><option>Beklemede</option><option>Kazanıldı</option><option>Kaybedildi</option></select></div><div class="field-row"><label>Takip Tarihi</label><input id="c_follow" type="date"></div>
+</div></section>
+<section class="form-panel"><h4>İletişim ve Kategori</h4><div class="form-stack"><div><label>Telefonlar <span class="small">(her satıra bir telefon)</span></label><textarea id="c_phones" rows="4"></textarea></div><div><label>Mail Adresleri <span class="small">(her satıra bir mail)</span></label><textarea id="c_emails" rows="4"></textarea></div><div><label style="font-weight:700">Müşteri Kategorileri</label><div class="category-box" style="margin-top:8px"><label><input type="checkbox" class="cat-check" value="Matbaa" style="width:auto"> Matbaa</label><label><input type="checkbox" class="cat-check" value="Etiket" style="width:auto"> Etiket</label><label><input type="checkbox" class="cat-check" value="Ambalaj" style="width:auto"> Ambalaj</label><label><input type="checkbox" class="cat-check" value="PVC" style="width:auto"> PVC</label><label><input type="checkbox" class="cat-check" value="Otomotiv" style="width:auto"> Otomotiv</label></div></div></div></section>
+<section class="form-panel"><h4>Adres, Not ve Fatura</h4><div class="form-stack"><div><label>Özel Notlar</label><textarea id="c_special_notes" rows="3"></textarea></div><div><label>Makine Bilgileri</label><textarea id="c_machine_info" rows="3"></textarea></div><div class="field-row"><label>Fatura Ünvanı</label><input id="c_invoice_title"></div><div class="field-row"><label>Vergi Dairesi</label><input id="c_tax_office"></div><div class="field-row"><label>Vergi / TC No</label><input id="c_tax_number"></div><div><label>Fatura Adresi</label><textarea id="c_invoice_address" rows="3"></textarea></div></div></section>
+</div><div class="customer-card-foot"><div><b>Müşteri hareketleri</b><div class="small">Görüşme, teklif ve mail geçmişine bu karttan ulaşabilirsiniz.</div></div><div class="customer-card-foot-actions"><button id="customerHistoryBtn" class="btn green" onclick="historyCurrentCustomer()">Tüm Geçmiş</button><button id="customerMeetingBtn" class="btn primary" onclick="meetingForCurrentCustomer()">＋ Görüşme Ekle</button><button id="customerOfferBtn" class="btn" onclick="offerForCurrentCustomer()">＋ Teklif Ekle</button></div></div>
+</div></div></div>
 <div id="invoiceModal" class="modal"><div class="box"><h3>Fatura Bilgileri</h3><input id="i_customer_id" type="hidden"><div class="grid"><div class="full"><label>Firma</label><input id="i_company" disabled></div><div><label>Fatura Ünvanı</label><input id="i_invoice_title"></div><div><label>Vergi Dairesi</label><input id="i_tax_office"></div><div><label>Vergi / TC No</label><input id="i_tax_number"></div><div class="full"><label>Fatura Adresi</label><textarea id="i_invoice_address" rows="4"></textarea></div></div><div style="text-align:right;margin-top:12px"><button class="btn" onclick="closeM('invoiceModal')">İptal</button> <button class="btn primary" onclick="saveInvoice()">Kaydet</button></div></div></div>
 
 <div id="historyModal" class="modal"><div class="box">
@@ -170,10 +152,11 @@ async function loadMails(){const a=await req('/api/mails');$('mailRows').innerHT
 
 async function loadAll(){try{await Promise.all([loadDashboard(),loadCustomers(),loadMeetings(),loadOffers(),loadMails()])}catch(e){console.error(e);if(e.message!=='Oturum süresi doldu.')showMsg(e.message,'err')}}
 function openM(id){$(id).classList.add('open')} function closeM(id){$(id).classList.remove('open')}
+function setCustomerCardActions(hasCustomer){['customerTrashBtn','customerHistoryBtn','customerMeetingBtn','customerOfferBtn'].forEach(id=>$(id).style.display=hasCustomer?'inline-block':'none')}
 function clearCustomerForm(){
   $('c_id').value='';$('customerModalTitle').textContent='Yeni Müşteri';
   ['c_company','c_name','c_phones','c_emails','c_region','c_follow','c_special_notes','c_machine_info','c_invoice_title','c_tax_office','c_tax_number','c_invoice_address'].forEach(id=>$(id).value='');
-  $('c_priority').value='NORMAL';$('c_stage').value='Yeni Lead';document.querySelectorAll('.cat-check').forEach(c=>c.checked=false);
+  $('c_number').value='Otomatik';$('c_priority').value='NORMAL';$('c_stage').value='Yeni Lead';document.querySelectorAll('.cat-check').forEach(c=>c.checked=false);setCustomerCardActions(false);
 }
 function openCustomer(){clearCustomerForm();openM('customerModal')}
 async function openHistory(id){
@@ -189,14 +172,18 @@ async function openHistory(id){
 }
 function editCustomer(id){
   const x=allCustomers.find(c=>c.id===id);if(!x)return showMsg('Müşteri bulunamadı.','err');
-  $('c_id').value=x.id;$('customerModalTitle').textContent='Müşteri Güncelle';$('c_company').value=x.company||'';$('c_name').value=x.contact_name||'';
+  $('c_id').value=x.id;$('c_number').value=String(x.id).padStart(5,'0');$('customerModalTitle').textContent='Müşteri Kartı — '+(x.company||'');$('c_company').value=x.company||'';$('c_name').value=x.contact_name||'';
   let ph=[],em=[];try{ph=JSON.parse(x.phones_json||'[]')}catch{}try{em=JSON.parse(x.emails_json||'[]')}catch{}
   if(!ph.length&&x.phone)ph=[x.phone];if(!em.length&&x.email)em=[x.email];
   $('c_phones').value=ph.join('\n');$('c_emails').value=em.join('\n');$('c_region').value=x.region||'';$('c_priority').value=x.priority||'NORMAL';$('c_stage').value=x.stage||'Yeni Lead';$('c_follow').value=x.follow_date||'';
   $('c_special_notes').value=x.special_notes||'';$('c_machine_info').value=x.machine_info||'';$('c_invoice_title').value=x.invoice_title||'';$('c_tax_office').value=x.tax_office||'';$('c_tax_number').value=x.tax_number||'';$('c_invoice_address').value=x.invoice_address||'';
-  const cats=(x.categories||x.sector||'').split(',').map(s=>s.trim()).filter(Boolean);document.querySelectorAll('.cat-check').forEach(c=>c.checked=cats.includes(c.value));
+  const cats=(x.categories||x.sector||'').split(',').map(s=>s.trim()).filter(Boolean);document.querySelectorAll('.cat-check').forEach(c=>c.checked=cats.includes(c.value));setCustomerCardActions(true);
   openM('customerModal');
 }
+function historyCurrentCustomer(){const id=Number($('c_id').value||0);if(!id)return;closeM('customerModal');openHistory(id)}
+async function meetingForCurrentCustomer(){const id=Number($('c_id').value||0);if(!id)return;closeM('customerModal');await openMeeting();$('m_customer').value=id;$('m_customer').disabled=true}
+async function offerForCurrentCustomer(){const id=Number($('c_id').value||0);if(!id)return;closeM('customerModal');await openOffer();$('o_customer').value=id;$('o_customer').disabled=true}
+async function trashCurrentCustomer(){const id=Number($('c_id').value||0);if(!id)return;closeM('customerModal');await trashCustomer(id)}
 async function openMeeting(){await loadCustomers();$('m_id').value='';$('meetingModalTitle').textContent='Görüşme Ekle';$('m_customer').disabled=false;$('m_date').value=today();$('m_follow').value='';$('m_note').value='';$('m_result').value='Beklemede';$('m_result_note').value='';$('m_remind_at').value='';$('m_remind_note').value='';openM('meetingModal')}
 function editMeeting(id){const x=allMeetings.find(item=>item.id===id);if(!x)return showMsg('Görüşme bulunamadı.','err');$('m_id').value=x.id;$('meetingModalTitle').textContent=x.meeting_no+'. Görüşmeyi Düzenle';$('m_customer').value=x.customer_id;$('m_customer').disabled=true;$('m_date').value=x.meeting_date||'';$('m_follow').value=x.next_follow_date||'';$('m_note').value=x.note||'';$('m_result').value=x.result||'Beklemede';$('m_result_note').value=x.result_note||'';$('m_remind_at').value=(x.remind_at||'').slice(0,16);$('m_remind_note').value=x.remind_note||'';openM('meetingModal')}
 function toggleOfferReason(){const final=['Onaylandı','Reddedildi'].includes($('o_status').value);$('o_reason_wrap').style.display=final?'block':'none'}
