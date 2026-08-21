@@ -1,0 +1,19 @@
+.value=x.id;$('i_company').value=x.company||'';$('i_invoice_title').value=x.invoice_title||'';$('i_tax_office').value=x.tax_office||'';$('i_tax_number').value=x.tax_number||'';$('i_invoice_address').value=x.invoice_address||'';openM('invoiceModal')}
+async function saveInvoice(){try{await req('/api/customers/'+Number($('i_customer_id').value),{method:'PUT',body:JSON.stringify({invoice_title:$('i_invoice_title').value.trim(),tax_office:$('i_tax_office').value.trim(),tax_number:$('i_tax_number').value.trim(),invoice_address:$('i_invoice_address').value.trim()})});closeM('invoiceModal');showMsg('Fatura bilgileri kaydedildi.');loadAll()}catch(e){showMsg(e.message,'err')}}
+async function trashCustomer(id){if(!confirm('Bu müşteri Silinenler bölümüne taşınsın mı?'))return;try{await req('/api/customers/'+id+'/trash',{method:'POST'});showMsg('Silinenler bölümüne taşındı.');loadAll()}catch(e){showMsg(e.message,'err')}}
+async function restoreCustomer(id){try{await req('/api/customers/'+id+'/restore',{method:'POST'});showMsg('Müşteri geri alındı.');loadAll()}catch(e){showMsg(e.message,'err')}}
+
+async function saveMeeting(){try{await req('/api/meetings',{method:'POST',body:JSON.stringify({customer_id:Number($('m_customer').value),meeting_no:Number($('m_no').value),meeting_date:$('m_date').value,note:$('m_note').value.trim(),next_follow_date:$('m_follow').value,remind_at:$('m_remind_at').value,remind_note:$('m_remind_note').value.trim(),result:$('m_result').value,result_note:$('m_result_note').value.trim()})});closeM('meetingModal');showMsg('Görüşme kaydedildi.');loadAll()}catch(e){showMsg(e.message,'err')}}
+async function deleteMeeting(id){if(!confirm('Bu görüşme silinsin mi? Müşteri silinmeyecek.'))return;try{await req('/api/meetings/'+id,{method:'DELETE'});showMsg('Görüşme silindi.');loadAll()}catch(e){showMsg(e.message,'err')}}
+
+async function saveOffer(){try{if(!$('o_subject').value.trim())return showMsg('Teklif konusu zorunlu.','err');await req('/api/offers',{method:'POST',body:JSON.stringify({customer_id:Number($('o_customer').value),offer_no:$('o_no').value.trim(),subject:$('o_subject').value.trim(),amount:Number($('o_amount').value||0),currency:$('o_currency').value,status:$('o_status').value,offer_date:$('o_date').value,follow_date:$('o_follow').value,note:$('o_note').value.trim()})});closeM('offerModal');showMsg('Teklif kaydedildi.');loadAll()}catch(e){showMsg(e.message,'err')}}
+async function saveMail(){try{await req('/api/mails',{method:'POST',body:JSON.stringify({customer_id:Number($('e_customer').value),direction:$('e_dir').value,mail_date:$('e_date').value,email:$('e_email').value.trim(),subject:$('e_subject').value.trim(),summary:$('e_summary').value.trim(),follow_date:$('e_follow').value})});closeM('mailModal');showMsg('Mail kaydı eklendi.');loadAll()}catch(e){showMsg(e.message,'err')}}
+
+async function seedDemo(){if(!confirm('Örnek müşteriler yüklensin mi?'))return;try{const d=await req('/api/demo-seed',{method:'POST'});showMsg(d.message||'Örnekler yüklendi.');loadAll()}catch(e){showMsg(e.message,'err')}}
+
+const notifiedMeetings=new Set();
+async function enableNotifications(){if(!('Notification'in window))return alert('Tarayıcı bildirim desteklemiyor.');const p=await Notification.requestPermission();alert(p==='granted'?'Bildirim izni verildi.':'Bildirim izni verilmedi.')}
+function checkMeetingNotifications(items){if(!('Notification'in window)||Notification.permission!=='granted')return;const now=Date.now();for(const x of items){if(!x.remind_at||x.reminder_status==='Tamamlandı'||notifiedMeetings.has(x.id))continue;const when=new Date(x.remind_at).getTime();if(when<=now&&now-when<24*60*60*1000){new Notification('CRM Görüşme Hatırlatıcısı',{body:`${x.company}: ${x.remind_note||x.note||'Görüşmeyi takip et.'}`,tag:`crm-meeting-${x.id}`});notifiedMeetings.add(x.id)}}}
+
+loadAll(); setInterval(()=>loadMeetings().catch(()=>{}),60000);
+</script></body></html>
