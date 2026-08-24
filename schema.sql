@@ -67,7 +67,8 @@ CREATE TABLE IF NOT EXISTS agenda_entries (
   note TEXT NOT NULL,
   remind_at TEXT DEFAULT '',
   reminder_status TEXT DEFAULT '',
-  list_type TEXT DEFAULT 'Yapılacak',
+  entry_status TEXT DEFAULT 'Yapılacak',
+  completed_date TEXT DEFAULT '',
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
