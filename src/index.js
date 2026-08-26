@@ -16,6 +16,7 @@ async function validSession(request, env) {
 }
 const json = (data,status=200,headers={}) => new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8',...headers}});
 async function body(request){ try{return await request.json()}catch{return {}} }
+function validAgendaImage(value){const image=String(value||'');if(!image)return '';if(image.length>450000||!/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(image))return null;return image}
 
 async function tableColumns(env, table) {
   const r = await env.DB.prepare(`PRAGMA table_info(${table})`).all();
@@ -47,7 +48,7 @@ async function ensureSchema(env) {
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS agenda_entries (
     id INTEGER PRIMARY KEY AUTOINCREMENT, entry_date TEXT NOT NULL, sort_order INTEGER DEFAULT 1,
     note TEXT NOT NULL, remind_at TEXT DEFAULT '', reminder_status TEXT DEFAULT '',
-    entry_status TEXT DEFAULT 'Yapılacak', completed_date TEXT DEFAULT '', created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    entry_status TEXT DEFAULT 'Yapılacak', completed_date TEXT DEFAULT '', image_data TEXT DEFAULT '', created_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`).run();
 
   for (const [name,def] of [
@@ -66,6 +67,7 @@ async function ensureSchema(env) {
   await ensureColumn(env,'offers','result_reason',"TEXT DEFAULT ''");
   await ensureColumn(env,'agenda_entries','entry_status',"TEXT DEFAULT 'Yapılacak'");
   await ensureColumn(env,'agenda_entries','completed_date',"TEXT DEFAULT ''");
+  await ensureColumn(env,'agenda_entries','image_data',"TEXT DEFAULT ''");
 
   for (const sql of [
     'CREATE INDEX IF NOT EXISTS idx_customers_record_status ON customers(record_status)',
@@ -257,9 +259,9 @@ async function api(request, env) {
   if(path==='/api/agenda/day'&&request.method==='GET'){const date=url.searchParams.get('date')||new Date().toISOString().slice(0,10);return json((await env.DB.prepare('SELECT * FROM agenda_entries WHERE entry_date=? ORDER BY sort_order,id').bind(date).all()).results)}
   if(path==='/api/agenda/completed'&&request.method==='GET'){const date=url.searchParams.get('date')||new Date().toISOString().slice(0,10);return json((await env.DB.prepare("SELECT * FROM agenda_entries WHERE entry_status='Yapıldı' AND completed_date=? ORDER BY id DESC").bind(date).all()).results)}
   if(path==='/api/agenda'&&request.method==='GET'){const month=url.searchParams.get('month')||new Date().toISOString().slice(0,7);return json((await env.DB.prepare("SELECT * FROM agenda_entries WHERE entry_date LIKE ? ORDER BY entry_date,sort_order,id").bind(month+'%').all()).results)}
-  if(path==='/api/agenda'&&request.method==='POST'){const b=await body(request);if(!b.entry_date||!String(b.note||'').trim())return json({error:'Tarih ve ajanda notu zorunlu.'},400);const last=await env.DB.prepare('SELECT COALESCE(MAX(sort_order),0) n FROM agenda_entries WHERE entry_date=?').bind(b.entry_date).first();const remindAt=b.remind_at||'';const created=await env.DB.prepare('INSERT INTO agenda_entries(entry_date,sort_order,note,remind_at,reminder_status) VALUES(?,?,?,?,?)').bind(b.entry_date,Number(last?.n||0)+1,String(b.note).trim(),remindAt,remindAt?'Açık':'').run();return json({ok:true,id:created.meta.last_row_id},201)}
+  if(path==='/api/agenda'&&request.method==='POST'){const b=await body(request);if(!b.entry_date||!String(b.note||'').trim())return json({error:'Tarih ve ajanda notu zorunlu.'},400);const imageData=validAgendaImage(b.image_data);if(imageData===null)return json({error:'Resim geçersiz veya çok büyük.'},400);const last=await env.DB.prepare('SELECT COALESCE(MAX(sort_order),0) n FROM agenda_entries WHERE entry_date=?').bind(b.entry_date).first();const remindAt=b.remind_at||'';const created=await env.DB.prepare('INSERT INTO agenda_entries(entry_date,sort_order,note,remind_at,reminder_status,image_data) VALUES(?,?,?,?,?,?)').bind(b.entry_date,Number(last?.n||0)+1,String(b.note).trim(),remindAt,remindAt?'Açık':'',imageData).run();return json({ok:true,id:created.meta.last_row_id},201)}
   const agendaItem=path.match(/^\/api\/agenda\/(\d+)$/);
-  if(agendaItem&&request.method==='PUT'){const id=Number(agendaItem[1]),b=await body(request);if(!b.entry_date||!String(b.note||'').trim())return json({error:'Tarih ve ajanda notu zorunlu.'},400);const remindAt=b.remind_at||'';const ex=await env.DB.prepare('SELECT id FROM agenda_entries WHERE id=?').bind(id).first();if(!ex)return json({error:'Ajanda notu bulunamadı.'},404);await env.DB.prepare('UPDATE agenda_entries SET entry_date=?,note=?,remind_at=?,reminder_status=? WHERE id=?').bind(b.entry_date,String(b.note).trim(),remindAt,remindAt?'Açık':'',id).run();return json({ok:true})}
+  if(agendaItem&&request.method==='PUT'){const id=Number(agendaItem[1]),b=await body(request);if(!b.entry_date||!String(b.note||'').trim())return json({error:'Tarih ve ajanda notu zorunlu.'},400);const remindAt=b.remind_at||'';const ex=await env.DB.prepare('SELECT id,image_data FROM agenda_entries WHERE id=?').bind(id).first();if(!ex)return json({error:'Ajanda notu bulunamadı.'},404);const imageData=b.image_data===undefined?String(ex.image_data||''):validAgendaImage(b.image_data);if(imageData===null)return json({error:'Resim geçersiz veya çok büyük.'},400);await env.DB.prepare('UPDATE agenda_entries SET entry_date=?,note=?,remind_at=?,reminder_status=?,image_data=? WHERE id=?').bind(b.entry_date,String(b.note).trim(),remindAt,remindAt?'Açık':'',imageData,id).run();return json({ok:true})}
   if(agendaItem&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM agenda_entries WHERE id=?').bind(Number(agendaItem[1])).run();return json({ok:true})}
   const agendaDone=path.match(/^\/api\/agenda\/(\d+)\/complete$/);
   if(agendaDone&&request.method==='POST'){await env.DB.prepare("UPDATE agenda_entries SET reminder_status='Tamamlandı' WHERE id=?").bind(Number(agendaDone[1])).run();return json({ok:true})}
