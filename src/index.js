@@ -208,7 +208,7 @@ async function api(request, env) {
     if(status==='Aktif') where=" WHERE c.record_status='Aktif' AND COALESCE(m.result,'Beklemede') IN ('Olumlu','Tekrar Görüşülecek')";
     else if(status==='Bekleyen') where=" WHERE c.record_status<>'Silindi' AND COALESCE(m.result,'Beklemede')='Beklemede'";
     else if(status==='Pasif') where=" WHERE c.record_status='Pasif' OR COALESCE(m.result,'')='Olumsuz'";
-    const rows=await env.DB.prepare(`SELECT m.*,c.company,c.contact_name,c.record_status FROM meetings m JOIN customers c ON c.id=m.customer_id ${where} ORDER BY COALESCE(m.meeting_date,m.created_at) DESC`).all();
+    const rows=await env.DB.prepare(`SELECT m.*,c.company,c.contact_name,c.phone,c.email,c.phones_json,c.emails_json,c.record_status FROM meetings m JOIN customers c ON c.id=m.customer_id ${where} ORDER BY COALESCE(m.meeting_date,m.created_at) DESC`).all();
     return json(rows.results);
   }
   if(path==='/api/meetings' && request.method==='POST') {
