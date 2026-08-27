@@ -70,7 +70,7 @@
 </main></div>
 
 <div id="customerModal" class="modal"><div class="box customer-card-box">
-<div class="customer-card-head"><div><div class="small" style="color:#bfdbfe">MÜŞTERİ KARTI</div><h3 id="customerModalTitle">Yeni Müşteri</h3></div><div class="customer-card-actions"><button class="btn" onclick="openCustomer()">＋ Yeni</button><button class="btn save" onclick="saveCustomer()">✓ Kaydet</button><button id="customerTrashBtn" class="btn danger" onclick="trashCurrentCustomer()">Silinenlere At</button><button class="btn" onclick="closeM('customerModal')">Kapat</button></div></div>
+<div class="customer-card-head"><div><div class="small" style="color:#bfdbfe">MÜŞTERİ KARTI</div><h3 id="customerModalTitle">Yeni Müşteri</h3><div id="customerCreatedAt" class="small" style="display:none;color:#dbeafe;margin-top:5px;font-weight:700"></div></div><div class="customer-card-actions"><button class="btn" onclick="openCustomer()">＋ Yeni</button><button class="btn save" onclick="saveCustomer()">✓ Kaydet</button><button id="customerTrashBtn" class="btn danger" onclick="trashCurrentCustomer()">Silinenlere At</button><button class="btn" onclick="closeM('customerModal')">Kapat</button></div></div>
 <input id="c_id" type="hidden"><div class="customer-card-body"><div class="customer-card-grid">
 <section class="form-panel"><h4>Müşteri Bilgileri</h4><div class="form-stack">
 <div class="field-row"><label>Müşteri No</label><input id="c_number" value="Otomatik" disabled></div><div class="field-row"><label>Firma</label><input id="c_company" placeholder="Firma adı"></div><div class="field-row"><label>Yetkili Kişi</label><input id="c_name" placeholder="Görüşülen kişi"></div><div class="field-row"><label>Bölge</label><input id="c_region"></div><div class="field-row"><label>Öncelik</label><select id="c_priority"><option>KRİTİK</option><option>YÜKSEK</option><option selected>NORMAL</option><option>DÜŞÜK</option></select></div><div class="field-row"><label>Aşama</label><select id="c_stage"><option>Yeni Lead</option><option>İlk Görüşme</option><option>Teklif</option><option>Pazarlık</option><option>Beklemede</option><option>Kazanıldı</option><option>Kaybedildi</option></select></div><div class="field-row"><label>Takip Tarihi</label><input id="c_follow" type="date"></div>
@@ -246,7 +246,7 @@ function setCustomerNoteImage(value){customerNoteImageData=safeAgendaImage(value
 async function prepareCustomerNoteImage(input){const file=input.files?.[0];if(!file)return;try{setCustomerNoteImage(await compressAgendaImage(file));showMsg('Küçük resim hazır. Müşteriyi kaydedin.')}catch(e){showMsg(e.message,'err')}finally{input.value=''}}
 function removeCustomerNoteImage(){setCustomerNoteImage('')}
 function clearCustomerForm(){
-  $('c_id').value='';$('customerModalTitle').textContent='Yeni Müşteri';
+  $('c_id').value='';$('customerModalTitle').textContent='Yeni Müşteri';$('customerCreatedAt').textContent='';$('customerCreatedAt').style.display='none';
   ['c_company','c_name','c_phones','c_emails','c_region','c_follow','c_special_notes','c_machine_info','c_invoice_title','c_tax_office','c_tax_number','c_invoice_address'].forEach(id=>$(id).value='');
   setCustomerNoteImage('');$('c_number').value='Otomatik';$('c_priority').value='NORMAL';$('c_stage').value='Yeni Lead';document.querySelectorAll('.cat-check').forEach(c=>c.checked=false);setCustomerCardActions(false);
 }
@@ -264,7 +264,7 @@ async function openHistory(id){
 }
 function editCustomer(id){
   const x=allCustomers.find(c=>c.id===id);if(!x)return showMsg('Müşteri bulunamadı.','err');
-  $('c_id').value=x.id;$('c_number').value=String(x.id).padStart(5,'0');$('customerModalTitle').textContent='Müşteri Kartı — '+(x.company||'');$('c_company').value=x.company||'';$('c_name').value=x.contact_name||'';
+  $('c_id').value=x.id;$('c_number').value=String(x.id).padStart(5,'0');$('customerModalTitle').textContent='Müşteri Kartı — '+(x.company||'');const createdAt=$('customerCreatedAt');if(x.created_at){createdAt.textContent='İlk Kayıt Tarihi: '+new Date(String(x.created_at).replace(' ','T')+(String(x.created_at).includes('Z')||String(x.created_at).includes('+')?'':'Z')).toLocaleString('tr-TR');createdAt.style.display='block'}else{createdAt.textContent='İlk Kayıt Tarihi: Bilinmiyor';createdAt.style.display='block'}$('c_company').value=x.company||'';$('c_name').value=x.contact_name||'';
   let ph=[],em=[];try{ph=JSON.parse(x.phones_json||'[]')}catch{}try{em=JSON.parse(x.emails_json||'[]')}catch{}
   if(!ph.length&&x.phone)ph=[x.phone];if(!em.length&&x.email)em=[x.email];
   $('c_phones').value=ph.join('\n');$('c_emails').value=em.join('\n');$('c_region').value=x.region||'';$('c_priority').value=x.priority||'NORMAL';$('c_stage').value=x.stage||'Yeni Lead';$('c_follow').value=x.follow_date||'';
