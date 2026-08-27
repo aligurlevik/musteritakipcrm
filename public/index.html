@@ -21,12 +21,12 @@
 <div id="login" class="login"><div class="loginbox"><h2>CRM Giriş</h2><input id="pw" type="password" placeholder="Şifre"><button class="btn primary" style="width:100%;margin-top:10px" onclick="login()">Giriş Yap</button><div id="loginErr" class="small" style="color:#b91c1c;margin-top:8px"></div></div></div>
 <div class="app">
 <aside class="side"><div class="logo">CRM Müşteri Takip</div><div class="menu">
-<button class="active" data-page="dash">Ana Ekran</button><button data-page="customers">Müşteriler</button><button data-page="meetings">Görüşmeler</button><button data-page="agenda">Ajanda</button><button onclick="logout()">Çıkış</button>
+<button data-page="dash">Ana Ekran</button><button data-page="customers">Müşteriler</button><button data-page="meetings">Görüşmeler</button><button class="active" data-page="agenda">Ajanda</button><button onclick="logout()">Çıkış</button>
 </div></aside>
 <main class="main">
-<div class="top"><div><h1 id="title">Ana Ekran</h1><div class="small" id="date"></div></div><div style="display:flex;gap:8px"><button class="btn green" onclick="seedDemo()">Örnek Şablonu Yükle</button><button class="btn primary" onclick="openCustomer()">+ Yeni Müşteri</button></div></div>
+<div class="top"><div><h1 id="title">Ajanda</h1><div class="small" id="date"></div></div><div style="display:flex;gap:8px"><button class="btn green" onclick="seedDemo()">Örnek Şablonu Yükle</button><button class="btn primary" onclick="openCustomer()">+ Yeni Müşteri</button></div></div>
 
-<section id="dash" class="section active"><div class="cards">
+<section id="dash" class="section"><div class="cards">
 <div class="card kpi"><span>Aktif Müşteri</span><b id="k1">0</b></div><div class="card kpi"><span>Bugün Takip</span><b id="k2">0</b></div><div class="card kpi"><span>Geciken</span><b id="k3">0</b></div><div class="card kpi"><span>Açık Teklif</span><b id="k4">0</b></div></div>
 <div class="card"><h3>Bugün ve geciken takipler</h3><div id="due"></div></div></section>
 
@@ -64,7 +64,7 @@
 <div class="table"><table><thead><tr><th>🏢 Firma</th><th>👤 Kişi</th><th>🔢 No</th><th>📅 Tarih</th><th>📝 Görüşme Notu</th><th>⏭️ Sonraki Takip</th><th>🔔 Hatırlatma</th><th>✅ Sonuç</th><th>📋 Sonuç Notu</th><th>💰 Teklif</th><th>✉️ Mail</th><th>⚙️ Aksiyon</th></tr></thead><tbody id="meetingRows"></tbody></table></div>
 </section>
 
-<section id="agenda" class="section"><div class="toolbar"><div><h3 id="agendaViewTitle" style="margin:0">Aylık Yapılacaklar</h3><div id="agendaViewSubtitle" class="small">Bir güne basarak günlük ajandayı açın</div></div><div id="agendaMonthControls" class="filterbar"><button class="btn" onclick="changeAgendaMonth(-1)">← Önceki Ay</button><button id="agendaMonthTitle" class="btn primary" onclick="goAgendaToday()"></button><button class="btn" onclick="changeAgendaMonth(1)">Sonraki Ay →</button><button class="btn green" onclick="enableNotifications()">🔔 Masaüstü Bildirimini Aç</button></div><div id="agendaDayControls" class="filterbar" style="display:none"><button class="btn primary" onclick="showAgendaMonth()">← Aylık Takvime Dön</button><button class="btn" onclick="changeAgendaDay(-1)">Önceki Gün</button><button class="btn" onclick="changeAgendaDay(1)">Sonraki Gün</button></div></div><div id="agendaDays" class="agenda-list"></div></section>
+<section id="agenda" class="section active"><div class="toolbar"><div><h3 id="agendaViewTitle" style="margin:0">Aylık Yapılacaklar</h3><div id="agendaViewSubtitle" class="small">Bir güne basarak günlük ajandayı açın</div></div><div id="agendaMonthControls" class="filterbar"><button class="btn" onclick="changeAgendaMonth(-1)">← Önceki Ay</button><button id="agendaMonthTitle" class="btn primary" onclick="goAgendaToday()"></button><button class="btn" onclick="changeAgendaMonth(1)">Sonraki Ay →</button><button class="btn green" onclick="enableNotifications()">🔔 Masaüstü Bildirimini Aç</button></div><div id="agendaDayControls" class="filterbar" style="display:none"><button class="btn primary" onclick="showAgendaMonth()">← Aylık Takvime Dön</button><button class="btn" onclick="changeAgendaDay(-1)">Önceki Gün</button><button class="btn" onclick="changeAgendaDay(1)">Sonraki Gün</button></div></div><div id="agendaDays" class="agenda-list"></div></section>
 
 </main></div>
 
