@@ -182,6 +182,8 @@ async function saveAgendaInline(date,noteId,reminderId){
     const optimisticIndex=agendaEntries.findIndex(x=>x.id===tempId);
     if(optimisticIndex>=0)agendaEntries[optimisticIndex]={...agendaEntries[optimisticIndex],id:saved.id};
     todayAgendaEntries=agendaEntries.filter(x=>x.entry_date===agendaDateKey());
+    renderAgenda();
+    setupAgendaTimeSelectors();
     showMsg('Not eklendi.');
     pollAgendaReminders().catch(()=>{});
   }catch(e){
@@ -192,7 +194,7 @@ async function saveAgendaInline(date,noteId,reminderId){
     showMsg('Not kaydedilemedi: '+e.message,'err');
   }
 }
-async function deleteAgendaEntry(id){if(!confirm('Bu ajanda notu silinsin mi?'))return;try{await req('/api/agenda/'+id,{method:'DELETE'});showMsg('Ajanda notu silindi.');await loadAgenda()}catch(e){showMsg(e.message,'err')}}
+async function deleteAgendaEntry(id){const deleted=agendaEntries.find(x=>x.id===id);agendaEntries=agendaEntries.filter(x=>x.id!==id);todayAgendaEntries=agendaEntries.filter(x=>x.entry_date===agendaDateKey());renderAgenda();setupAgendaTimeSelectors();try{await req('/api/agenda/'+id,{method:'DELETE'});showMsg('Ajanda notu silindi.')}catch(e){if(deleted)agendaEntries.push(deleted);agendaEntries.sort((a,b)=>a.entry_date.localeCompare(b.entry_date)||Number(a.id)-Number(b.id));todayAgendaEntries=agendaEntries.filter(x=>x.entry_date===agendaDateKey());renderAgenda();setupAgendaTimeSelectors();showMsg('Not silinemedi: '+e.message,'err')}}
 async function markAgendaDone(id){try{await req('/api/agenda/'+id+'/task-done',{method:'POST',body:JSON.stringify({completed_date:localDateKey()})});showMsg('Not Yapılanlar bölümüne taşındı.');await loadAgenda()}catch(e){showMsg(e.message,'err')}}
 async function undoAgendaDone(id){try{await req('/api/agenda/'+id+'/task-undo',{method:'POST'});showMsg('Not tekrar Yapılacaklar bölümüne alındı.');await loadAgenda()}catch(e){showMsg(e.message,'err')}}
 async function setAgendaDone(id,done){if(done)return markAgendaDone(id);return undoAgendaDone(id)}
