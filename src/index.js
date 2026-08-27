@@ -124,9 +124,12 @@ async function api(request, env) {
   }
 
   if(path==='/api/customers' && request.method==='GET') {
-    const q=url.searchParams.get('q')||'', status=url.searchParams.get('status')||'Aktif', category=url.searchParams.get('category')||'';
+    const q=url.searchParams.get('q')||'', status=url.searchParams.get('status')||'Aktif', category=url.searchParams.get('category')||'', result=url.searchParams.get('result')||'';
     const where=[], vals=[];
-    if(status!=='Tümü'){where.push('record_status=?');vals.push(status)}
+    if(!result&&status!=='Tümü'){where.push('record_status=?');vals.push(status)}
+    if(result==='Olumlu')where.push("stage='Kazanıldı'");
+    else if(result==='Olumsuz')where.push("stage='Kaybedildi'");
+    else if(result==='Sonuçlanmadı')where.push("COALESCE(stage,'') NOT IN ('Kazanıldı','Kaybedildi')");
     if(category){where.push('categories LIKE ?');vals.push(`%${category}%`)}
     if(q){
       where.push('(company LIKE ? OR contact_name LIKE ? OR sector LIKE ? OR email LIKE ? OR phones_json LIKE ? OR emails_json LIKE ?)');
@@ -174,6 +177,16 @@ async function api(request, env) {
       ).run();
     return json({ok:true});
   }
+  const customerResult=path.match(/^\/api\/customers\/(\d+)\/result$/);
+  if(customerResult&&request.method==='PUT'){
+    const customerId=Number(customerResult[1]),b=await body(request);
+    if(!['Olumlu','Olumsuz'].includes(b.result))return json({error:'Sonuç Olumlu veya Olumsuz olmalı.'},400);
+    const stage=b.result==='Olumlu'?'Kazanıldı':'Kaybedildi';
+    const recordStatus=b.result==='Olumlu'?'Aktif':'Pasif';
+    await env.DB.prepare('UPDATE customers SET stage=?,record_status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(stage,recordStatus,customerId).run();
+    return json({ok:true,result:b.result});
+  }
+
   const trash=path.match(/^\/api\/customers\/(\d+)\/trash$/); if(trash&&request.method==='POST'){await env.DB.prepare("UPDATE customers SET record_status='Silindi',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(Number(trash[1])).run();return json({ok:true})}
   const restore=path.match(/^\/api\/customers\/(\d+)\/restore$/); if(restore&&request.method==='POST'){await env.DB.prepare("UPDATE customers SET record_status='Aktif',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(Number(restore[1])).run();return json({ok:true})}
 
@@ -208,7 +221,8 @@ async function api(request, env) {
       .bind(customerId,meetingNo,b.meeting_date||'',b.note||'',b.next_follow_date||'',b.remind_at||'',b.remind_note||'',b.remind_at?'Açık':'',b.result||'Beklemede',b.result_note||'').run();
     if(b.next_follow_date) await env.DB.prepare('UPDATE customers SET follow_date=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.next_follow_date,customerId).run();
     if(b.result==='Olumsuz') await env.DB.prepare("UPDATE customers SET record_status='Pasif',stage='Kaybedildi',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
-    else if(b.result==='Olumlu'||b.result==='Tekrar Görüşülecek') await env.DB.prepare("UPDATE customers SET record_status='Aktif',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
+    else if(b.result==='Olumlu') await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage='Kazanıldı',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
+    else if(b.result==='Tekrar Görüşülecek') await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage=CASE WHEN stage IN ('Kaybedildi','Kazanıldı') THEN 'İlk Görüşme' ELSE stage END,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
     return json({ok:true,meeting_id:created.meta.last_row_id,meeting_no:meetingNo},201);
   }
   const md=path.match(/^\/api\/meetings\/(\d+)$/);
@@ -239,7 +253,8 @@ async function api(request, env) {
       .bind(b.meeting_date||'',b.note||'',b.next_follow_date||'',b.remind_at||'',b.remind_note||'',b.remind_at?'Açık':'',b.result||'Beklemede',b.result_note||'',meetingId).run();
     if(b.next_follow_date)await env.DB.prepare('UPDATE customers SET follow_date=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.next_follow_date,existing.customer_id).run();
     if(b.result==='Olumsuz')await env.DB.prepare("UPDATE customers SET record_status='Pasif',stage='Kaybedildi',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(existing.customer_id).run();
-    else if(b.result==='Olumlu'||b.result==='Tekrar Görüşülecek')await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage=CASE WHEN stage='Kaybedildi' THEN 'İlk Görüşme' ELSE stage END,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(existing.customer_id).run();
+    else if(b.result==='Olumlu')await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage='Kazanıldı',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(existing.customer_id).run();
+    else if(b.result==='Tekrar Görüşülecek')await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage=CASE WHEN stage IN ('Kaybedildi','Kazanıldı') THEN 'İlk Görüşme' ELSE stage END,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(existing.customer_id).run();
     return json({ok:true});
   }
   if(md&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM meetings WHERE id=?').bind(Number(md[1])).run();return json({ok:true})}
