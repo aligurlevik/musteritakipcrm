@@ -53,7 +53,7 @@
 
 <section id="meetings" class="section">
 <div class="toolbar">
-  <div><h3>Görüşme Geçmişi</h3><div class="filterbar">
+  <div><h3>💬 Görüşme Geçmişi</h3><div class="filterbar">
     <button class="btn primary meeting-filter-btn" onclick="setMeetingFilter('Aktif',this)">Aktif</button>
     <button class="btn meeting-filter-btn" onclick="setMeetingFilter('Bekleyen',this)">Bekleyen</button>
     <button class="btn meeting-filter-btn" onclick="setMeetingFilter('Pasif',this)">Pasif</button>
@@ -61,7 +61,7 @@
   </div></div>
   <div><button class="btn" onclick="enableNotifications()">Bildirim İzni</button> <button class="btn green" onclick="openMeeting()">+ Görüşme</button></div>
 </div>
-<div class="table"><table><thead><tr><th>Firma</th><th>Kişi</th><th>No</th><th>Tarih</th><th>Görüşme Notu</th><th>Sonraki Takip</th><th>Hatırlatma</th><th>Sonuç</th><th>Sonuç Notu</th><th>Teklif</th><th>Mail</th><th>Aksiyon</th></tr></thead><tbody id="meetingRows"></tbody></table></div>
+<div class="table"><table><thead><tr><th>🏢 Firma</th><th>👤 Kişi</th><th>🔢 No</th><th>📅 Tarih</th><th>📝 Görüşme Notu</th><th>⏭️ Sonraki Takip</th><th>🔔 Hatırlatma</th><th>✅ Sonuç</th><th>📋 Sonuç Notu</th><th>💰 Teklif</th><th>✉️ Mail</th><th>⚙️ Aksiyon</th></tr></thead><tbody id="meetingRows"></tbody></table></div>
 </section>
 
 <section id="agenda" class="section"><div class="toolbar"><div><h3 id="agendaViewTitle" style="margin:0">Aylık Yapılacaklar</h3><div id="agendaViewSubtitle" class="small">Bir güne basarak günlük ajandayı açın</div></div><div id="agendaMonthControls" class="filterbar"><button class="btn" onclick="changeAgendaMonth(-1)">← Önceki Ay</button><button id="agendaMonthTitle" class="btn primary" onclick="goAgendaToday()"></button><button class="btn" onclick="changeAgendaMonth(1)">Sonraki Ay →</button><button class="btn green" onclick="enableNotifications()">🔔 Masaüstü Bildirimini Aç</button></div><div id="agendaDayControls" class="filterbar" style="display:none"><button class="btn primary" onclick="showAgendaMonth()">← Aylık Takvime Dön</button><button class="btn" onclick="changeAgendaDay(-1)">Önceki Gün</button><button class="btn" onclick="changeAgendaDay(1)">Sonraki Gün</button></div></div><div id="agendaDays" class="agenda-list"></div></section>
@@ -88,13 +88,13 @@
 </div></div>
 
 <div id="meetingModal" class="modal"><div class="box"><h3 id="meetingModalTitle">Görüşme Ekle</h3><input id="m_id" type="hidden"><div class="grid">
-<div><label>Firma</label><select id="m_customer"></select></div><div><label>Görüşme No</label><input value="Otomatik verilecek" disabled></div>
-<div><label>Görüşme Tarihi</label><input id="m_date" type="date"></div><div><label>Sonraki Takip</label><input id="m_follow" type="date"></div>
-<div class="full"><label>Görüşme Notu</label><textarea id="m_note" rows="5"></textarea></div>
-<div><label>Görüşme Sonucu</label><select id="m_result"><option>Beklemede</option><option>Olumlu</option><option>Olumsuz</option><option>Tekrar Görüşülecek</option></select></div>
-<div class="full"><label>Sonuç Notu</label><textarea id="m_result_note" rows="3"></textarea></div>
-<div><label>Hatırlatma Tarihi / Saati</label><input id="m_remind_at" type="datetime-local"></div>
-<div class="full"><label>Hatırlatma Notu</label><textarea id="m_remind_note" rows="3" placeholder="Örn: Murat Bey'i ara, teklif dönüşünü sor."></textarea></div>
+<div><label>🏢 Firma</label><select id="m_customer"></select></div><div><label>🔢 Görüşme No</label><input value="Otomatik verilecek" disabled></div>
+<div><label>📅 Görüşme Tarihi</label><input id="m_date" type="date"></div><div><label>⏭️ Sonraki Takip</label><input id="m_follow" type="date"></div>
+<div class="full"><label>📝 Görüşme Notu</label><textarea id="m_note" rows="5"></textarea></div>
+<div><label>✅ Görüşme Sonucu</label><select id="m_result"><option>Beklemede</option><option>Olumlu</option><option>Olumsuz</option><option>Tekrar Görüşülecek</option></select></div>
+<div class="full"><label>📋 Sonuç Notu</label><textarea id="m_result_note" rows="3"></textarea></div>
+<div><label>🔔 Hatırlatma Tarihi / Saati</label><input id="m_remind_at" type="datetime-local"></div>
+<div class="full"><label>🔔 Hatırlatma Notu</label><textarea id="m_remind_note" rows="3" placeholder="Örn: Murat Bey'i ara, teklif dönüşünü sor."></textarea></div>
 </div><div style="text-align:right;margin-top:12px"><button class="btn" onclick="closeM('meetingModal')">İptal</button> <button class="btn primary" onclick="saveMeeting()">Kaydet</button></div></div></div>
 
 <div id="reminderEditModal" class="modal"><div class="box" style="width:min(500px,94vw)"><h3 id="reminderEditTitle">Hatırlatma</h3><input id="r_meeting_id" type="hidden"><div class="form-stack"><div><label>Hatırlatma Tarihi / Saati</label><input id="r_remind_at" type="datetime-local"></div><div><label>Hatırlatma Notu</label><textarea id="r_remind_note" rows="4" placeholder="Örn: Teklif dönüşünü sor."></textarea></div></div><div style="text-align:right;margin-top:12px"><button class="btn" onclick="closeM('reminderEditModal')">İptal</button> <button class="btn primary" onclick="saveReminderOnly()">Kaydet</button></div></div></div>
