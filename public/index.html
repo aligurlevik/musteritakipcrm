@@ -23,7 +23,7 @@
 <div id="login" class="login"><div class="loginbox"><h2>CRM Giriş</h2><input id="pw" type="password" placeholder="Şifre"><button class="btn primary" style="width:100%;margin-top:10px" onclick="login()">Giriş Yap</button><div id="loginErr" class="small" style="color:#b91c1c;margin-top:8px"></div></div></div>
 <div class="app">
 <aside class="side"><div class="logo">CRM Müşteri Takip</div><div class="menu">
-<button data-page="dash">Ana Ekran</button><button data-page="customers">Müşteriler</button><button data-page="meetings">Görüşmeler</button><button class="active" data-page="agenda">Ajanda</button><button onclick="logout()">Çıkış</button>
+<button data-page="dash">Ana Ekran</button><button data-page="customers" data-result="">Müşteriler</button><button data-page="customers" data-result="Olumlu" data-title="Olumlu Müşteriler">📁 Olumlu</button><button data-page="customers" data-result="Olumsuz" data-title="Olumsuz Müşteriler">📁 Olumsuz</button><button data-page="meetings">Görüşmeler</button><button class="active" data-page="agenda">Ajanda</button><button onclick="logout()">Çıkış</button>
 </div></aside>
 <main class="main">
 <div class="top"><div><h1 id="title">Ajanda</h1><div class="small" id="date"></div></div><div style="display:flex;gap:8px"><button class="btn green" onclick="seedDemo()">Örnek Şablonu Yükle</button><button class="btn primary" onclick="openCustomer()">+ Yeni Müşteri</button></div></div>
@@ -38,12 +38,6 @@
     <div class="filterbar">
       <select id="customerStatusFilter" onchange="loadCustomers()"><option>Aktif</option><option>Pasif</option><option>Silindi</option><option>Tümü</option></select>
       <input id="search" placeholder="Firma, kişi, telefon, mail ara..." oninput="loadCustomers()">
-    </div>
-    <div class="customer-result-folders">
-      <span class="small" style="font-weight:800">Sonuç Klasörleri:</span>
-      <button class="btn primary customer-result-filter-btn" onclick="setCustomerResultFilter('',this)">📂 Tüm Müşteriler</button>
-      <button class="btn customer-result-filter-btn" onclick="setCustomerResultFilter('Olumlu',this)">📁 Olumlu</button>
-      <button class="btn customer-result-filter-btn" onclick="setCustomerResultFilter('Olumsuz',this)">📁 Olumsuz</button>
     </div>
     <div id="categoryFilterBar" class="filterbar">
       <button class="btn primary category-filter-btn" onclick="setCategoryFilter('',this)">Tümü</button>
@@ -138,7 +132,7 @@ async function req(url,opt={}){
 function showMsg(msg,type='ok'){let el=$('appMsg');if(!el){el=document.createElement('div');el.id='appMsg';el.style.cssText='position:fixed;right:20px;bottom:20px;z-index:60;padding:14px 18px;border-radius:10px;color:white;font-weight:700;box-shadow:0 8px 30px #0003';document.body.appendChild(el)}el.style.background=type==='err'?'#dc2626':'#059669';el.textContent=msg;el.style.display='block';clearTimeout(window.__msgTimer);window.__msgTimer=setTimeout(()=>el.style.display='none',3000)}
 async function login(){const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:$('pw').value})});if(r.ok){$('login').classList.remove('show');loadAll()}else $('loginErr').textContent='Şifre hatalı.'}
 async function logout(){await fetch('/api/logout');location.reload()}
-document.querySelectorAll('.menu button[data-page]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.menu button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));$(b.dataset.page).classList.add('active');$('title').textContent=b.textContent;if(b.dataset.page==='agenda')showAgendaMonth()});
+document.querySelectorAll('.menu button[data-page]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.menu button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));$(b.dataset.page).classList.add('active');$('title').textContent=b.dataset.title||b.textContent;if(b.dataset.page==='customers'){currentCustomerResultFilter=b.dataset.result||'';loadCustomers()}if(b.dataset.page==='agenda')showAgendaMonth()});
 function cls(d){return !d?'':d<today()?'overdue':d===today()?'due':''}
 function localDateTimeValue(date=new Date()){const local=new Date(date.getTime()-date.getTimezoneOffset()*60000);return local.toISOString().slice(0,16)}
 function localDateKey(date=new Date()){return localDateTimeValue(date).slice(0,10)}
