@@ -15,7 +15,7 @@
 <button class="active" data-page="dash">Ana Ekran</button><button data-page="customers">Müşteriler</button><button data-page="meetings">Görüşmeler</button><button data-page="offers">Teklifler</button><button data-page="mails">Mailler</button><button onclick="logout()">Çıkış</button>
 </div></aside>
 <main class="main">
-<div class="top"><div><h1 id="title">Ana Ekran</h1><div class="small" id="date"></div></div><div style="display:flex;gap:8px"><button class="btn green" onclick="seedDemo()">Örnek Şablonu Yükle</button><button class="btn primary" onclick="openCustomer()">+ Yeni Müşteri</button></div></div>
+<div class="top"><div><h1 id="title">Ana Ekran</h1><div class="small" id="date"></div></div><div style="display:flex;gap:8px"><button class="btn primary" onclick="openCustomer()">+ Yeni Müşteri</button></div></div>
 
 <section id="dash" class="section active"><div class="cards">
 <div class="card kpi"><span>Aktif Müşteri</span><b id="k1">0</b></div><div class="card kpi"><span>Bugün Takip</span><b id="k2">0</b></div><div class="card kpi"><span>Geciken</span><b id="k3">0</b></div><div class="card kpi"><span>Açık Teklif</span><b id="k4">0</b></div></div>
