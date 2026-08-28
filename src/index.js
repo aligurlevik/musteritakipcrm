@@ -144,7 +144,9 @@ async function api(request, env) {
     if(!b.work_date||!jobNo||!customer)return json({error:'Tarih, iş numarası ve firma zorunlu.'},400);
     const duplicate=await env.DB.prepare('SELECT id,work_date,customer_name FROM graphic_jobs WHERE lower(job_no)=lower(?) LIMIT 1').bind(jobNo).first();
     if(duplicate&&!b.allow_duplicate)return json({error:'Bu iş numarası daha önce kaydedilmiş.',duplicate},409);
-    const created=await env.DB.prepare('INSERT INTO graphic_jobs(work_date,job_no,customer_name,description,quantity,delivery_date,status,note) VALUES(?,?,?,?,?,?,?,?)').bind(b.work_date,jobNo,customer,String(b.description||'').trim(),Math.max(1,Number(b.quantity||1)),b.delivery_date||'',b.status||'Beklemede',String(b.note||'').trim()).run();
+    const description=String(b.description||'').trim();
+    const created=await env.DB.prepare('INSERT INTO graphic_jobs(work_date,job_no,customer_name,description,quantity,delivery_date,status,note) VALUES(?,?,?,?,?,?,?,?)').bind(b.work_date,jobNo,customer,description,Math.max(1,Number(b.quantity||1)),b.delivery_date||'',b.status||'Beklemede',String(b.note||'').trim()).run();
+    if(b.remind_at){const last=await env.DB.prepare('SELECT COALESCE(MAX(sort_order),0) n FROM agenda_entries WHERE entry_date=?').bind(b.work_date).first();await env.DB.prepare('INSERT INTO agenda_entries(entry_date,sort_order,note,remind_at,reminder_status) VALUES(?,?,?,?,?)').bind(b.work_date,Number(last?.n||0)+1,`${customer} — ${jobNo}${description?' — '+description:''}`,String(b.remind_at),'Açık').run()}
     return json({ok:true,id:created.meta.last_row_id},201)
   }
   const graphicJob=path.match(/^\/api\/graphic-jobs\/(\d+)$/);
