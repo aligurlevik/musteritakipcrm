@@ -75,6 +75,20 @@ CREATE TABLE IF NOT EXISTS agenda_entries (
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS graphic_jobs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  work_date TEXT NOT NULL,
+  job_no TEXT NOT NULL,
+  customer_name TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  quantity INTEGER DEFAULT 1,
+  delivery_date TEXT DEFAULT '',
+  status TEXT DEFAULT 'Beklemede',
+  note TEXT DEFAULT '',
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
 
 CREATE INDEX IF NOT EXISTS idx_customers_follow ON customers(follow_date);
 CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
@@ -83,6 +97,8 @@ CREATE INDEX IF NOT EXISTS idx_meetings_customer ON meetings(customer_id);
 CREATE INDEX IF NOT EXISTS idx_mails_customer ON mails(customer_id);
 CREATE INDEX IF NOT EXISTS idx_agenda_entry_date ON agenda_entries(entry_date);
 CREATE INDEX IF NOT EXISTS idx_agenda_remind_at ON agenda_entries(remind_at);
+CREATE INDEX IF NOT EXISTS idx_graphic_jobs_date ON graphic_jobs(work_date);
+CREATE INDEX IF NOT EXISTS idx_graphic_jobs_no ON graphic_jobs(job_no);
 
 INSERT INTO customers (company,contact_name,phone,email,region,sector,priority,stage,follow_date)
 SELECT 'Atlas Tekstil','Murat Yılmaz','0532 111 22 33','murat@atlastekstil.com','Bursa','Tekstil','KRİTİK','Teklif','2026-08-21'

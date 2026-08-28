@@ -50,6 +50,12 @@ async function ensureSchema(env) {
     note TEXT NOT NULL, remind_at TEXT DEFAULT '', reminder_status TEXT DEFAULT '',
     entry_status TEXT DEFAULT 'Yapılacak', completed_date TEXT DEFAULT '', image_data TEXT DEFAULT '', created_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`).run();
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS graphic_jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, work_date TEXT NOT NULL, job_no TEXT NOT NULL,
+    customer_name TEXT NOT NULL, description TEXT DEFAULT '', quantity INTEGER DEFAULT 1, delivery_date TEXT DEFAULT '',
+    status TEXT DEFAULT 'Beklemede', note TEXT DEFAULT '', created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+  )`).run();
 
   for (const [name,def] of [
     ['invoice_title',"TEXT DEFAULT ''"],['tax_office',"TEXT DEFAULT ''"],['tax_number',"TEXT DEFAULT ''"],
@@ -70,6 +76,7 @@ async function ensureSchema(env) {
   await ensureColumn(env,'agenda_entries','entry_status',"TEXT DEFAULT 'Yapılacak'");
   await ensureColumn(env,'agenda_entries','completed_date',"TEXT DEFAULT ''");
   await ensureColumn(env,'agenda_entries','image_data',"TEXT DEFAULT ''");
+  await ensureColumn(env,'graphic_jobs','delivery_date',"TEXT DEFAULT ''");
 
   for (const sql of [
     'CREATE INDEX IF NOT EXISTS idx_customers_record_status ON customers(record_status)',
@@ -79,6 +86,8 @@ async function ensureSchema(env) {
     'CREATE INDEX IF NOT EXISTS idx_agenda_remind_at ON agenda_entries(remind_at)',
     'CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email)',
     'CREATE INDEX IF NOT EXISTS idx_mails_external_id ON mails(external_id)'
+    ,'CREATE INDEX IF NOT EXISTS idx_graphic_jobs_date ON graphic_jobs(work_date)'
+    ,'CREATE INDEX IF NOT EXISTS idx_graphic_jobs_no ON graphic_jobs(job_no)'
   ]) await env.DB.prepare(sql).run();
 }
 
@@ -123,6 +132,27 @@ async function api(request, env) {
   await ensureSchemaReady(env);
 
   if(path==='/api/health') return json({ok:true});
+  if(path==='/api/graphic-jobs'&&request.method==='GET'){
+    const date=url.searchParams.get('date')||new Date().toISOString().slice(0,10),search=String(url.searchParams.get('search')||'').trim(),upcomingFrom=url.searchParams.get('upcoming_from'),upcomingTo=url.searchParams.get('upcoming_to');
+    if(upcomingFrom&&upcomingTo)return json((await env.DB.prepare("SELECT * FROM graphic_jobs WHERE delivery_date>=? AND delivery_date<=? AND status NOT IN ('Tamamlandı','İptal') ORDER BY delivery_date,id").bind(upcomingFrom,upcomingTo).all()).results);
+    if(search){const q='%'+search+'%';return json((await env.DB.prepare('SELECT * FROM graphic_jobs WHERE job_no LIKE ? OR customer_name LIKE ? OR description LIKE ? ORDER BY work_date DESC,id DESC').bind(q,q,q).all()).results)}
+    return json((await env.DB.prepare("SELECT * FROM graphic_jobs WHERE work_date=? OR (delivery_date=? AND status NOT IN ('Tamamlandı','İptal')) ORDER BY CASE WHEN delivery_date=? THEN 0 ELSE 1 END,id DESC").bind(date,date,date).all()).results)
+  }
+  if(path==='/api/graphic-jobs'&&request.method==='POST'){
+    const b=await body(request),jobNo=String(b.job_no||'').trim(),customer=String(b.customer_name||'').trim();
+    if(!b.work_date||!jobNo||!customer)return json({error:'Tarih, iş numarası ve firma zorunlu.'},400);
+    const duplicate=await env.DB.prepare('SELECT id,work_date,customer_name FROM graphic_jobs WHERE lower(job_no)=lower(?) LIMIT 1').bind(jobNo).first();
+    if(duplicate&&!b.allow_duplicate)return json({error:'Bu iş numarası daha önce kaydedilmiş.',duplicate},409);
+    const created=await env.DB.prepare('INSERT INTO graphic_jobs(work_date,job_no,customer_name,description,quantity,delivery_date,status,note) VALUES(?,?,?,?,?,?,?,?)').bind(b.work_date,jobNo,customer,String(b.description||'').trim(),Math.max(1,Number(b.quantity||1)),b.delivery_date||'',b.status||'Beklemede',String(b.note||'').trim()).run();
+    return json({ok:true,id:created.meta.last_row_id},201)
+  }
+  const graphicJob=path.match(/^\/api\/graphic-jobs\/(\d+)$/);
+  if(graphicJob&&request.method==='PUT'){
+    const b=await body(request),id=Number(graphicJob[1]);
+    await env.DB.prepare('UPDATE graphic_jobs SET work_date=COALESCE(?,work_date),job_no=COALESCE(?,job_no),customer_name=COALESCE(?,customer_name),description=COALESCE(?,description),quantity=COALESCE(?,quantity),delivery_date=COALESCE(?,delivery_date),status=COALESCE(?,status),note=COALESCE(?,note),updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.work_date??null,b.job_no??null,b.customer_name??null,b.description??null,b.quantity??null,b.delivery_date??null,b.status??null,b.note??null,id).run();
+    return json({ok:true})
+  }
+  if(graphicJob&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM graphic_jobs WHERE id=?').bind(Number(graphicJob[1])).run();return json({ok:true})}
   if(path==='/api/dashboard') {
     const today=new Date().toISOString().slice(0,10);
     const [total,todayQ,overdue,openOffers]=await Promise.all([
