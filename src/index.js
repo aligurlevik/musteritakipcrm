@@ -61,7 +61,7 @@ async function ensureSchema(env) {
 
   for (const [name,def] of [
     ['remind_at',"TEXT DEFAULT ''"],['remind_note',"TEXT DEFAULT ''"],['reminder_status',"TEXT DEFAULT ''"],
-    ['result',"TEXT DEFAULT 'Beklemede'"],['result_note',"TEXT DEFAULT ''"]
+    ['result',"TEXT DEFAULT 'Beklemede'"],['result_note',"TEXT DEFAULT ''"],['participants_json',"TEXT DEFAULT '[]'"]
   ]) await ensureColumn(env,'meetings',name,def);
 
   await ensureColumn(env,'offers','result_reason',"TEXT DEFAULT ''");
@@ -229,8 +229,8 @@ async function api(request, env) {
     if(!customerId)return json({error:'Firma seçimi zorunlu'},400);
     const last=await env.DB.prepare('SELECT COALESCE(MAX(meeting_no),0) last_no FROM meetings WHERE customer_id=?').bind(customerId).first();
     const meetingNo=Number(last?.last_no||0)+1;
-    const created=await env.DB.prepare(`INSERT INTO meetings(customer_id,meeting_no,meeting_date,note,next_follow_date,remind_at,remind_note,reminder_status,result,result_note) VALUES(?,?,?,?,?,?,?,?,?,?)`)
-      .bind(customerId,meetingNo,b.meeting_date||'',b.note||'',b.next_follow_date||'',b.remind_at||'',b.remind_note||'',b.remind_at?'Açık':'',b.result||'Beklemede',b.result_note||'').run();
+    const created=await env.DB.prepare(`INSERT INTO meetings(customer_id,meeting_no,meeting_date,note,next_follow_date,remind_at,remind_note,reminder_status,result,result_note,participants_json) VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
+      .bind(customerId,meetingNo,b.meeting_date||'',b.note||'',b.next_follow_date||'',b.remind_at||'',b.remind_note||'',b.remind_at?'Açık':'',b.result||'Beklemede',b.result_note||'',JSON.stringify((Array.isArray(b.participants)?b.participants:[]).slice(0,4).map(p=>({name:String(p?.name||'').trim(),phone:String(p?.phone||'').trim()})).filter(p=>p.name||p.phone))).run();
     if(b.next_follow_date) await env.DB.prepare('UPDATE customers SET follow_date=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.next_follow_date,customerId).run();
     if(b.result==='Olumsuz') await env.DB.prepare("UPDATE customers SET record_status='Pasif',stage='Kaybedildi',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
     else if(b.result==='Olumlu') await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage='Kazanıldı',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
@@ -261,8 +261,8 @@ async function api(request, env) {
     const meetingId=Number(md[1]), b=await body(request);
     const existing=await env.DB.prepare('SELECT customer_id FROM meetings WHERE id=?').bind(meetingId).first();
     if(!existing)return json({error:'Görüşme bulunamadı'},404);
-    await env.DB.prepare(`UPDATE meetings SET meeting_date=?,note=?,next_follow_date=?,remind_at=?,remind_note=?,reminder_status=?,result=?,result_note=? WHERE id=?`)
-      .bind(b.meeting_date||'',b.note||'',b.next_follow_date||'',b.remind_at||'',b.remind_note||'',b.remind_at?'Açık':'',b.result||'Beklemede',b.result_note||'',meetingId).run();
+    await env.DB.prepare(`UPDATE meetings SET meeting_date=?,note=?,next_follow_date=?,remind_at=?,remind_note=?,reminder_status=?,result=?,result_note=?,participants_json=? WHERE id=?`)
+      .bind(b.meeting_date||'',b.note||'',b.next_follow_date||'',b.remind_at||'',b.remind_note||'',b.remind_at?'Açık':'',b.result||'Beklemede',b.result_note||'',JSON.stringify((Array.isArray(b.participants)?b.participants:[]).slice(0,4).map(p=>({name:String(p?.name||'').trim(),phone:String(p?.phone||'').trim()})).filter(p=>p.name||p.phone)),meetingId).run();
     if(b.next_follow_date)await env.DB.prepare('UPDATE customers SET follow_date=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.next_follow_date,existing.customer_id).run();
     if(b.result==='Olumsuz')await env.DB.prepare("UPDATE customers SET record_status='Pasif',stage='Kaybedildi',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(existing.customer_id).run();
     else if(b.result==='Olumlu')await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage='Kazanıldı',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(existing.customer_id).run();
