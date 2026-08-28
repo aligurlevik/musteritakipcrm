@@ -259,12 +259,12 @@ function renderMeetings(){
     groups.get(meeting.customer_id).items.push(meeting);
   }
   const rows=[...groups.values()].sort((a,b)=>String(a.company||'').localeCompare(String(b.company||''),'tr')).map(group=>{
-    const ordered=[...group.items].sort((a,b)=>String(b.meeting_date||b.created_at||'').localeCompare(String(a.meeting_date||a.created_at||'')));const latest=ordered[0];const recentNotes=ordered.slice(0,2).map(m=>`<div class="meeting-recent-note"><span class="small">${esc(m.meeting_date||m.created_at||'')}</span>${esc(String(m.note||'Not yazılmamış').slice(0,90))}${String(m.note||'').length>90?'…':''}</div>`).join('');
+    const ordered=[...group.items].sort((a,b)=>String(b.meeting_date||b.created_at||'').localeCompare(String(a.meeting_date||a.created_at||'')));const latest=ordered[0];const recentNotes=ordered.slice(0,1).map(m=>`<div class="meeting-recent-note"><span class="small">${esc(m.meeting_date||m.created_at||'')}</span>${esc(String(m.note||'Not yazılmamış').slice(0,90))}${String(m.note||'').length>90?'…':''}</div>`).join('');const previousCount=Math.max(0,ordered.length-1);const previousButton=previousCount?`<button class="btn meeting-note-open" style="margin-top:6px" onclick="toggleMeetingCard(${group.customer_id},this)">▸ Önceki Görüşmeler (${previousCount})</button>`:'';
     const target=latest?.remind_at&&latest.reminder_status==='Açık'?latest.remind_at:latest?.next_follow_date;
     let scheduleText='Belirlenmedi';
     if(latest?.remind_at)scheduleText=new Date(latest.remind_at).toLocaleString('tr-TR');
     else if(latest?.next_follow_date)scheduleText=new Date(latest.next_follow_date+'T12:00:00').toLocaleDateString('tr-TR');
-    return `<tr class="meeting-main-row ${meetingUrgency(target)}"><td><b>${esc(group.company)}</b></td><td>${esc(group.contact_name||'Yok')}</td><td>${esc(group.phone||'Yok')}</td><td>${group.email?`<a href="mailto:${esc(group.email)}">${esc(group.email)}</a>`:'Yok'}</td><td>${esc(latest?.meeting_date||'Tarih yok')}</td><td><div class="meeting-recent-notes">${recentNotes}</div><button class="btn meeting-note-open" style="margin-top:6px" onclick="toggleMeetingCard(${group.customer_id},this)">📂 Tümünü Aç (${group.items.length})</button></td><td><button class="btn green" onclick="openMeetingForCustomer(${group.customer_id})">＋ Yeni Not</button> <button class="btn" onclick="openOfferForMeeting(${group.customer_id})">💰 Teklif</button> <button class="btn" onclick="openMailForMeeting(${group.customer_id})">✉️ Mail</button></td><td class="meeting-time-cell"><button class="btn meeting-time-edit ${meetingUrgency(target)}" title="Görüşme tarihini ve saatini değiştir" onclick="openReminderForMeeting(${latest.id})">📅 ${esc(scheduleText)}</button></td></tr><tr id="meetingCardRow-${group.customer_id}" class="meeting-detail-row"><td colspan="8"><div id="meetingCardBody-${group.customer_id}" class="meeting-card-body"></div></td></tr>`;
+    return `<tr class="meeting-main-row ${meetingUrgency(target)}"><td><b>${esc(group.company)}</b></td><td>${esc(group.contact_name||'Yok')}</td><td>${esc(group.phone||'Yok')}</td><td>${group.email?`<a href="mailto:${esc(group.email)}">${esc(group.email)}</a>`:'Yok'}</td><td>${esc(latest?.meeting_date||'Tarih yok')}</td><td><div class="meeting-recent-notes">${recentNotes}</div>${previousButton}</td><td><button class="btn green" onclick="openMeetingForCustomer(${group.customer_id})">＋ Yeni Not</button> <button class="btn" onclick="openOfferForMeeting(${group.customer_id})">💰 Teklif</button> <button class="btn" onclick="openMailForMeeting(${group.customer_id})">✉️ Mail</button></td><td class="meeting-time-cell"><button class="btn meeting-time-edit ${meetingUrgency(target)}" title="Görüşme tarihini ve saatini değiştir" onclick="openReminderForMeeting(${latest.id})">📅 ${esc(scheduleText)}</button></td></tr><tr id="meetingCardRow-${group.customer_id}" class="meeting-detail-row"><td colspan="8"><div id="meetingCardBody-${group.customer_id}" class="meeting-card-body"></div></td></tr>`;
   }).join('');
   $('meetingRows').innerHTML=rows||'<tr><td colspan="8"><div class="history-empty">Bu bölümde gösterilecek görüşme kaydı yok.</div></td></tr>';
 }
@@ -277,11 +277,12 @@ function toggleMeetingDateSection(id,button){
 async function toggleMeetingCard(customerId,button){
   const box=$('meetingCardBody-'+customerId),row=$('meetingCardRow-'+customerId);
   if(!box||!row)return;
-  if(row.classList.contains('open')){row.classList.remove('open');button.textContent='📂 Görüşme Notları';return}
+  if(row.classList.contains('open')){row.classList.remove('open');button.textContent='▸ Önceki Görüşmeler ('+Math.max(0,(allMeetings.filter(x=>Number(x.customer_id)===Number(customerId)).length)-1)+')';return}
   button.textContent='⏳ Yükleniyor...';
   try{
     const data=await req('/api/customers/'+customerId+'/history');
-    const meetings=[...(data.meetings||[])].sort((a,b)=>String(a.meeting_date||a.created_at||'').localeCompare(String(b.meeting_date||b.created_at||'')));
+    const newest=[...(data.meetings||[])].sort((a,b)=>String(b.meeting_date||b.created_at||'').localeCompare(String(a.meeting_date||a.created_at||'')))[0];
+    const meetings=[...(data.meetings||[])].filter(m=>m.id!==newest?.id).sort((a,b)=>String(a.meeting_date||a.created_at||'').localeCompare(String(b.meeting_date||b.created_at||'')));
     const dateGroups=new Map();
     for(const meeting of meetings){
       const dateKey=String(meeting.meeting_date||meeting.created_at||'Tarihsiz').slice(0,10);
@@ -294,9 +295,9 @@ async function toggleMeetingCard(customerId,button){
       const notes=items.map(m=>`<div class="meeting-timeline-item"><div class="history-head"><b>${esc(m.meeting_no)}. Görüşme</b><span class="small">${esc(m.meeting_date||m.created_at||'')}</span></div><div class="meeting-timeline-note">${esc(m.note)||'<span class="small">Görüşme notu yazılmamış.</span>'}</div><div class="small"><b>Sonuç:</b> ${esc(m.result||'Beklemede')}${m.result_note?' • '+esc(m.result_note):''}${m.next_follow_date?' • Sonraki takip: '+esc(m.next_follow_date):''}</div>${m.remind_at?`<div class="small" style="margin-top:4px">🔔 ${new Date(m.remind_at).toLocaleString('tr-TR')} • ${esc(m.remind_note||'Not yok')}</div>`:''}<div class="meeting-timeline-actions"><button class="btn primary agenda-compact-btn" onclick="editMeeting(${m.id})">✏️ Düzenle</button><button class="btn agenda-compact-btn" onclick="openReminderForMeeting(${m.id})">📅 Hatırlatma</button><button class="btn red agenda-compact-btn" onclick="deleteMeeting(${m.id})">Sil</button></div></div>`).join('');
       return `<div class="meeting-date-group"><button class="meeting-date-button" onclick="toggleMeetingDateSection('${sectionId}',this)"><span>📅 ${esc(displayDate)} <span class="small">(${items.length} not)</span></span><span>▼</span></button><div id="${sectionId}" class="meeting-date-detail">${notes}</div></div>`;
     }).join('');
-    box.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px"><div><b>${esc(data.customer.company)} — Görüşme Notları</b><div class="small">Bir tarihe basarak o günün notlarını açın</div></div><button class="btn green" onclick="openMeetingForCustomer(${customerId})">＋ Yeni Not Ekle</button></div><div class="meeting-date-list">${dateSections||'<div class="history-empty">Henüz görüşme kaydı yok.</div>'}</div>`;
-    row.classList.add('open');button.textContent='📁 Notları Kapat';
-  }catch(e){button.textContent='📂 Görüşme Notları';showMsg(e.message,'err')}
+    box.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px"><div><b>${esc(data.customer.company)} — Önceki Görüşmeler</b><div class="small">Bir tarihe basarak eski notları açın</div></div><button class="btn green" onclick="openMeetingForCustomer(${customerId})">＋ Yeni Not Ekle</button></div><div class="meeting-date-list">${dateSections||'<div class="history-empty">Önceki görüşme kaydı yok.</div>'}</div>`;
+    row.classList.add('open');button.textContent='▾ Önceki Görüşmeleri Kapat';
+  }catch(e){button.textContent='▸ Önceki Görüşmeler';showMsg(e.message,'err')}
 }
 async function openMeetingForCustomer(customerId){await openMeeting();$('m_customer').value=customerId;$('m_customer').disabled=true}
 async function loadMeetings(){const a=await req('/api/meetings?status='+encodeURIComponent(currentMeetingFilter));allMeetings=a;renderMeetings();checkMeetingNotifications(a)}
