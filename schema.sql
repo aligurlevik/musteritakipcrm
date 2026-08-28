@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS meetings (
   remind_at TEXT DEFAULT '',
   remind_note TEXT DEFAULT '',
   reminder_status TEXT DEFAULT '',
+  participants_json TEXT DEFAULT '[]',
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(customer_id) REFERENCES customers(id) ON DELETE CASCADE
 );
