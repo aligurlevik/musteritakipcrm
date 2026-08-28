@@ -53,7 +53,7 @@ async function ensureSchema(env) {
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS graphic_jobs (
     id INTEGER PRIMARY KEY AUTOINCREMENT, work_date TEXT NOT NULL, job_no TEXT NOT NULL,
     customer_name TEXT NOT NULL, description TEXT DEFAULT '', quantity INTEGER DEFAULT 1, delivery_date TEXT DEFAULT '',
-    status TEXT DEFAULT 'Beklemede', note TEXT DEFAULT '', created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    status TEXT DEFAULT 'Beklemede', note TEXT DEFAULT '', price REAL DEFAULT 0, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`).run();
 
@@ -77,6 +77,7 @@ async function ensureSchema(env) {
   await ensureColumn(env,'agenda_entries','completed_date',"TEXT DEFAULT ''");
   await ensureColumn(env,'agenda_entries','image_data',"TEXT DEFAULT ''");
   await ensureColumn(env,'graphic_jobs','delivery_date',"TEXT DEFAULT ''");
+  await ensureColumn(env,'graphic_jobs','price','REAL DEFAULT 0');
 
   for (const sql of [
     'CREATE INDEX IF NOT EXISTS idx_customers_record_status ON customers(record_status)',
@@ -147,14 +148,14 @@ async function api(request, env) {
     const duplicate=await env.DB.prepare('SELECT id,work_date,customer_name FROM graphic_jobs WHERE lower(job_no)=lower(?) LIMIT 1').bind(jobNo).first();
     if(duplicate&&!b.allow_duplicate)return json({error:'Bu iş numarası daha önce kaydedilmiş.',duplicate},409);
     const description=String(b.description||'').trim();
-    const created=await env.DB.prepare('INSERT INTO graphic_jobs(work_date,job_no,customer_name,description,quantity,delivery_date,status,note) VALUES(?,?,?,?,?,?,?,?)').bind(b.work_date,jobNo,customer,description,Math.max(1,Number(b.quantity||1)),b.delivery_date||'',b.status||'Beklemede',String(b.note||'').trim()).run();
+    const created=await env.DB.prepare('INSERT INTO graphic_jobs(work_date,job_no,customer_name,description,quantity,delivery_date,status,note,price) VALUES(?,?,?,?,?,?,?,?,?)').bind(b.work_date,jobNo,customer,description,Math.max(1,Number(b.quantity||1)),b.delivery_date||'',b.status||'Beklemede',String(b.note||'').trim(),Math.max(0,Number(b.price||0))).run();
     if(b.remind_at){const last=await env.DB.prepare('SELECT COALESCE(MAX(sort_order),0) n FROM agenda_entries WHERE entry_date=?').bind(b.work_date).first();await env.DB.prepare('INSERT INTO agenda_entries(entry_date,sort_order,note,remind_at,reminder_status) VALUES(?,?,?,?,?)').bind(b.work_date,Number(last?.n||0)+1,`${customer} — ${jobNo}${description?' — '+description:''}`,String(b.remind_at),'Açık').run()}
     return json({ok:true,id:created.meta.last_row_id},201)
   }
   const graphicJob=path.match(/^\/api\/graphic-jobs\/(\d+)$/);
   if(graphicJob&&request.method==='PUT'){
     const b=await body(request),id=Number(graphicJob[1]);
-    await env.DB.prepare('UPDATE graphic_jobs SET work_date=COALESCE(?,work_date),job_no=COALESCE(?,job_no),customer_name=COALESCE(?,customer_name),description=COALESCE(?,description),quantity=COALESCE(?,quantity),delivery_date=COALESCE(?,delivery_date),status=COALESCE(?,status),note=COALESCE(?,note),updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.work_date??null,b.job_no??null,b.customer_name??null,b.description??null,b.quantity??null,b.delivery_date??null,b.status??null,b.note??null,id).run();
+    await env.DB.prepare('UPDATE graphic_jobs SET work_date=COALESCE(?,work_date),job_no=COALESCE(?,job_no),customer_name=COALESCE(?,customer_name),description=COALESCE(?,description),quantity=COALESCE(?,quantity),delivery_date=COALESCE(?,delivery_date),status=COALESCE(?,status),note=COALESCE(?,note),price=COALESCE(?,price),updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.work_date??null,b.job_no??null,b.customer_name??null,b.description??null,b.quantity??null,b.delivery_date??null,b.status??null,b.note??null,b.price??null,id).run();
     return json({ok:true})
   }
   if(graphicJob&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM graphic_jobs WHERE id=?').bind(Number(graphicJob[1])).run();return json({ok:true})}
