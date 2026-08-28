@@ -82,6 +82,16 @@ async function ensureSchema(env) {
   ]) await env.DB.prepare(sql).run();
 }
 
+// Ayni Worker calisirken her API isteginde onlarca PRAGMA/CREATE sorgusunu
+// yeniden kosma. Ilk kontrol tamamlaninca sonraki istekler dogrudan veriye gider.
+let schemaReadyPromise;
+async function ensureSchemaReady(env) {
+  if (!schemaReadyPromise) {
+    schemaReadyPromise=ensureSchema(env).catch(error=>{schemaReadyPromise=undefined;throw error});
+  }
+  return schemaReadyPromise;
+}
+
 async function api(request, env) {
   const url = new URL(request.url), path=url.pathname;
   if (path==='/api/login' && request.method==='POST') {
@@ -93,7 +103,7 @@ async function api(request, env) {
   if(path==='/api/logout') return json({ok:true},200,{'set-cookie':'crm_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict'});
 
   if(path==='/api/mail-webhook' && request.method==='POST') {
-    await ensureSchema(env);
+    await ensureSchemaReady(env);
     const supplied=request.headers.get('x-crm-webhook-key')||'';
     if(!env.MAIL_WEBHOOK_KEY || supplied!==env.MAIL_WEBHOOK_KEY) return json({error:'Webhook anahtarı geçersiz'},401);
     const b=await body(request), email=String(b.email||'').trim().toLowerCase(), externalId=String(b.external_id||'');
@@ -110,7 +120,7 @@ async function api(request, env) {
   }
 
   if(!(await validSession(request,env))) return json({error:'Yetkisiz'},401);
-  await ensureSchema(env);
+  await ensureSchemaReady(env);
 
   if(path==='/api/health') return json({ok:true});
   if(path==='/api/dashboard') {
