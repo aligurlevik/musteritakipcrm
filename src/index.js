@@ -5,14 +5,16 @@ async function hmac(secret, value) {
   const sig = await crypto.subtle.sign('HMAC', key, enc.encode(value));
   return [...new Uint8Array(sig)].map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-async function sessionToken(env) {
+async function sessionToken(env, role='admin') {
   const day = new Date().toISOString().slice(0,10);
-  return day + '.' + await hmac(env.SESSION_SECRET || 'change-me', day);
+  return role + '.' + day + '.' + await hmac(env.SESSION_SECRET || 'change-me', role+'.'+day);
 }
-async function validSession(request, env) {
+async function sessionRole(request, env) {
   const cookie = request.headers.get('Cookie') || '';
   const m = cookie.match(/crm_session=([^;]+)/);
-  return !!m && m[1] === await sessionToken(env);
+  if(!m)return '';
+  for(const role of ['admin','graphic'])if(m[1]===await sessionToken(env,role))return role;
+  return '';
 }
 const json = (data,status=200,headers={}) => new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8',...headers}});
 async function body(request){ try{return await request.json()}catch{return {}} }
@@ -108,9 +110,11 @@ async function api(request, env) {
   const url = new URL(request.url), path=url.pathname;
   if (path==='/api/login' && request.method==='POST') {
     const b=await body(request);
-    if(!env.ADMIN_PASSWORD || b.password!==env.ADMIN_PASSWORD) return json({error:'Şifre hatalı'},401);
-    const token=await sessionToken(env);
-    return json({ok:true},200,{'set-cookie':`crm_session=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`});
+    const requestedRole=b.user==='Çağatay'?'graphic':'admin';
+    const valid=requestedRole==='admin'?(env.ADMIN_PASSWORD&&b.password===env.ADMIN_PASSWORD):b.password===(env.CAGATAY_PASSWORD||'4444');
+    if(!valid) return json({error:'Şifre hatalı'},401);
+    const token=await sessionToken(env,requestedRole);
+    return json({ok:true,role:requestedRole,user:requestedRole==='admin'?'Ali':'Çağatay'},200,{'set-cookie':`crm_session=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`});
   }
   if(path==='/api/logout') return json({ok:true},200,{'set-cookie':'crm_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict'});
 
@@ -131,7 +135,10 @@ async function api(request, env) {
     return json({ok:true,matched_customer_id:customerId,matched_company:company},201);
   }
 
-  if(!(await validSession(request,env))) return json({error:'Yetkisiz'},401);
+  const role=await sessionRole(request,env);
+  if(!role) return json({error:'Yetkisiz'},401);
+  if(path==='/api/session')return json({ok:true,role,user:role==='admin'?'Ali':'Çağatay'});
+  if(role==='graphic'&&!path.startsWith('/api/graphic-jobs')&&path!=='/api/health')return json({error:'Bu bölüm yalnızca yöneticiye açıktır.'},403);
   await ensureSchemaReady(env);
 
   if(path==='/api/health') return json({ok:true});
@@ -150,14 +157,16 @@ async function api(request, env) {
     const duplicate=await env.DB.prepare('SELECT id,work_date,customer_name FROM graphic_jobs WHERE lower(job_no)=lower(?) LIMIT 1').bind(jobNo).first();
     if(duplicate&&!b.allow_duplicate)return json({error:'Bu iş numarası daha önce kaydedilmiş.',duplicate},409);
     const description=String(b.description||'').trim();
-    const created=await env.DB.prepare('INSERT INTO graphic_jobs(work_date,job_no,customer_name,description,quantity,delivery_date,status,note,price,created_by) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(b.work_date,jobNo,customer,description,Math.max(1,Number(b.quantity||1)),b.delivery_date||'',b.status||'Beklemede',String(b.note||'').trim(),Math.max(0,Number(b.price||0)),String(b.created_by||'').trim()).run();
+    const createdBy=role==='graphic'?'Çağatay':String(b.created_by||'').trim();
+    const created=await env.DB.prepare('INSERT INTO graphic_jobs(work_date,job_no,customer_name,description,quantity,delivery_date,status,note,price,created_by) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(b.work_date,jobNo,customer,description,Math.max(1,Number(b.quantity||1)),b.delivery_date||'',b.status||'Beklemede',String(b.note||'').trim(),Math.max(0,Number(b.price||0)),createdBy).run();
     if(b.remind_at){const last=await env.DB.prepare('SELECT COALESCE(MAX(sort_order),0) n FROM agenda_entries WHERE entry_date=?').bind(b.work_date).first();await env.DB.prepare('INSERT INTO agenda_entries(entry_date,sort_order,note,remind_at,reminder_status) VALUES(?,?,?,?,?)').bind(b.work_date,Number(last?.n||0)+1,`${customer} — ${jobNo}${description?' — '+description:''}`,String(b.remind_at),'Açık').run()}
     return json({ok:true,id:created.meta.last_row_id},201)
   }
   const graphicJob=path.match(/^\/api\/graphic-jobs\/(\d+)$/);
   if(graphicJob&&request.method==='PUT'){
     const b=await body(request),id=Number(graphicJob[1]);
-    await env.DB.prepare('UPDATE graphic_jobs SET work_date=COALESCE(?,work_date),job_no=COALESCE(?,job_no),customer_name=COALESCE(?,customer_name),description=COALESCE(?,description),quantity=COALESCE(?,quantity),delivery_date=COALESCE(?,delivery_date),status=COALESCE(?,status),note=COALESCE(?,note),price=COALESCE(?,price),created_by=COALESCE(?,created_by),completed_by=COALESCE(?,completed_by),updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.work_date??null,b.job_no??null,b.customer_name??null,b.description??null,b.quantity??null,b.delivery_date??null,b.status??null,b.note??null,b.price??null,b.created_by??null,b.completed_by??null,id).run();
+    const completedBy=role==='graphic'&&b.completed_by?'Çağatay':(b.completed_by??null);
+    await env.DB.prepare('UPDATE graphic_jobs SET work_date=COALESCE(?,work_date),job_no=COALESCE(?,job_no),customer_name=COALESCE(?,customer_name),description=COALESCE(?,description),quantity=COALESCE(?,quantity),delivery_date=COALESCE(?,delivery_date),status=COALESCE(?,status),note=COALESCE(?,note),price=COALESCE(?,price),created_by=COALESCE(?,created_by),completed_by=COALESCE(?,completed_by),updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.work_date??null,b.job_no??null,b.customer_name??null,b.description??null,b.quantity??null,b.delivery_date??null,b.status??null,b.note??null,b.price??null,role==='graphic'?null:(b.created_by??null),completedBy,id).run();
     return json({ok:true})
   }
   if(graphicJob&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM graphic_jobs WHERE id=?').bind(Number(graphicJob[1])).run();return json({ok:true})}
