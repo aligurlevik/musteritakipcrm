@@ -100,7 +100,7 @@
 <div id="meetingModal" class="modal"><div class="box"><h3 id="meetingModalTitle">Görüşme Ekle</h3><input id="m_id" type="hidden"><div class="grid">
 <div><label>🏢 Firma</label><select id="m_customer"></select></div><div><label>🔢 Görüşme No</label><input value="Otomatik verilecek" disabled></div>
 <div><label>📅 Görüşme Tarihi</label><input id="m_date" type="date"></div><div><label>⏭️ Sonraki Takip</label><input id="m_follow" type="date"></div>
-<div class="full"><label>📝 Görüşme Notu</label><textarea id="m_note" rows="5"></textarea></div>
+<div class="full"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px"><label>📝 Görüşme Notu</label><button type="button" class="btn agenda-clipboard-button" onclick="pasteAgendaNote('m_note')">📋 Panodan Ekle</button></div><textarea id="m_note" rows="5" placeholder="Görüşme notunu yazın veya panodan ekleyin."></textarea></div>
 <div><label>✅ Görüşme Sonucu</label><select id="m_result"><option>Beklemede</option><option>Olumlu</option><option>Olumsuz</option><option>Tekrar Görüşülecek</option></select></div>
 <div class="full"><label>📋 Sonuç Notu</label><textarea id="m_result_note" rows="3"></textarea></div>
 <div><label>🔔 Hatırlatma Tarihi / Saati</label><input id="m_remind_at" type="datetime-local"></div>
