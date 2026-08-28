@@ -133,8 +133,9 @@ async function api(request, env) {
 
   if(path==='/api/health') return json({ok:true});
   if(path==='/api/graphic-jobs'&&request.method==='GET'){
-    const date=url.searchParams.get('date')||new Date().toISOString().slice(0,10),search=String(url.searchParams.get('search')||'').trim(),upcomingFrom=url.searchParams.get('upcoming_from'),upcomingTo=url.searchParams.get('upcoming_to');
+    const date=url.searchParams.get('date')||new Date().toISOString().slice(0,10),search=String(url.searchParams.get('search')||'').trim(),upcomingFrom=url.searchParams.get('upcoming_from'),upcomingTo=url.searchParams.get('upcoming_to'),workFrom=url.searchParams.get('work_from'),workTo=url.searchParams.get('work_to');
     if(upcomingFrom&&upcomingTo)return json((await env.DB.prepare("SELECT * FROM graphic_jobs WHERE delivery_date>=? AND delivery_date<=? AND status NOT IN ('Tamamlandı','Bitti','İptal') ORDER BY delivery_date,id").bind(upcomingFrom,upcomingTo).all()).results);
+    if(workFrom&&workTo)return json((await env.DB.prepare('SELECT * FROM graphic_jobs WHERE work_date>=? AND work_date<=? ORDER BY work_date,id').bind(workFrom,workTo).all()).results);
     if(search){const q='%'+search+'%';return json((await env.DB.prepare('SELECT * FROM graphic_jobs WHERE job_no LIKE ? OR customer_name LIKE ? OR description LIKE ? ORDER BY work_date DESC,id DESC').bind(q,q,q).all()).results)}
     return json((await env.DB.prepare('SELECT * FROM graphic_jobs WHERE work_date=? ORDER BY id DESC').bind(date).all()).results)
   }
