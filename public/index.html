@@ -70,6 +70,7 @@
 .graphic-calendar-panel .month-day{height:70px;padding:5px}
 .graphic-calendar-panel .month-day-number{font-size:14px}
 @media(max-width:1100px){.graphic-agenda-layout{grid-template-columns:1fr!important}.graphic-calendar-panel .month-grid{grid-auto-rows:76px}.graphic-calendar-panel .month-day{height:76px}}
+.graphic-status-select{min-width:100px!important;font-size:14px!important;font-weight:900!important;text-align:center!important}
 </style></head>
 <body>
 <div id="agendaImageViewer" class="modal" onclick="if(event.target===this)closeM('agendaImageViewer')"><div class="agenda-image-viewer-box"><div class="agenda-image-viewer-head"><button class="btn" onclick="closeM('agendaImageViewer')">Kapat</button></div><img id="agendaImageFull" alt="Ajanda resmi"></div></div>
@@ -531,7 +532,7 @@ function showCompletedGraphicStatus(){
   document.querySelectorAll('#graphicJobRows .graphic-job-card').forEach((card,index)=>{
     const job=jobs[index],select=card.querySelector('.graphic-status-select');
     if(!job||!select||!graphicStatusIs(job.status,'Bitti'))return;
-    const option=document.createElement('option');option.value=job.status;option.textContent=job.status==='İmalat Bitti'?'Üretime Alındı':job.status;option.selected=true;select.prepend(option);
+    const option=document.createElement('option');option.value=job.status;option.textContent=job.status==='İmalat Bitti'?'ÜRETİM':job.status;option.selected=true;select.prepend(option);
   });
 }
 async function updateGraphicJobPrice(id,value){
