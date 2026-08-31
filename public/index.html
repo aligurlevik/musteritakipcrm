@@ -494,6 +494,14 @@ function enableGraphicPriceEditing(){
     price.replaceWith(input);
   });
 }
+function showCompletedGraphicStatus(){
+  const jobs=editableGraphicJobsForDay();
+  document.querySelectorAll('#graphicJobRows .graphic-job-card').forEach((card,index)=>{
+    const job=jobs[index],select=card.querySelector('.graphic-status-select');
+    if(!job||!select||!graphicStatusIs(job.status,'Bitti'))return;
+    const option=document.createElement('option');option.value='Bitti';option.textContent='Bitti';option.selected=true;select.prepend(option);
+  });
+}
 async function updateGraphicJobPrice(id,value){
   const price=Math.max(0,Number(value||0));
   try{
@@ -503,7 +511,7 @@ async function updateGraphicJobPrice(id,value){
   }catch(e){showMsg(e.message,'err')}
 }
 const renderGraphicJobsWithStaticPrice=renderGraphicJobs;
-renderGraphicJobs=function(){renderGraphicJobsWithStaticPrice();enableGraphicPriceEditing()};
+renderGraphicJobs=function(){renderGraphicJobsWithStaticPrice();enableGraphicPriceEditing();showCompletedGraphicStatus()};
 ensureGraphicPriceInput();
 let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole==='admin'){pollMeetingReminders();pollAgendaReminders()}}); setInterval(()=>{if(currentAccessRole!=='admin')return;loadMeetings().catch(()=>{});pollMeetingReminders();pollAgendaReminders();const newDay=localDateKey();if(newDay!==activeCalendarDay){activeCalendarDay=newDay;agendaDate=new Date();agendaView='month';loadAgenda().catch(()=>{})}},15000);
 </script><!-- deployment-refresh: 2026-08-28-multi-participants -->
