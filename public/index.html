@@ -65,6 +65,11 @@
 .graphic-job-main>span:last-child{display:inline-flex!important;align-items:center;justify-content:flex-end;gap:3px;min-width:88px;position:relative;z-index:2}
 .graphic-job-main>span:last-child input{width:68px!important;min-width:68px!important;padding:6px 4px!important}
 @media(max-width:850px){.graphic-job-main{grid-template-columns:minmax(0,1fr) 88px!important}.graphic-job-main>span:last-child{grid-column:2!important;grid-row:1!important}.graphic-job-note{padding-right:4px!important}}
+.graphic-agenda-layout{grid-template-columns:minmax(760px,1.75fr) minmax(300px,.55fr)!important;gap:12px!important}
+.graphic-calendar-panel .month-grid{grid-auto-rows:70px}
+.graphic-calendar-panel .month-day{height:70px;padding:5px}
+.graphic-calendar-panel .month-day-number{font-size:14px}
+@media(max-width:1100px){.graphic-agenda-layout{grid-template-columns:1fr!important}.graphic-calendar-panel .month-grid{grid-auto-rows:76px}.graphic-calendar-panel .month-day{height:76px}}
 </style></head>
 <body>
 <div id="agendaImageViewer" class="modal" onclick="if(event.target===this)closeM('agendaImageViewer')"><div class="agenda-image-viewer-box"><div class="agenda-image-viewer-head"><button class="btn" onclick="closeM('agendaImageViewer')">Kapat</button></div><img id="agendaImageFull" alt="Ajanda resmi"></div></div>
