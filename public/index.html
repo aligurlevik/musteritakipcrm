@@ -531,7 +531,7 @@ function showCompletedGraphicStatus(){
   document.querySelectorAll('#graphicJobRows .graphic-job-card').forEach((card,index)=>{
     const job=jobs[index],select=card.querySelector('.graphic-status-select');
     if(!job||!select||!graphicStatusIs(job.status,'Bitti'))return;
-    const option=document.createElement('option');option.value=job.status;option.textContent=job.status;option.selected=true;select.prepend(option);
+    const option=document.createElement('option');option.value=job.status;option.textContent=job.status==='İmalat Bitti'?'Üretime Alındı':job.status;option.selected=true;select.prepend(option);
   });
 }
 async function updateGraphicJobPrice(id,value){
