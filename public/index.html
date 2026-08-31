@@ -477,6 +477,33 @@ const notifiedMeetings=new Set();
 async function enableNotifications(){playReminderSound();if(!('Notification'in window))return alert('Tarayıcı masaüstü bildirimini desteklemiyor.');const p=await Notification.requestPermission();if(p==='granted'){new Notification('CRM Bildirimleri ve Ses Açıldı',{body:'Hatırlatmalar ekranda görünecek ve sesli alarm çalacak.',tag:'crm-notification-test'});showMsg('Masaüstü bildirimi ve sesli alarm açıldı. CRM sekmesini açık bırakın.')}else alert('Bildirim izni verilmedi. Tarayıcı adres çubuğundaki kilit simgesinden Bildirimlere izin verin.')}
 function checkMeetingNotifications(items){if(!('Notification'in window)||Notification.permission!=='granted')return;const now=Date.now();for(const x of items){if(!x.remind_at||x.reminder_status==='Tamamlandı'||notifiedMeetings.has(x.id))continue;const when=new Date(x.remind_at).getTime();if(when<=now&&now-when<24*60*60*1000){showDesktopReminder('🔔 CRM Görüşme Uyarısı',`${x.company}: ${x.remind_note||x.note||'Görüşmeyi takip et.'}`,`crm-meeting-${x.id}`);notifiedMeetings.add(x.id)}}}
 
+
+function editableGraphicJobsForDay(){
+  const selectedDate=$('g_date').value;
+  return allGraphicJobs.filter(x=>x.work_date===selectedDate||String(x.created_date||x.created_at||'').slice(0,10)===selectedDate).sort((a,b)=>Number(graphicStatusIs(a.status,'Bitti'))-Number(graphicStatusIs(b.status,'Bitti'))||Number(b.work_date===selectedDate)-Number(a.work_date===selectedDate)||String(a.work_date||'9999-12-31').localeCompare(String(b.work_date||'9999-12-31'))||Number(b.id)-Number(a.id));
+}
+function enableGraphicPriceEditing(){
+  const jobs=editableGraphicJobsForDay();
+  document.querySelectorAll('#graphicJobRows .graphic-price').forEach((price,index)=>{
+    const job=jobs[index];if(!job)return;
+    const input=document.createElement('input');
+    input.type='number';input.min='0';input.step='0.01';input.value=Number(job.price||0)||'';input.placeholder='Fiyat ₺';input.title='Eski fiyatı yazın';
+    input.style.cssText='width:105px;padding:6px 7px;font-weight:900;color:#047857;background:#fff;border:1px solid #86efac';
+    input.addEventListener('keydown',event=>{if(event.key==='Enter')input.blur()});
+    input.addEventListener('change',()=>updateGraphicJobPrice(job.id,input.value));
+    price.replaceWith(input);
+  });
+}
+async function updateGraphicJobPrice(id,value){
+  const price=Math.max(0,Number(value||0));
+  try{
+    await req('/api/graphic-jobs/'+id,{method:'PUT',body:JSON.stringify({price})});
+    [allGraphicJobs,graphicMonthJobs,upcomingGraphicJobs].forEach(list=>{const job=list.find(x=>x.id===id);if(job)job.price=price});
+    showMsg('Fiyat kaydedildi: '+price.toLocaleString('tr-TR')+' ₺');renderGraphicJobs();
+  }catch(e){showMsg(e.message,'err')}
+}
+const renderGraphicJobsWithStaticPrice=renderGraphicJobs;
+renderGraphicJobs=function(){renderGraphicJobsWithStaticPrice();enableGraphicPriceEditing()};
 ensureGraphicPriceInput();
 let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole==='admin'){pollMeetingReminders();pollAgendaReminders()}}); setInterval(()=>{if(currentAccessRole!=='admin')return;loadMeetings().catch(()=>{});pollMeetingReminders();pollAgendaReminders();const newDay=localDateKey();if(newDay!==activeCalendarDay){activeCalendarDay=newDay;agendaDate=new Date();agendaView='month';loadAgenda().catch(()=>{})}},15000);
 </script><!-- deployment-refresh: 2026-08-28-multi-participants -->
