@@ -535,11 +535,6 @@ function showCompletedGraphicStatus(){
     const option=document.createElement('option');option.value=job.status;option.textContent=job.status==='İmalat Bitti'?'ÜRETİM':job.status;option.selected=true;select.prepend(option);
   });
 }
-function removeGraphicPersonPrefix(){
-  document.querySelectorAll('#graphicJobRows .graphic-person').forEach(person=>{
-    person.textContent=person.textContent.replace(/^Çizen:\s*/,'');
-  });
-}
 async function updateGraphicJobPrice(id,value){
   const price=Math.max(0,Number(value||0));
   try{
@@ -549,7 +544,7 @@ async function updateGraphicJobPrice(id,value){
   }catch(e){showMsg(e.message,'err')}
 }
 const renderGraphicJobsWithStaticPrice=renderGraphicJobs;
-renderGraphicJobs=function(){renderGraphicJobsWithStaticPrice();enableGraphicPriceEditing();showCompletedGraphicStatus();removeGraphicPersonPrefix()};
+renderGraphicJobs=function(){renderGraphicJobsWithStaticPrice();enableGraphicPriceEditing();showCompletedGraphicStatus()};
 ensureGraphicPriceInput();
 if($('g_date')&&!$('g_date').value)$('g_date').value=localDateKey();
 ensureGraphicAlarmControls();
