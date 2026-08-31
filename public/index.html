@@ -60,6 +60,13 @@
 .graphic-person{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .graphic-job-note{min-width:0;padding-left:12px;border-left:2px solid #cbd5e1;overflow:hidden;overflow-wrap:anywhere}
 @media(max-width:850px){.graphic-job-main{grid-template-columns:minmax(0,1fr) auto!important}.graphic-job-note{grid-column:1/-1!important;grid-row:2!important;padding:7px 0 0!important;border-left:0!important;border-top:1px solid #cbd5e1}.graphic-job-title{grid-template-columns:minmax(105px,1fr) 105px minmax(90px,.8fr)!important}}
+.graphic-job-card.delivery-today{background:#dcfce7!important;border-left-color:#16a34a!important}
+.graphic-job-card.delivery-tomorrow{background:#fef3c7!important;border-left-color:#eab308!important}
+.graphic-job-card.delivery-later{background:#f3e8ff!important;border-left-color:#9333ea!important}
+.graphic-job-card.delivery-today .graphic-plan-badge{background:#bbf7d0!important;color:#166534!important}
+.graphic-job-card.delivery-tomorrow .graphic-plan-badge{background:#fde68a!important;color:#854d0e!important}
+.graphic-job-card.delivery-later .graphic-plan-badge{background:#e9d5ff!important;color:#6b21a8!important}
+.graphic-job-card.status-bitti{background:#fee2e2!important;border-left-color:#dc2626!important}
 </style></head>
 <body>
 <div id="agendaImageViewer" class="modal" onclick="if(event.target===this)closeM('agendaImageViewer')"><div class="agenda-image-viewer-box"><div class="agenda-image-viewer-head"><button class="btn" onclick="closeM('agendaImageViewer')">Kapat</button></div><img id="agendaImageFull" alt="Ajanda resmi"></div></div>
@@ -524,6 +531,18 @@ function showCompletedGraphicStatus(){
     const option=document.createElement('option');option.value=job.status;option.textContent=job.status;option.selected=true;select.prepend(option);
   });
 }
+function applyGraphicDeliveryColors(){
+  const jobs=editableGraphicJobsForDay(),todayKey=localDateKey(),tomorrow=new Date();
+  tomorrow.setDate(tomorrow.getDate()+1);
+  const tomorrowKey=localDateKey(tomorrow);
+  document.querySelectorAll('#graphicJobRows .graphic-job-card').forEach((card,index)=>{
+    const date=String(jobs[index]?.work_date||'');
+    card.classList.remove('delivery-today','delivery-tomorrow','delivery-later');
+    if(date===todayKey)card.classList.add('delivery-today');
+    else if(date===tomorrowKey)card.classList.add('delivery-tomorrow');
+    else if(date>tomorrowKey)card.classList.add('delivery-later');
+  });
+}
 async function updateGraphicJobPrice(id,value){
   const price=Math.max(0,Number(value||0));
   try{
@@ -533,7 +552,7 @@ async function updateGraphicJobPrice(id,value){
   }catch(e){showMsg(e.message,'err')}
 }
 const renderGraphicJobsWithStaticPrice=renderGraphicJobs;
-renderGraphicJobs=function(){renderGraphicJobsWithStaticPrice();enableGraphicPriceEditing();showCompletedGraphicStatus()};
+renderGraphicJobs=function(){renderGraphicJobsWithStaticPrice();enableGraphicPriceEditing();showCompletedGraphicStatus();applyGraphicDeliveryColors()};
 ensureGraphicPriceInput();
 if($('g_date')&&!$('g_date').value)$('g_date').value=localDateKey();
 ensureGraphicAlarmControls();
