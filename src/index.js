@@ -145,10 +145,11 @@ async function api(request, env) {
 
   if(path==='/api/health') return json({ok:true});
   if(path==='/api/graphic-jobs'&&request.method==='GET'){
-    const date=url.searchParams.get('date')||new Date().toISOString().slice(0,10),visibleDate=url.searchParams.get('visible_date'),search=String(url.searchParams.get('search')||'').trim(),upcomingFrom=url.searchParams.get('upcoming_from'),upcomingTo=url.searchParams.get('upcoming_to'),workFrom=url.searchParams.get('work_from'),workTo=url.searchParams.get('work_to');
+    const date=url.searchParams.get('date')||new Date().toISOString().slice(0,10),visibleDate=url.searchParams.get('visible_date'),search=String(url.searchParams.get('search')||'').trim(),upcomingFrom=url.searchParams.get('upcoming_from'),upcomingTo=url.searchParams.get('upcoming_to'),workFrom=url.searchParams.get('work_from'),workTo=url.searchParams.get('work_to'),createdFrom=url.searchParams.get('created_from'),createdTo=url.searchParams.get('created_to');
     const clean=rows=>rows.map(x=>({...x,description:String(x.description||'').toLocaleLowerCase('tr-TR').includes('yapıldı')?'':x.description}));
     if(upcomingFrom&&upcomingTo)return json(clean((await env.DB.prepare("SELECT * FROM graphic_jobs WHERE delivery_date>=? AND delivery_date<=? AND status NOT IN ('Tamamlandı','Bitti','İptal') ORDER BY delivery_date,id").bind(upcomingFrom,upcomingTo).all()).results));
     if(workFrom&&workTo)return json(clean((await env.DB.prepare('SELECT * FROM graphic_jobs WHERE work_date>=? AND work_date<=? ORDER BY work_date,id').bind(workFrom,workTo).all()).results));
+    if(createdFrom&&createdTo)return json(clean((await env.DB.prepare("SELECT *,date(created_at,'+3 hours') created_date FROM graphic_jobs WHERE date(created_at,'+3 hours')>=? AND date(created_at,'+3 hours')<=? ORDER BY created_at,id").bind(createdFrom,createdTo).all()).results));
     if(search){const q='%'+search+'%';return json(clean((await env.DB.prepare('SELECT * FROM graphic_jobs WHERE job_no LIKE ? OR customer_name LIKE ? OR description LIKE ? ORDER BY work_date DESC,id DESC').bind(q,q,q).all()).results))}
     if(visibleDate)return json(clean((await env.DB.prepare("SELECT *,date(created_at,'+3 hours') created_date FROM graphic_jobs WHERE work_date=? OR date(created_at,'+3 hours')=? ORDER BY CASE WHEN work_date=? THEN 0 ELSE 1 END,id DESC").bind(visibleDate,visibleDate,visibleDate).all()).results))
     return json(clean((await env.DB.prepare('SELECT * FROM graphic_jobs WHERE work_date=? ORDER BY id DESC').bind(date).all()).results))
