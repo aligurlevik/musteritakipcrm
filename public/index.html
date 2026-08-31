@@ -543,6 +543,23 @@ function showCompletedGraphicStatus(){
     const option=document.createElement('option');option.value=job.status;option.textContent=job.status==='İmalat Bitti'?'ÜRETİM':job.status;option.selected=true;select.prepend(option);
   });
 }
+const notifiedGraphicDeadlines=new Set();
+function checkGraphicDeadlineWarnings(){
+  const jobs=editableGraphicJobsForDay(),now=Date.now();
+  document.querySelectorAll('#graphicJobRows .graphic-job-card').forEach((card,index)=>{
+    const job=jobs[index],deliveryAt=job?.remind_at?new Date(job.remind_at).getTime():0;
+    const remaining=deliveryAt-now,isDone=graphicStatusIs(job?.status,'Bitti');
+    const shouldBlink=!isDone&&deliveryAt&&remaining<=60*60*1000;
+    card.classList.toggle('deadline-blink',Boolean(shouldBlink));
+    if(!isDone&&deliveryAt&&remaining>0&&remaining<=60*60*1000&&!notifiedGraphicDeadlines.has(job.id)){
+      notifiedGraphicDeadlines.add(job.id);
+      const message=`${job.customer_name} — ${job.job_no} teslimine 1 saatten az kaldı.`;
+      playReminderSound();
+      showDesktopReminder('🔔 TESLİM SAATİ YAKLAŞTI',message,`graphic-deadline-${job.id}`);
+      showMsg(message,'err');
+    }
+  });
+}
 async function updateGraphicJobPrice(id,value){
   const price=Math.max(0,Number(value||0));
   try{
@@ -552,10 +569,11 @@ async function updateGraphicJobPrice(id,value){
   }catch(e){showMsg(e.message,'err')}
 }
 const renderGraphicJobsWithStaticPrice=renderGraphicJobs;
-renderGraphicJobs=function(){renderGraphicJobsWithStaticPrice();enableGraphicPriceEditing();showCompletedGraphicStatus()};
+renderGraphicJobs=function(){renderGraphicJobsWithStaticPrice();enableGraphicPriceEditing();showCompletedGraphicStatus();checkGraphicDeadlineWarnings()};
 ensureGraphicPriceInput();
 if($('g_date')&&!$('g_date').value)$('g_date').value=localDateKey();
 ensureGraphicAlarmControls();
+setInterval(checkGraphicDeadlineWarnings,30000);
 let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole==='admin'){pollMeetingReminders();pollAgendaReminders()}}); setInterval(()=>{if(currentAccessRole!=='admin')return;loadMeetings().catch(()=>{});pollMeetingReminders();pollAgendaReminders();const newDay=localDateKey();if(newDay!==activeCalendarDay){activeCalendarDay=newDay;agendaDate=new Date();agendaView='month';loadAgenda().catch(()=>{})}},15000);
 </script><!-- deployment-refresh: 2026-08-28-multi-participants -->
 </body></html>
