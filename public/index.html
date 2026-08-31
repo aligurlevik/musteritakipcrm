@@ -60,6 +60,11 @@
 .graphic-person{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .graphic-job-note{min-width:0;padding-left:12px;border-left:2px solid #cbd5e1;overflow:hidden;overflow-wrap:anywhere}
 @media(max-width:850px){.graphic-job-main{grid-template-columns:minmax(0,1fr) auto!important}.graphic-job-note{grid-column:1/-1!important;grid-row:2!important;padding:7px 0 0!important;border-left:0!important;border-top:1px solid #cbd5e1}.graphic-job-title{grid-template-columns:minmax(105px,1fr) 105px minmax(90px,.8fr)!important}}
+.graphic-job-main{grid-template-columns:minmax(305px,1fr) minmax(80px,.7fr) 88px!important;column-gap:8px!important}
+.graphic-job-title{grid-template-columns:minmax(105px,1fr) 105px minmax(82px,.75fr)!important;gap:4px!important}
+.graphic-job-main>span:last-child{display:inline-flex!important;align-items:center;justify-content:flex-end;gap:3px;min-width:88px;position:relative;z-index:2}
+.graphic-job-main>span:last-child input{width:68px!important;min-width:68px!important;padding:6px 4px!important}
+@media(max-width:850px){.graphic-job-main{grid-template-columns:minmax(0,1fr) 88px!important}.graphic-job-main>span:last-child{grid-column:2!important;grid-row:1!important}.graphic-job-note{padding-right:4px!important}}
 </style></head>
 <body>
 <div id="agendaImageViewer" class="modal" onclick="if(event.target===this)closeM('agendaImageViewer')"><div class="agenda-image-viewer-box"><div class="agenda-image-viewer-head"><button class="btn" onclick="closeM('agendaImageViewer')">Kapat</button></div><img id="agendaImageFull" alt="Ajanda resmi"></div></div>
