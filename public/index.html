@@ -491,22 +491,8 @@ function enableGraphicPriceEditing(){
     input.style.cssText='width:105px;padding:6px 7px;font-weight:900;color:#047857;background:#fff;border:1px solid #86efac';
     input.addEventListener('keydown',event=>{if(event.key==='Enter')input.blur()});
     input.addEventListener('change',()=>updateGraphicJobPrice(job.id,input.value));
-    const wrap=document.createElement('span');wrap.style.cssText='display:inline-flex;align-items:center;gap:4px;white-space:nowrap';
-    const currency=document.createElement('b');currency.textContent='TL';currency.style.color='#047857';
-    wrap.append(input,currency);price.replaceWith(wrap);
+    price.replaceWith(input);
   });
-}
-function refreshGraphicPriceTotals(){
-  const jobs=editableGraphicJobsForDay().filter(x=>x.work_date===$('g_date').value),total=jobs.reduce((sum,x)=>sum+Number(x.price||0),0);
-  const personTotals=['Ali','Çağatay'].map(name=>({name,total:jobs.filter(x=>(x.completed_by||x.created_by)===name).reduce((sum,x)=>sum+Number(x.price||0),0)}));
-  const title=document.querySelector('.graphic-daily-panel>h3');
-  if(title)title.innerHTML=`Günlük İşler ve Bugün Alınanlar <span class="graphic-daily-total">Ali: ${personTotals[0].total.toLocaleString('tr-TR')} TL • Çağatay: ${personTotals[1].total.toLocaleString('tr-TR')} TL • Toplam: ${total.toLocaleString('tr-TR')} TL</span>`;
-}
-function ensureGraphicTimeVisible(){
-  ensureGraphicAlarmControls();
-  const actions=document.querySelector('.graphic-simple-actions'),time=$('g_delivery_time');
-  if(actions)actions.style.flexWrap='wrap';
-  if(time){time.style.display='block';time.style.width='105px';time.title='Teslim saati'}
 }
 function showCompletedGraphicStatus(){
   const jobs=editableGraphicJobsForDay();
@@ -525,9 +511,8 @@ async function updateGraphicJobPrice(id,value){
   }catch(e){showMsg(e.message,'err')}
 }
 const renderGraphicJobsWithStaticPrice=renderGraphicJobs;
-renderGraphicJobs=function(){renderGraphicJobsWithStaticPrice();enableGraphicPriceEditing();showCompletedGraphicStatus();refreshGraphicPriceTotals();ensureGraphicTimeVisible()};
+renderGraphicJobs=function(){renderGraphicJobsWithStaticPrice();enableGraphicPriceEditing();showCompletedGraphicStatus()};
 ensureGraphicPriceInput();
-ensureGraphicTimeVisible();
 let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole==='admin'){pollMeetingReminders();pollAgendaReminders()}}); setInterval(()=>{if(currentAccessRole!=='admin')return;loadMeetings().catch(()=>{});pollMeetingReminders();pollAgendaReminders();const newDay=localDateKey();if(newDay!==activeCalendarDay){activeCalendarDay=newDay;agendaDate=new Date();agendaView='month';loadAgenda().catch(()=>{})}},15000);
 </script><!-- deployment-refresh: 2026-08-28-multi-participants -->
 </body></html>
