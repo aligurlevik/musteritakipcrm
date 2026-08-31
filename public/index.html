@@ -513,6 +513,7 @@ async function updateGraphicJobPrice(id,value){
 const renderGraphicJobsWithStaticPrice=renderGraphicJobs;
 renderGraphicJobs=function(){renderGraphicJobsWithStaticPrice();enableGraphicPriceEditing();showCompletedGraphicStatus()};
 ensureGraphicPriceInput();
+if($('g_date')&&!$('g_date').value)$('g_date').value=localDateKey();
 ensureGraphicAlarmControls();
 let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole==='admin'){pollMeetingReminders();pollAgendaReminders()}}); setInterval(()=>{if(currentAccessRole!=='admin')return;loadMeetings().catch(()=>{});pollMeetingReminders();pollAgendaReminders();const newDay=localDateKey();if(newDay!==activeCalendarDay){activeCalendarDay=newDay;agendaDate=new Date();agendaView='month';loadAgenda().catch(()=>{})}},15000);
 </script><!-- deployment-refresh: 2026-08-28-multi-participants -->
