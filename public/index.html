@@ -55,6 +55,11 @@
 .graphic-person{margin-left:0!important;font-size:10px!important;white-space:nowrap}
 .graphic-job-note{font-size:12px!important}
 @media(max-width:850px){.graphic-job-main{grid-template-columns:minmax(260px,1fr) auto!important}.graphic-job-note{grid-column:1/-1!important}.graphic-job-title{grid-template-columns:115px 105px 1fr!important}.graphic-job-code{width:105px}}
+.graphic-job-main{grid-template-columns:minmax(370px,.9fr) minmax(180px,1.1fr) auto!important;column-gap:14px!important}
+.graphic-job-title{grid-template-columns:minmax(125px,1fr) 115px minmax(105px,.8fr)!important;min-width:0!important}
+.graphic-person{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.graphic-job-note{min-width:0;padding-left:12px;border-left:2px solid #cbd5e1;overflow:hidden;overflow-wrap:anywhere}
+@media(max-width:850px){.graphic-job-main{grid-template-columns:minmax(0,1fr) auto!important}.graphic-job-note{grid-column:1/-1!important;grid-row:2!important;padding:7px 0 0!important;border-left:0!important;border-top:1px solid #cbd5e1}.graphic-job-title{grid-template-columns:minmax(105px,1fr) 105px minmax(90px,.8fr)!important}}
 </style></head>
 <body>
 <div id="agendaImageViewer" class="modal" onclick="if(event.target===this)closeM('agendaImageViewer')"><div class="agenda-image-viewer-box"><div class="agenda-image-viewer-head"><button class="btn" onclick="closeM('agendaImageViewer')">Kapat</button></div><img id="agendaImageFull" alt="Ajanda resmi"></div></div>
