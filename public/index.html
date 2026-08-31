@@ -72,7 +72,7 @@
 @media(max-width:1100px){.graphic-agenda-layout{grid-template-columns:1fr!important}.graphic-calendar-panel .month-grid{grid-auto-rows:76px}.graphic-calendar-panel .month-day{height:76px}}
 .graphic-status-select{width:122px!important;min-width:122px!important;font-size:14px!important;font-weight:900!important;text-align:center!important;padding-left:10px!important;padding-right:28px!important}
 .graphic-price.passive-price{display:inline-flex!important;align-items:center;justify-content:center;min-width:88px;padding:6px 7px;border:1px solid #cbd5e1;border-radius:8px;background:#e5e7eb!important;color:#64748b!important;font-weight:900;cursor:not-allowed;opacity:.8}
-.graphic-period-totals{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}.graphic-period-total{display:flex;align-items:center;gap:7px;padding:8px 11px;border-radius:10px;font-size:12px;font-weight:900}.graphic-period-total.previous{background:#dcfce7;color:#166534;border:1px solid #86efac}.graphic-period-total.week{background:#dbeafe;color:#1e3a8a;border:1px solid #93c5fd}.graphic-period-total.month{background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd}.graphic-period-total strong{font-size:14px}
+.graphic-period-totals{display:flex;justify-content:flex-end;margin:0 0 10px}.graphic-period-total{display:flex;align-items:center;gap:7px;padding:9px 13px;border-radius:10px;font-size:12px;font-weight:900}.graphic-period-total.cumulative{background:#dcfce7;color:#166534;border:1px solid #22c55e;box-shadow:0 3px 10px #16a34a22}.graphic-period-total strong{font-size:16px}
 </style></head>
 <body>
 <div id="agendaImageViewer" class="modal" onclick="if(event.target===this)closeM('agendaImageViewer')"><div class="agenda-image-viewer-box"><div class="agenda-image-viewer-head"><button class="btn" onclick="closeM('agendaImageViewer')">Kapat</button></div><img id="agendaImageFull" alt="Ajanda resmi"></div></div>
@@ -183,7 +183,7 @@
 </div></div>
 
 <script>
-const $=id=>document.getElementById(id); const today=()=>new Date().toISOString().slice(0,10); let currentAccessRole=''; let currentMeetingFilter='Aktif'; let currentCategoryFilter=''; let currentCustomerResultFilter=''; let allCustomers=[]; let allMeetings=[]; let allOffers=[]; let allMails=[]; let allGraphicJobs=[]; let graphicMonthJobs=[]; let graphicMonthDate=new Date(); let upcomingGraphicJobs=[]; let graphicPreviousDayJobs=[]; let graphicWeekCreatedJobs=[]; let graphicMonthCreatedJobs=[]; let agendaEntries=[]; let todayAgendaEntries=[]; let agendaDate=new Date(); let agendaView='month'; let activeReminder=null; let activeAgendaReminder=null; let reminderAudioContext=null; let customerNoteImageData=''; let offerImageData=''; const meetingHistoryCache=new Map();
+const $=id=>document.getElementById(id); const today=()=>new Date().toISOString().slice(0,10); let currentAccessRole=''; let currentMeetingFilter='Aktif'; let currentCategoryFilter=''; let currentCustomerResultFilter=''; let allCustomers=[]; let allMeetings=[]; let allOffers=[]; let allMails=[]; let allGraphicJobs=[]; let graphicMonthJobs=[]; let graphicMonthDate=new Date(); let upcomingGraphicJobs=[]; let graphicCumulativeJobs=[]; let agendaEntries=[]; let todayAgendaEntries=[]; let agendaDate=new Date(); let agendaView='month'; let activeReminder=null; let activeAgendaReminder=null; let reminderAudioContext=null; let customerNoteImageData=''; let offerImageData=''; const meetingHistoryCache=new Map();
 let reminderTitleTimer=null;const normalPageTitle=document.title;
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const urlToken=value=>encodeURIComponent(String(value??'')).replace(/'/g,'%27');
@@ -393,17 +393,12 @@ async function loadGraphicJobs(){
   const selected=new Date($('g_date').value+'T12:00:00');
   graphicMonthDate=new Date(selected.getFullYear(),selected.getMonth(),1);
   const monthFrom=localDateKey(graphicMonthDate),monthTo=localDateKey(new Date(selected.getFullYear(),selected.getMonth()+1,0));
-  const weekFromDate=new Date(selected);weekFromDate.setDate(selected.getDate()-((selected.getDay()+6)%7));
-  const weekToDate=new Date(weekFromDate);weekToDate.setDate(weekFromDate.getDate()+6);
-  const weekFrom=localDateKey(weekFromDate),weekTo=localDateKey(weekToDate),search=$('graphicSearch').value.trim(),until=new Date();until.setDate(until.getDate()+30);
-  const previousDay=new Date();previousDay.setDate(previousDay.getDate()-1);const previousDate=localDateKey(previousDay);
-  [allGraphicJobs,graphicMonthJobs,upcomingGraphicJobs,graphicPreviousDayJobs,graphicWeekCreatedJobs,graphicMonthCreatedJobs]=await Promise.all([
+  const search=$('graphicSearch').value.trim(),until=new Date();until.setDate(until.getDate()+30);
+  [allGraphicJobs,graphicMonthJobs,upcomingGraphicJobs,graphicCumulativeJobs]=await Promise.all([
     req('/api/graphic-jobs?'+(search?'search='+encodeURIComponent(search):'visible_date='+encodeURIComponent($('g_date').value))),
     req('/api/graphic-jobs?work_from='+encodeURIComponent(monthFrom)+'&work_to='+encodeURIComponent(monthTo)),
     req('/api/graphic-jobs?upcoming_from=2000-01-01&upcoming_to='+encodeURIComponent(localDateKey(until))),
-    req('/api/graphic-jobs?created_from='+encodeURIComponent(previousDate)+'&created_to='+encodeURIComponent(previousDate)),
-    req('/api/graphic-jobs?created_from='+encodeURIComponent(weekFrom)+'&created_to='+encodeURIComponent(weekTo)),
-    req('/api/graphic-jobs?created_from='+encodeURIComponent(monthFrom)+'&created_to='+encodeURIComponent(monthTo))
+    req('/api/graphic-jobs?created_from=2000-01-01&created_to='+encodeURIComponent(localDateKey()))
   ]);
   renderGraphicJobs();renderUpcomingGraphicJobs();
 }
@@ -567,17 +562,15 @@ const notifiedGraphicDeadlines=new Set();
 function renderGraphicPeriodTotals(){
   const summarize=jobs=>{
     const total=jobs.reduce((sum,job)=>sum+Number(job.price||0),0);
-    const ali=jobs.filter(job=>job.created_by==='Ali').reduce((sum,job)=>sum+Number(job.price||0),0);
-    const cagatay=jobs.filter(job=>job.created_by==='Çağatay').reduce((sum,job)=>sum+Number(job.price||0),0);
-    return {total,ali,cagatay,count:jobs.length};
+    return {total,count:jobs.length};
   };
-  const previous=summarize(graphicPreviousDayJobs),week=summarize(graphicWeekCreatedJobs),month=summarize(graphicMonthCreatedJobs),title=document.querySelector('.graphic-daily-panel>h3');
+  const cumulative=summarize(graphicCumulativeJobs),title=document.querySelector('.graphic-daily-panel>h3');
   if(!title)return;
   let box=$('graphicPeriodTotals');
   if(currentAccessRole!=='admin'){if(box)box.remove();return}
   if(!box){box=document.createElement('div');box.id='graphicPeriodTotals';box.className='graphic-period-totals';title.insertAdjacentElement('afterend',box)}
-  const previousHtml=`<div class="graphic-period-total previous">DÜNÜN CİROSU: <strong>${previous.total.toLocaleString('tr-TR')} TL</strong> • ${previous.count} iş</div>`;
-  box.innerHTML=previousHtml+`<div class="graphic-period-total week">HAFTALIK: <strong>${week.total.toLocaleString('tr-TR')} TL</strong> • ${week.count} iş • Ali ${week.ali.toLocaleString('tr-TR')} TL • Çağatay ${week.cagatay.toLocaleString('tr-TR')} TL</div><div class="graphic-period-total month">AYLIK: <strong>${month.total.toLocaleString('tr-TR')} TL</strong> • ${month.count} iş • Ali ${month.ali.toLocaleString('tr-TR')} TL • Çağatay ${month.cagatay.toLocaleString('tr-TR')} TL</div>`;
+  const currentDate=new Date().toLocaleDateString('tr-TR');
+  box.innerHTML=`<div class="graphic-period-total cumulative">TOPLAM CİRO • ${currentDate}: <strong>${cumulative.total.toLocaleString('tr-TR')} TL</strong> • ${cumulative.count} iş</div>`;
 }
 function checkGraphicDeadlineWarnings(){
   const jobs=editableGraphicJobsForDay(),now=Date.now();
@@ -609,6 +602,7 @@ ensureGraphicPriceInput();
 if($('g_date')&&!$('g_date').value)$('g_date').value=localDateKey();
 ensureGraphicAlarmControls();
 setInterval(checkGraphicDeadlineWarnings,30000);
+let graphicCiroDay=localDateKey();setInterval(()=>{const currentDay=localDateKey();if(currentDay!==graphicCiroDay){graphicCiroDay=currentDay;loadGraphicJobs().catch(()=>{})}},60000);
 let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole==='admin'){pollMeetingReminders();pollAgendaReminders()}}); setInterval(()=>{if(currentAccessRole!=='admin')return;loadMeetings().catch(()=>{});pollMeetingReminders();pollAgendaReminders();const newDay=localDateKey();if(newDay!==activeCalendarDay){activeCalendarDay=newDay;agendaDate=new Date();agendaView='month';loadAgenda().catch(()=>{})}},15000);
 </script><!-- deployment-refresh: 2026-08-28-multi-participants -->
 </body></html>
