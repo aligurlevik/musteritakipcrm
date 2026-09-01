@@ -211,7 +211,7 @@ async function api(request, env) {
         WHERE work_date=? AND status LIKE 'İmalat%' AND status NOT LIKE '%Bitti'`).bind(tomorrow,today).run();
     }
     const selectedDate=url.searchParams.get('day')==='tomorrow'?tomorrow:today;
-    return json((await env.DB.prepare("SELECT id,work_date,job_no,customer_name,description,note,tracking_note,status,remind_at,delivery_place,tracking_status,tracked_by,tracked_at FROM graphic_jobs WHERE work_date=? AND status LIKE 'İmalat%' ORDER BY CASE WHEN COALESCE(remind_at,'')='' THEN 1 ELSE 0 END,remind_at,id").bind(selectedDate).all()).results)
+    return json((await env.DB.prepare("SELECT g.id,g.work_date,g.job_no,g.customer_name,g.description,g.note,g.tracking_note,g.status,g.remind_at,COALESCE(NULLIF(g.delivery_place,''),(SELECT g2.delivery_place FROM graphic_jobs g2 WHERE lower(g2.job_no)=lower(g.job_no) AND COALESCE(g2.delivery_place,'')<>'' ORDER BY g2.id DESC LIMIT 1),'') delivery_place,g.tracking_status,g.tracked_by,g.tracked_at FROM graphic_jobs g WHERE g.work_date=? AND g.status LIKE 'İmalat%' ORDER BY CASE WHEN COALESCE(g.remind_at,'')='' THEN 1 ELSE 0 END,g.remind_at,g.id").bind(selectedDate).all()).results)
   }
   const trackingJob=path.match(/^\/api\/tracking\/(\d+)$/);
   if(trackingJob&&request.method==='PUT'){
