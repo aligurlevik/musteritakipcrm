@@ -211,7 +211,7 @@ async function api(request, env) {
         WHERE work_date=? AND status LIKE 'İmalat%' AND status NOT LIKE '%Bitti'`).bind(tomorrow,today).run();
     }
     const selectedDate=url.searchParams.get('day')==='tomorrow'?tomorrow:today;
-    return json((await env.DB.prepare("SELECT id,work_date,job_no,customer_name,description,note,tracking_note,status,remind_at,tracking_status,tracked_by,tracked_at FROM graphic_jobs WHERE work_date=? AND status LIKE 'İmalat%' ORDER BY CASE WHEN COALESCE(remind_at,'')='' THEN 1 ELSE 0 END,remind_at,id").bind(selectedDate).all()).results)
+    return json((await env.DB.prepare("SELECT id,work_date,job_no,customer_name,description,note,tracking_note,status,remind_at,delivery_place,tracking_status,tracked_by,tracked_at FROM graphic_jobs WHERE work_date=? AND status LIKE 'İmalat%' ORDER BY CASE WHEN COALESCE(remind_at,'')='' THEN 1 ELSE 0 END,remind_at,id").bind(selectedDate).all()).results)
   }
   const trackingJob=path.match(/^\/api\/tracking\/(\d+)$/);
   if(trackingJob&&request.method==='PUT'){
