@@ -150,7 +150,7 @@ async function api(request, env) {
   if(path==='/api/health') return json({ok:true});
   if(path==='/api/tracking'&&request.method==='GET'){
     const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-    return json((await env.DB.prepare("SELECT id,work_date,job_no,customer_name,description,status,remind_at,tracking_status,tracked_by,tracked_at FROM graphic_jobs WHERE work_date=? AND status NOT IN ('Tamamlandı','Bitti','İptal','İmalat Bitti','Bekleme Bitti') ORDER BY CASE WHEN COALESCE(remind_at,'')='' THEN 1 ELSE 0 END,remind_at,id").bind(today).all()).results)
+    return json((await env.DB.prepare("SELECT id,work_date,job_no,customer_name,description,status,remind_at,tracking_status,tracked_by,tracked_at FROM graphic_jobs WHERE work_date=? AND status LIKE 'İmalat%' ORDER BY CASE WHEN COALESCE(remind_at,'')='' THEN 1 ELSE 0 END,remind_at,id").bind(today).all()).results)
   }
   const trackingJob=path.match(/^\/api\/tracking\/(\d+)$/);
   if(trackingJob&&request.method==='PUT'){
