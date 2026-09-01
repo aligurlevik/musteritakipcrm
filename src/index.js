@@ -91,6 +91,9 @@ async function ensureSchema(env) {
   await ensureColumn(env,'graphic_jobs','tracking_status',"TEXT DEFAULT ''");
   await ensureColumn(env,'graphic_jobs','tracked_by',"TEXT DEFAULT ''");
   await ensureColumn(env,'graphic_jobs','tracked_at',"TEXT DEFAULT ''");
+  await ensureColumn(env,'graphic_jobs','original_work_date',"TEXT DEFAULT ''");
+  await ensureColumn(env,'graphic_jobs','completed_at',"TEXT DEFAULT ''");
+  await env.DB.prepare("UPDATE graphic_jobs SET original_work_date=work_date WHERE COALESCE(original_work_date,'')='' ").run();
   await env.DB.prepare("UPDATE graphic_jobs SET remind_at=COALESCE((SELECT a.remind_at FROM agenda_entries a WHERE a.entry_date=graphic_jobs.work_date AND a.note LIKE graphic_jobs.customer_name||' — '||graphic_jobs.job_no||'%' ORDER BY a.id DESC LIMIT 1),'') WHERE COALESCE(remind_at,'')='' ").run();
 
   for (const sql of [
@@ -194,6 +197,21 @@ async function api(request, env) {
       ORDER BY customer_name,job_no`).bind(reportDate,reportDate,reportDate).all();
     return json(rows.results)
   }
+  if(path==='/api/reports/production'&&request.method==='GET'){
+    if(role!=='admin')return json({error:'Raporlama yalnızca yöneticiye açıktır.'},403);
+    const from=url.searchParams.get('from'),to=url.searchParams.get('to');
+    if(!from||!to)return json({error:'Rapor başlangıç ve bitiş tarihi zorunlu.'},400);
+    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    const jobs=(await env.DB.prepare(`SELECT g.id,g.customer_name,g.job_no,g.description,g.status,g.original_work_date,g.work_date,g.completed_at,g.tracking_status,
+      EXISTS(SELECT 1 FROM graphic_job_delays d WHERE d.graphic_job_id=g.id AND d.delayed_from>=? AND d.delayed_from<=?) delayed,
+      (SELECT MAX(d.delayed_to) FROM graphic_job_delays d WHERE d.graphic_job_id=g.id) delayed_to
+      FROM graphic_jobs g WHERE g.original_work_date>=? AND g.original_work_date<=? AND g.status LIKE 'İmalat%' ORDER BY g.original_work_date,g.customer_name,g.job_no`).bind(from,to,from,to).all()).results;
+    const localDay=value=>value?new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(value.replace(' ','T')+(String(value).includes('Z')?'':'Z'))):'';
+    const classified=jobs.map(x=>{const done=String(x.status||'').includes('Bitti'),late=Boolean(x.delayed)||String(x.work_date||'')>String(x.original_work_date||'')||(done&&x.completed_at&&localDay(x.completed_at)>x.original_work_date),open=!done,status=late?'Yetişmedi':open&&x.original_work_date<=today?'Yetişmedi':open?'Bekliyor':'Yetişti';return {...x,report_status:status}});
+    const summary={total:classified.length,on_time:classified.filter(x=>x.report_status==='Yetişti').length,late:classified.filter(x=>x.report_status==='Yetişmedi').length,pending:classified.filter(x=>x.report_status==='Bekliyor').length};
+    summary.success_rate=(summary.on_time+summary.late)?Math.round(summary.on_time/(summary.on_time+summary.late)*100):0;
+    return json({from,to,summary,jobs:classified})
+  }
   if(path==='/api/graphic-jobs'&&request.method==='GET'){
     const date=url.searchParams.get('date')||new Date().toISOString().slice(0,10),visibleDate=url.searchParams.get('visible_date'),search=String(url.searchParams.get('search')||'').trim(),upcomingFrom=url.searchParams.get('upcoming_from'),upcomingTo=url.searchParams.get('upcoming_to'),workFrom=url.searchParams.get('work_from'),workTo=url.searchParams.get('work_to'),createdFrom=url.searchParams.get('created_from'),createdTo=url.searchParams.get('created_to');
     const clean=rows=>rows.map(x=>({...x,description:String(x.description||'').toLocaleLowerCase('tr-TR').includes('yapıldı')?'':x.description}));
@@ -211,7 +229,7 @@ async function api(request, env) {
     if(duplicate&&!b.allow_duplicate)return json({error:'Bu iş numarası daha önce kaydedilmiş.',duplicate},409);
     const description=String(b.description||'').trim();
     const createdBy=role==='graphic'?'Çağatay':String(b.created_by||'').trim();
-    const created=await env.DB.prepare('INSERT INTO graphic_jobs(work_date,job_no,customer_name,description,quantity,delivery_date,status,note,price,created_by,remind_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(b.work_date,jobNo,customer,description,Math.max(1,Number(b.quantity||1)),b.delivery_date||'',b.status||'Beklemede',String(b.note||'').trim(),Math.max(0,Number(b.price||0)),createdBy,String(b.remind_at||'')).run();
+    const created=await env.DB.prepare('INSERT INTO graphic_jobs(work_date,original_work_date,job_no,customer_name,description,quantity,delivery_date,status,note,price,created_by,remind_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(b.work_date,b.work_date,jobNo,customer,description,Math.max(1,Number(b.quantity||1)),b.delivery_date||'',b.status||'Beklemede',String(b.note||'').trim(),Math.max(0,Number(b.price||0)),createdBy,String(b.remind_at||'')).run();
     if(b.remind_at){const last=await env.DB.prepare('SELECT COALESCE(MAX(sort_order),0) n FROM agenda_entries WHERE entry_date=?').bind(b.work_date).first();await env.DB.prepare('INSERT INTO agenda_entries(entry_date,sort_order,note,remind_at,reminder_status) VALUES(?,?,?,?,?)').bind(b.work_date,Number(last?.n||0)+1,`${customer} — ${jobNo}${description?' — '+description:''}`,String(b.remind_at),'Açık').run()}
     return json({ok:true,id:created.meta.last_row_id},201)
   }
@@ -219,7 +237,8 @@ async function api(request, env) {
   if(graphicJob&&request.method==='PUT'){
     const b=await body(request),id=Number(graphicJob[1]);
     const completedBy=role==='graphic'&&b.completed_by?'Çağatay':(b.completed_by??null);
-    await env.DB.prepare('UPDATE graphic_jobs SET work_date=COALESCE(?,work_date),job_no=COALESCE(?,job_no),customer_name=COALESCE(?,customer_name),description=COALESCE(?,description),quantity=COALESCE(?,quantity),delivery_date=COALESCE(?,delivery_date),status=COALESCE(?,status),note=COALESCE(?,note),price=COALESCE(?,price),created_by=COALESCE(?,created_by),completed_by=COALESCE(?,completed_by),remind_at=COALESCE(?,remind_at),updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.work_date??null,b.job_no??null,b.customer_name??null,b.description??null,b.quantity??null,b.delivery_date??null,b.status??null,b.note??null,b.price??null,role==='graphic'?null:(b.created_by??null),completedBy,b.remind_at??null,id).run();
+    const completedAt=b.status===undefined?null:String(b.status).includes('Bitti')?new Date().toISOString():'';
+    await env.DB.prepare('UPDATE graphic_jobs SET work_date=COALESCE(?,work_date),job_no=COALESCE(?,job_no),customer_name=COALESCE(?,customer_name),description=COALESCE(?,description),quantity=COALESCE(?,quantity),delivery_date=COALESCE(?,delivery_date),status=COALESCE(?,status),note=COALESCE(?,note),price=COALESCE(?,price),created_by=COALESCE(?,created_by),completed_by=COALESCE(?,completed_by),remind_at=COALESCE(?,remind_at),completed_at=COALESCE(?,completed_at),updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.work_date??null,b.job_no??null,b.customer_name??null,b.description??null,b.quantity??null,b.delivery_date??null,b.status??null,b.note??null,b.price??null,role==='graphic'?null:(b.created_by??null),completedBy,b.remind_at??null,completedAt,id).run();
     return json({ok:true})
   }
   if(graphicJob&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM graphic_jobs WHERE id=?').bind(Number(graphicJob[1])).run();return json({ok:true})}
