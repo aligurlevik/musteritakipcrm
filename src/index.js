@@ -20,6 +20,15 @@ const json = (data,status=200,headers={}) => new Response(JSON.stringify(data),{
 async function body(request){ try{return await request.json()}catch{return {}} }
 function validAgendaImage(value){const image=String(value||'');if(!image)return '';if(image.length>450000||!/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(image))return null;return image}
 
+const TURKEY_PUBLIC_HOLIDAYS=new Set([
+  '2026-01-01','2026-03-20','2026-03-21','2026-03-22','2026-04-23','2026-05-01','2026-05-19','2026-05-27','2026-05-28','2026-05-29','2026-05-30','2026-07-15','2026-08-30','2026-10-29',
+  '2027-01-01','2027-03-09','2027-03-10','2027-03-11','2027-04-23','2027-05-01','2027-05-16','2027-05-17','2027-05-18','2027-05-19','2027-05-20','2027-07-15','2027-08-30','2027-10-29'
+]);
+const istanbulDate=value=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(value);
+function dateAtNoon(dateKey){return new Date(dateKey+'T12:00:00+03:00')}
+function isNonWorkingDate(dateKey){const day=dateAtNoon(dateKey).getDay();return day===0||TURKEY_PUBLIC_HOLIDAYS.has(dateKey)}
+function nextWorkingDate(fromDateKey){const d=dateAtNoon(fromDateKey);do{d.setDate(d.getDate()+1)}while(isNonWorkingDate(istanbulDate(d)));return istanbulDate(d)}
+
 async function tableColumns(env, table) {
   const r = await env.DB.prepare(`PRAGMA table_info(${table})`).all();
   return new Set((r.results||[]).map(x=>x.name));
@@ -160,18 +169,26 @@ async function api(request, env) {
 
   if(path==='/api/health') return json({ok:true});
   if(path==='/api/tracking'&&request.method==='GET'){
-    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-    const tomorrowDate=new Date();tomorrowDate.setTime(tomorrowDate.getTime()+86400000);
-    const tomorrow=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(tomorrowDate);
+    const today=istanbulDate(new Date());
+    const tomorrow=nextWorkingDate(today);
+    const nowInIstanbul=new Intl.DateTimeFormat('en-US',{timeZone:'Europe/Istanbul',weekday:'short',hour:'2-digit',hourCycle:'h23'}).formatToParts(new Date());
+    const weekday=nowInIstanbul.find(x=>x.type==='weekday')?.value;
+    const hour=Number(nowInIstanbul.find(x=>x.type==='hour')?.value||0);
+    if(isNonWorkingDate(today)||(weekday==='Sat'&&hour>=13)){
+      await env.DB.prepare(`INSERT INTO graphic_job_delays(graphic_job_id,delayed_from,delayed_to,note,delayed_by)
+        SELECT id,work_date,?,COALESCE(tracking_note,''),'Sistem' FROM graphic_jobs
+        WHERE work_date=? AND status LIKE 'İmalat%' AND status NOT LIKE '%Bitti'`).bind(tomorrow,today).run();
+      await env.DB.prepare(`UPDATE graphic_jobs SET work_date=?,remind_at='',tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP
+        WHERE work_date=? AND status LIKE 'İmalat%' AND status NOT LIKE '%Bitti'`).bind(tomorrow,today).run();
+    }
     const selectedDate=url.searchParams.get('day')==='tomorrow'?tomorrow:today;
     return json((await env.DB.prepare("SELECT id,work_date,job_no,customer_name,description,note,tracking_note,status,remind_at,tracking_status,tracked_by,tracked_at FROM graphic_jobs WHERE work_date=? AND status LIKE 'İmalat%' ORDER BY CASE WHEN COALESCE(remind_at,'')='' THEN 1 ELSE 0 END,remind_at,id").bind(selectedDate).all()).results)
   }
   const trackingJob=path.match(/^\/api\/tracking\/(\d+)$/);
   if(trackingJob&&request.method==='PUT'){
     const b=await body(request),done=Boolean(b.done),id=Number(trackingJob[1]);
-    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-    const tomorrowDate=new Date();tomorrowDate.setTime(tomorrowDate.getTime()+86400000);
-    const tomorrow=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(tomorrowDate);
+    const today=istanbulDate(new Date());
+    const tomorrow=nextWorkingDate(today);
     const selectedDate=b.action==='today'||b.view_day==='tomorrow'?tomorrow:today;
     const found=await env.DB.prepare("SELECT id FROM graphic_jobs WHERE id=? AND work_date=? AND status LIKE 'İmalat%'").bind(id,selectedDate).first();
     if(!found)return json({error:'Bu iş seçilen takip listesinde değil.'},403);
@@ -185,6 +202,15 @@ async function api(request, env) {
       await env.DB.prepare('INSERT INTO graphic_job_delays(graphic_job_id,delayed_from,delayed_to,note,delayed_by) VALUES(?,?,?,?,?)').bind(id,today,tomorrow,String(job?.tracking_note||''),'Recep').run();
       await env.DB.prepare("UPDATE graphic_jobs SET work_date=?,remind_at='',tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(tomorrow,id).run();
       return json({ok:true,work_date:tomorrow})
+    }
+    if(b.action==='date'){
+      const target=String(b.work_date||'');
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(target))return json({error:'Geçerli bir tarih seçin.'},400);
+      if(isNonWorkingDate(target))return json({error:'Pazar ve resmî bayramlar çalışma günü değildir. Başka bir tarih seçin.'},400);
+      const job=await env.DB.prepare('SELECT tracking_note,work_date FROM graphic_jobs WHERE id=?').bind(id).first();
+      await env.DB.prepare('INSERT INTO graphic_job_delays(graphic_job_id,delayed_from,delayed_to,note,delayed_by) VALUES(?,?,?,?,?)').bind(id,String(job?.work_date||today),target,String(job?.tracking_note||''),'Recep').run();
+      await env.DB.prepare("UPDATE graphic_jobs SET work_date=?,remind_at='',tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(target,id).run();
+      return json({ok:true,work_date:target})
     }
     if(b.action==='today'){
       await env.DB.prepare('DELETE FROM graphic_job_delays WHERE id=(SELECT id FROM graphic_job_delays WHERE graphic_job_id=? AND delayed_from=? AND delayed_to=? ORDER BY id DESC LIMIT 1)').bind(id,today,tomorrow).run();
