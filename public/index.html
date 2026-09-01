@@ -714,4 +714,5 @@ setInterval(checkGraphicDeadlineWarnings,30000);
 let graphicCiroDay=localDateKey();setInterval(()=>{const currentDay=localDateKey();if(currentDay!==graphicCiroDay){graphicCiroDay=currentDay;loadGraphicJobs().catch(()=>{})}},60000);
 let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole==='admin'){pollMeetingReminders();pollAgendaReminders();checkAutomaticEndOfDayReport()}});setInterval(checkAutomaticEndOfDayReport,60000); setInterval(()=>{if(currentAccessRole!=='admin')return;loadMeetings().catch(()=>{});pollMeetingReminders();pollAgendaReminders();const newDay=localDateKey();if(newDay!==activeCalendarDay){activeCalendarDay=newDay;agendaDate=new Date();agendaView='month';loadAgenda().catch(()=>{})}},15000);
 </script><!-- deployment-refresh: 2026-08-28-multi-participants -->
+<!-- deployment-refresh: tracking-two-hour-warning -->
 </body></html>
