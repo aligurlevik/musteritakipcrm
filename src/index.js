@@ -156,8 +156,14 @@ async function api(request, env) {
   if(trackingJob&&request.method==='PUT'){
     const b=await body(request),done=Boolean(b.done),id=Number(trackingJob[1]);
     const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-    const found=await env.DB.prepare('SELECT id FROM graphic_jobs WHERE id=? AND work_date=?').bind(id,today).first();
+    const found=await env.DB.prepare("SELECT id FROM graphic_jobs WHERE id=? AND work_date=? AND status LIKE 'İmalat%'").bind(id,today).first();
     if(!found)return json({error:'Bu iş bugünün takip listesinde değil.'},403);
+    if(b.action==='tomorrow'){
+      const tomorrowDate=new Date();tomorrowDate.setTime(tomorrowDate.getTime()+86400000);
+      const tomorrow=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(tomorrowDate);
+      await env.DB.prepare("UPDATE graphic_jobs SET work_date=?,remind_at='',tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(tomorrow,id).run();
+      return json({ok:true,work_date:tomorrow})
+    }
     await env.DB.prepare("UPDATE graphic_jobs SET tracking_status=?,tracked_by=?,tracked_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(done?'Görüşüldü':'',done?'Recep':'',done?new Date().toISOString():'',id).run();
     return json({ok:true})
   }
