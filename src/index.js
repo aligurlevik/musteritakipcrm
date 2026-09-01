@@ -54,7 +54,7 @@ async function ensureSchema(env) {
   )`).run();
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS graphic_jobs (
     id INTEGER PRIMARY KEY AUTOINCREMENT, work_date TEXT NOT NULL, job_no TEXT NOT NULL,
-    customer_name TEXT NOT NULL, description TEXT DEFAULT '', quantity INTEGER DEFAULT 1, delivery_date TEXT DEFAULT '',
+    customer_name TEXT NOT NULL, description TEXT DEFAULT '', quantity INTEGER DEFAULT 1, delivery_date TEXT DEFAULT '', delivery_place TEXT DEFAULT '',
     status TEXT DEFAULT 'Beklemede', note TEXT DEFAULT '', price REAL DEFAULT 0, created_by TEXT DEFAULT '', completed_by TEXT DEFAULT '', remind_at TEXT DEFAULT '', created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`).run();
@@ -84,6 +84,7 @@ async function ensureSchema(env) {
   await ensureColumn(env,'agenda_entries','completed_date',"TEXT DEFAULT ''");
   await ensureColumn(env,'agenda_entries','image_data',"TEXT DEFAULT ''");
   await ensureColumn(env,'graphic_jobs','delivery_date',"TEXT DEFAULT ''");
+  await ensureColumn(env,'graphic_jobs','delivery_place',"TEXT DEFAULT ''");
   await ensureColumn(env,'graphic_jobs','price','REAL DEFAULT 0');
   await ensureColumn(env,'graphic_jobs','created_by',"TEXT DEFAULT ''");
   await ensureColumn(env,'graphic_jobs','completed_by',"TEXT DEFAULT ''");
@@ -230,7 +231,8 @@ async function api(request, env) {
     if(duplicate&&!b.allow_duplicate)return json({error:'Bu iş numarası daha önce kaydedilmiş.',duplicate},409);
     const description=String(b.description||'').trim();
     const createdBy=role==='graphic'?'Çağatay':String(b.created_by||'').trim();
-    const created=await env.DB.prepare('INSERT INTO graphic_jobs(work_date,original_work_date,job_no,customer_name,description,quantity,delivery_date,status,note,price,created_by,remind_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(b.work_date,b.work_date,jobNo,customer,description,Math.max(1,Number(b.quantity||1)),b.delivery_date||'',b.status||'Beklemede',String(b.note||'').trim(),Math.max(0,Number(b.price||0)),createdBy,String(b.remind_at||'')).run();
+    const deliveryPlace=['Bursa','Kargo','İstanbul','Otobüs'].includes(String(b.delivery_place||''))?String(b.delivery_place):'';
+    const created=await env.DB.prepare('INSERT INTO graphic_jobs(work_date,original_work_date,job_no,customer_name,description,quantity,delivery_date,delivery_place,status,note,price,created_by,remind_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(b.work_date,b.work_date,jobNo,customer,description,Math.max(1,Number(b.quantity||1)),b.delivery_date||'',deliveryPlace,b.status||'Beklemede',String(b.note||'').trim(),Math.max(0,Number(b.price||0)),createdBy,String(b.remind_at||'')).run();
     if(b.remind_at){const last=await env.DB.prepare('SELECT COALESCE(MAX(sort_order),0) n FROM agenda_entries WHERE entry_date=?').bind(b.work_date).first();await env.DB.prepare('INSERT INTO agenda_entries(entry_date,sort_order,note,remind_at,reminder_status) VALUES(?,?,?,?,?)').bind(b.work_date,Number(last?.n||0)+1,`${customer} — ${jobNo}${description?' — '+description:''}`,String(b.remind_at),'Açık').run()}
     return json({ok:true,id:created.meta.last_row_id},201)
   }
@@ -239,7 +241,8 @@ async function api(request, env) {
     const b=await body(request),id=Number(graphicJob[1]);
     const completedBy=role==='graphic'&&b.completed_by?'Çağatay':(b.completed_by??null);
     const completedAt=b.status===undefined?null:String(b.status).includes('Bitti')?new Date().toISOString():'';
-    await env.DB.prepare('UPDATE graphic_jobs SET work_date=COALESCE(?,work_date),job_no=COALESCE(?,job_no),customer_name=COALESCE(?,customer_name),description=COALESCE(?,description),quantity=COALESCE(?,quantity),delivery_date=COALESCE(?,delivery_date),status=COALESCE(?,status),note=COALESCE(?,note),price=COALESCE(?,price),created_by=COALESCE(?,created_by),completed_by=COALESCE(?,completed_by),remind_at=COALESCE(?,remind_at),completed_at=COALESCE(?,completed_at),updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.work_date??null,b.job_no??null,b.customer_name??null,b.description??null,b.quantity??null,b.delivery_date??null,b.status??null,b.note??null,b.price??null,role==='graphic'?null:(b.created_by??null),completedBy,b.remind_at??null,completedAt,id).run();
+    const deliveryPlace=b.delivery_place===undefined?null:(['Bursa','Kargo','İstanbul','Otobüs'].includes(String(b.delivery_place))?String(b.delivery_place):'');
+    await env.DB.prepare('UPDATE graphic_jobs SET work_date=COALESCE(?,work_date),job_no=COALESCE(?,job_no),customer_name=COALESCE(?,customer_name),description=COALESCE(?,description),quantity=COALESCE(?,quantity),delivery_date=COALESCE(?,delivery_date),delivery_place=COALESCE(?,delivery_place),status=COALESCE(?,status),note=COALESCE(?,note),price=COALESCE(?,price),created_by=COALESCE(?,created_by),completed_by=COALESCE(?,completed_by),remind_at=COALESCE(?,remind_at),completed_at=COALESCE(?,completed_at),updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.work_date??null,b.job_no??null,b.customer_name??null,b.description??null,b.quantity??null,b.delivery_date??null,deliveryPlace,b.status??null,b.note??null,b.price??null,role==='graphic'?null:(b.created_by??null),completedBy,b.remind_at??null,completedAt,id).run();
     return json({ok:true})
   }
   if(graphicJob&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM graphic_jobs WHERE id=?').bind(Number(graphicJob[1])).run();return json({ok:true})}
