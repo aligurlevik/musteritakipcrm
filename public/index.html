@@ -435,13 +435,21 @@ async function loadGraphicJobs(){
   graphicMonthDate=new Date(selected.getFullYear(),selected.getMonth(),1);
   const monthFrom=localDateKey(graphicMonthDate),monthTo=localDateKey(new Date(selected.getFullYear(),selected.getMonth()+1,0));
   const search=$('graphicSearch').value.trim(),until=new Date();until.setDate(until.getDate()+30);
-  [allGraphicJobs,graphicMonthJobs,upcomingGraphicJobs,graphicCumulativeJobs]=await Promise.all([
+  $('graphicWorkingDay').textContent=selected.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const requests=[
     req('/api/graphic-jobs?'+(search?'search='+encodeURIComponent(search):'visible_date='+encodeURIComponent($('g_date').value))),
     req('/api/graphic-jobs?work_from='+encodeURIComponent(monthFrom)+'&work_to='+encodeURIComponent(monthTo)),
     req('/api/graphic-jobs?upcoming_from=2000-01-01&upcoming_to='+encodeURIComponent(localDateKey(until))),
     req('/api/graphic-jobs?created_from=2000-01-01&created_to='+encodeURIComponent(localDateKey()))
-  ]);
+  ];
+  const results=await Promise.allSettled(requests);
+  allGraphicJobs=results[0].status==='fulfilled'?results[0].value:[];
+  graphicMonthJobs=results[1].status==='fulfilled'?results[1].value:allGraphicJobs;
+  upcomingGraphicJobs=results[2].status==='fulfilled'?results[2].value:[];
+  graphicCumulativeJobs=results[3].status==='fulfilled'?results[3].value:[];
   renderGraphicJobs();renderUpcomingGraphicJobs();
+  const failed=results.filter(x=>x.status==='rejected');
+  if(failed.length)console.error('Grafik verilerinin bir bölümü yüklenemedi:',failed.map(x=>x.reason));
 }
 async function changeGraphicMonth(delta){graphicMonthDate.setMonth(graphicMonthDate.getMonth()+delta);$('g_date').value=localDateKey(graphicMonthDate);$('graphicSearch').value='';await loadGraphicJobs()}
 async function openGraphicRelativeMonth(offset){const now=new Date(),target=new Date(now.getFullYear(),now.getMonth()+offset,1,12);graphicMonthDate=target;$('g_date').value=offset===0?localDateKey(now):localDateKey(target);$('graphicSearch').value='';await loadGraphicJobs()}
