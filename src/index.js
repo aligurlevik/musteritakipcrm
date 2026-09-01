@@ -158,6 +158,11 @@ async function api(request, env) {
     const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
     const found=await env.DB.prepare("SELECT id FROM graphic_jobs WHERE id=? AND work_date=? AND status LIKE 'İmalat%'").bind(id,today).first();
     if(!found)return json({error:'Bu iş bugünün takip listesinde değil.'},403);
+    if(b.action==='note'){
+      const description=String(b.description||'').trim().slice(0,1000);
+      await env.DB.prepare('UPDATE graphic_jobs SET description=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(description,id).run();
+      return json({ok:true,description})
+    }
     if(b.action==='tomorrow'){
       const tomorrowDate=new Date();tomorrowDate.setTime(tomorrowDate.getTime()+86400000);
       const tomorrow=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(tomorrowDate);
