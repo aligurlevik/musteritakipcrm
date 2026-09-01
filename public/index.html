@@ -210,7 +210,7 @@ async function loadDashboard(){const d=await req('/api/dashboard');$('k1').textC
 
 function agendaDateKey(){return agendaDate.getFullYear()+'-'+String(agendaDate.getMonth()+1).padStart(2,'0')+'-'+String(agendaDate.getDate()).padStart(2,'0')}
 function agendaMonthKey(){return agendaDateKey().slice(0,7)}
-async function loadAgenda(){const today=localDateKey(),yesterdayDate=new Date();yesterdayDate.setDate(yesterdayDate.getDate()-1);await req('/api/agenda/rollover',{method:'POST',body:JSON.stringify({from_date:localDateKey(yesterdayDate),today})});agendaEntries=await req('/api/agenda?month='+agendaMonthKey());todayAgendaEntries=agendaEntries.filter(x=>x.entry_date===agendaDateKey());renderAgenda();setupAgendaTimeSelectors()}
+async function loadAgenda(){const today=localDateKey();await req('/api/agenda/rollover',{method:'POST',body:JSON.stringify({today})});agendaEntries=await req('/api/agenda?month='+agendaMonthKey());todayAgendaEntries=agendaEntries.filter(x=>x.entry_date===agendaDateKey());renderAgenda();setupAgendaTimeSelectors()}
 function safeAgendaImage(value){const image=String(value||'');return /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(image)?image:''}
 function agendaImageMarkup(x){const image=safeAgendaImage(x.image_data);return image?`<img class="agenda-thumb" src="${image}" alt="Not resmi" title="Büyütmek için tıklayın" onclick="openAgendaImage(this.src)">`:''}
 function openAgendaImage(src){const image=safeAgendaImage(src);if(!image)return;$('agendaImageFull').src=image;openM('agendaImageViewer')}
