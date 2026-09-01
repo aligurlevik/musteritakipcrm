@@ -93,6 +93,7 @@ async function ensureSchema(env) {
   await ensureColumn(env,'graphic_jobs','tracked_at',"TEXT DEFAULT ''");
   await ensureColumn(env,'graphic_jobs','original_work_date',"TEXT DEFAULT ''");
   await ensureColumn(env,'graphic_jobs','completed_at',"TEXT DEFAULT ''");
+  await ensureColumn(env,'graphic_jobs','tracking_note',"TEXT DEFAULT ''");
   await env.DB.prepare("UPDATE graphic_jobs SET original_work_date=work_date WHERE COALESCE(original_work_date,'')='' ").run();
   await env.DB.prepare("UPDATE graphic_jobs SET remind_at=COALESCE((SELECT a.remind_at FROM agenda_entries a WHERE a.entry_date=graphic_jobs.work_date AND a.note LIKE graphic_jobs.customer_name||' — '||graphic_jobs.job_no||'%' ORDER BY a.id DESC LIMIT 1),'') WHERE COALESCE(remind_at,'')='' ").run();
 
@@ -159,7 +160,7 @@ async function api(request, env) {
   if(path==='/api/health') return json({ok:true});
   if(path==='/api/tracking'&&request.method==='GET'){
     const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-    return json((await env.DB.prepare("SELECT id,work_date,job_no,customer_name,description,status,remind_at,tracking_status,tracked_by,tracked_at FROM graphic_jobs WHERE work_date=? AND status LIKE 'İmalat%' ORDER BY CASE WHEN COALESCE(remind_at,'')='' THEN 1 ELSE 0 END,remind_at,id").bind(today).all()).results)
+    return json((await env.DB.prepare("SELECT id,work_date,job_no,customer_name,description,tracking_note,status,remind_at,tracking_status,tracked_by,tracked_at FROM graphic_jobs WHERE work_date=? AND status LIKE 'İmalat%' ORDER BY CASE WHEN COALESCE(remind_at,'')='' THEN 1 ELSE 0 END,remind_at,id").bind(today).all()).results)
   }
   const trackingJob=path.match(/^\/api\/tracking\/(\d+)$/);
   if(trackingJob&&request.method==='PUT'){
@@ -168,15 +169,15 @@ async function api(request, env) {
     const found=await env.DB.prepare("SELECT id FROM graphic_jobs WHERE id=? AND work_date=? AND status LIKE 'İmalat%'").bind(id,today).first();
     if(!found)return json({error:'Bu iş bugünün takip listesinde değil.'},403);
     if(b.action==='note'){
-      const description=String(b.description||'').trim().slice(0,1000);
-      await env.DB.prepare('UPDATE graphic_jobs SET description=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(description,id).run();
-      return json({ok:true,description})
+      const trackingNote=String(b.tracking_note||'').trim().slice(0,1000);
+      await env.DB.prepare('UPDATE graphic_jobs SET tracking_note=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(trackingNote,id).run();
+      return json({ok:true,tracking_note:trackingNote})
     }
     if(b.action==='tomorrow'){
       const tomorrowDate=new Date();tomorrowDate.setTime(tomorrowDate.getTime()+86400000);
       const tomorrow=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(tomorrowDate);
-      const job=await env.DB.prepare('SELECT description FROM graphic_jobs WHERE id=?').bind(id).first();
-      await env.DB.prepare('INSERT INTO graphic_job_delays(graphic_job_id,delayed_from,delayed_to,note,delayed_by) VALUES(?,?,?,?,?)').bind(id,today,tomorrow,String(job?.description||''),'Recep').run();
+      const job=await env.DB.prepare('SELECT tracking_note FROM graphic_jobs WHERE id=?').bind(id).first();
+      await env.DB.prepare('INSERT INTO graphic_job_delays(graphic_job_id,delayed_from,delayed_to,note,delayed_by) VALUES(?,?,?,?,?)').bind(id,today,tomorrow,String(job?.tracking_note||''),'Recep').run();
       await env.DB.prepare("UPDATE graphic_jobs SET work_date=?,remind_at='',tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(tomorrow,id).run();
       return json({ok:true,work_date:tomorrow})
     }
@@ -202,7 +203,7 @@ async function api(request, env) {
     const from=url.searchParams.get('from'),to=url.searchParams.get('to');
     if(!from||!to)return json({error:'Rapor başlangıç ve bitiş tarihi zorunlu.'},400);
     const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-    const jobs=(await env.DB.prepare(`SELECT g.id,g.customer_name,g.job_no,g.description,g.status,g.original_work_date,g.work_date,g.completed_at,g.tracking_status,
+    const jobs=(await env.DB.prepare(`SELECT g.id,g.customer_name,g.job_no,g.description,g.tracking_note,g.status,g.original_work_date,g.work_date,g.completed_at,g.tracking_status,
       EXISTS(SELECT 1 FROM graphic_job_delays d WHERE d.graphic_job_id=g.id AND d.delayed_from>=? AND d.delayed_from<=?) delayed,
       (SELECT MAX(d.delayed_to) FROM graphic_job_delays d WHERE d.graphic_job_id=g.id) delayed_to
       FROM graphic_jobs g WHERE g.original_work_date>=? AND g.original_work_date<=? AND g.status LIKE 'İmalat%' ORDER BY g.original_work_date,g.customer_name,g.job_no`).bind(from,to,from,to).all()).results;
