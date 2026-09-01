@@ -58,6 +58,11 @@ async function ensureSchema(env) {
     status TEXT DEFAULT 'Beklemede', note TEXT DEFAULT '', price REAL DEFAULT 0, created_by TEXT DEFAULT '', completed_by TEXT DEFAULT '', remind_at TEXT DEFAULT '', created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`).run();
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS graphic_job_delays (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, graphic_job_id INTEGER NOT NULL,
+    delayed_from TEXT NOT NULL, delayed_to TEXT NOT NULL, note TEXT DEFAULT '',
+    delayed_by TEXT DEFAULT 'Recep', created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  )`).run();
 
   for (const [name,def] of [
     ['invoice_title',"TEXT DEFAULT ''"],['tax_office',"TEXT DEFAULT ''"],['tax_number',"TEXT DEFAULT ''"],
@@ -98,6 +103,7 @@ async function ensureSchema(env) {
     'CREATE INDEX IF NOT EXISTS idx_mails_external_id ON mails(external_id)'
     ,'CREATE INDEX IF NOT EXISTS idx_graphic_jobs_date ON graphic_jobs(work_date)'
     ,'CREATE INDEX IF NOT EXISTS idx_graphic_jobs_no ON graphic_jobs(job_no)'
+    ,'CREATE INDEX IF NOT EXISTS idx_graphic_job_delays_from ON graphic_job_delays(delayed_from)'
   ]) await env.DB.prepare(sql).run();
 }
 
@@ -166,11 +172,27 @@ async function api(request, env) {
     if(b.action==='tomorrow'){
       const tomorrowDate=new Date();tomorrowDate.setTime(tomorrowDate.getTime()+86400000);
       const tomorrow=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(tomorrowDate);
+      const job=await env.DB.prepare('SELECT description FROM graphic_jobs WHERE id=?').bind(id).first();
+      await env.DB.prepare('INSERT INTO graphic_job_delays(graphic_job_id,delayed_from,delayed_to,note,delayed_by) VALUES(?,?,?,?,?)').bind(id,today,tomorrow,String(job?.description||''),'Recep').run();
       await env.DB.prepare("UPDATE graphic_jobs SET work_date=?,remind_at='',tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(tomorrow,id).run();
       return json({ok:true,work_date:tomorrow})
     }
     await env.DB.prepare("UPDATE graphic_jobs SET tracking_status=?,tracked_by=?,tracked_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(done?'Görüşüldü':'',done?'Recep':'',done?new Date().toISOString():'',id).run();
     return json({ok:true})
+  }
+  if(path==='/api/reports/delays'&&request.method==='GET'){
+    if(role!=='admin')return json({error:'Raporlama yalnızca yöneticiye açıktır.'},403);
+    const reportDate=url.searchParams.get('date')||new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    const rows=await env.DB.prepare(`SELECT g.id,g.customer_name,g.job_no,g.description,g.status,g.remind_at,g.tracking_status,g.tracked_by,
+      d.delayed_from report_date,d.delayed_to,d.note delay_note,d.delayed_by,d.created_at delay_created_at
+      FROM graphic_job_delays d JOIN graphic_jobs g ON g.id=d.graphic_job_id WHERE d.delayed_from=?
+      UNION ALL
+      SELECT g.id,g.customer_name,g.job_no,g.description,g.status,g.remind_at,g.tracking_status,g.tracked_by,
+      g.work_date report_date,'' delayed_to,'' delay_note,'' delayed_by,'' delay_created_at
+      FROM graphic_jobs g WHERE g.work_date=? AND g.status LIKE 'İmalat%' AND g.status NOT LIKE '%Bitti'
+      AND NOT EXISTS(SELECT 1 FROM graphic_job_delays d WHERE d.graphic_job_id=g.id AND d.delayed_from=?)
+      ORDER BY customer_name,job_no`).bind(reportDate,reportDate,reportDate).all();
+    return json(rows.results)
   }
   if(path==='/api/graphic-jobs'&&request.method==='GET'){
     const date=url.searchParams.get('date')||new Date().toISOString().slice(0,10),visibleDate=url.searchParams.get('visible_date'),search=String(url.searchParams.get('search')||'').trim(),upcomingFrom=url.searchParams.get('upcoming_from'),upcomingTo=url.searchParams.get('upcoming_to'),workFrom=url.searchParams.get('work_from'),workTo=url.searchParams.get('work_to'),createdFrom=url.searchParams.get('created_from'),createdTo=url.searchParams.get('created_to');
