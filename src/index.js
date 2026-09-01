@@ -16,6 +16,15 @@ async function sessionRole(request, env) {
   for(const role of ['admin','graphic','tracking'])if(m[1]===await sessionToken(env,role))return role;
   return '';
 }
+function hexBytes(bytes){return [...bytes].map(x=>x.toString(16).padStart(2,'0')).join('')}
+async function passwordHash(password,saltHex=''){
+  const salt=saltHex?new Uint8Array((saltHex.match(/.{2}/g)||[]).map(x=>parseInt(x,16))):crypto.getRandomValues(new Uint8Array(16));
+  const key=await crypto.subtle.importKey('raw',enc.encode(String(password)),{name:'PBKDF2'},false,['deriveBits']);
+  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt,iterations:120000},key,256);
+  return {salt:hexBytes(salt),hash:hexBytes(new Uint8Array(bits))};
+}
+async function passwordMatches(password,row){if(!row)return false;const check=await passwordHash(password,row.salt);let diff=check.hash.length^String(row.password_hash||'').length;for(let i=0;i<check.hash.length;i++)diff|=check.hash.charCodeAt(i)^String(row.password_hash||'').charCodeAt(i);return diff===0}
+
 const json = (data,status=200,headers={}) => new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8',...headers}});
 async function body(request){ try{return await request.json()}catch{return {}} }
 function validAgendaImage(value){const image=String(value||'');if(!image)return '';if(image.length>450000||!/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(image))return null;return image}
@@ -71,6 +80,9 @@ async function ensureSchema(env) {
     id INTEGER PRIMARY KEY AUTOINCREMENT, graphic_job_id INTEGER NOT NULL,
     delayed_from TEXT NOT NULL, delayed_to TEXT NOT NULL, note TEXT DEFAULT '',
     delayed_by TEXT DEFAULT 'Recep', created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  )`).run();
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS user_passwords (
+    role TEXT PRIMARY KEY, salt TEXT NOT NULL, password_hash TEXT NOT NULL, updated_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`).run();
 
   for (const [name,def] of [
@@ -135,9 +147,12 @@ async function ensureSchemaReady(env) {
 async function api(request, env) {
   const url = new URL(request.url), path=url.pathname;
   if (path==='/api/login' && request.method==='POST') {
+    await ensureSchemaReady(env);
     const b=await body(request);
     const requestedRole=b.user==='Çağatay'?'graphic':b.user==='Recep'?'tracking':'admin';
-    const valid=requestedRole==='admin'?(env.ADMIN_PASSWORD&&b.password===env.ADMIN_PASSWORD):requestedRole==='graphic'?b.password===(env.CAGATAY_PASSWORD||'4444'):b.password===(env.RECEP_PASSWORD||'3333');
+    const saved=await env.DB.prepare('SELECT salt,password_hash FROM user_passwords WHERE role=?').bind(requestedRole).first();
+    const fallback=requestedRole==='admin'?env.ADMIN_PASSWORD:requestedRole==='graphic'?(env.CAGATAY_PASSWORD||'4444'):(env.RECEP_PASSWORD||'3333');
+    const valid=saved?await passwordMatches(b.password,saved):Boolean(fallback&&b.password===fallback);
     if(!valid) return json({error:'Şifre hatalı'},401);
     const token=await sessionToken(env,requestedRole);
     return json({ok:true,role:requestedRole,user:requestedRole==='admin'?'Ali':requestedRole==='graphic'?'Çağatay':'Recep'},200,{'set-cookie':`crm_session=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`});
@@ -164,6 +179,19 @@ async function api(request, env) {
   const role=await sessionRole(request,env);
   if(!role) return json({error:'Yetkisiz'},401);
   if(path==='/api/session')return json({ok:true,role,user:role==='admin'?'Ali':role==='graphic'?'Çağatay':'Recep'});
+  if(path==='/api/password'&&request.method==='POST'){
+    if(role!=='admin')return json({error:'Şifre değiştirme yalnızca Ali yöneticisine açıktır.'},403);
+    const b=await body(request),target=b.user==='Çağatay'?'graphic':b.user==='Recep'?'tracking':b.user==='Ali'?'admin':'';
+    const password=String(b.password||'');
+    if(!target)return json({error:'Geçerli kullanıcı seçin.'},400);
+    if(password.length<8)return json({error:'Yeni şifre en az 8 karakter olmalıdır.'},400);
+    if(password.length>128)return json({error:'Şifre çok uzun.'},400);
+    const secured=await passwordHash(password);
+    await env.DB.prepare(`INSERT INTO user_passwords(role,salt,password_hash,updated_at) VALUES(?,?,?,CURRENT_TIMESTAMP)
+      ON CONFLICT(role) DO UPDATE SET salt=excluded.salt,password_hash=excluded.password_hash,updated_at=CURRENT_TIMESTAMP`)
+      .bind(target,secured.salt,secured.hash).run();
+    return json({ok:true,user:b.user})
+  }
   if(role==='graphic'&&!path.startsWith('/api/graphic-jobs')&&path!=='/api/health')return json({error:'Bu bölüm yalnızca yöneticiye açıktır.'},403);
   if(role==='tracking'&&!path.startsWith('/api/tracking')&&path!=='/api/health')return json({error:'Recep yalnızca bugünkü takip işlerini görebilir.'},403);
   await ensureSchemaReady(env);
