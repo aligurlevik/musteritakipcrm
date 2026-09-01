@@ -161,26 +161,35 @@ async function api(request, env) {
   if(path==='/api/health') return json({ok:true});
   if(path==='/api/tracking'&&request.method==='GET'){
     const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-    return json((await env.DB.prepare("SELECT id,work_date,job_no,customer_name,description,note,tracking_note,status,remind_at,tracking_status,tracked_by,tracked_at FROM graphic_jobs WHERE work_date=? AND status LIKE 'İmalat%' ORDER BY CASE WHEN COALESCE(remind_at,'')='' THEN 1 ELSE 0 END,remind_at,id").bind(today).all()).results)
+    const tomorrowDate=new Date();tomorrowDate.setTime(tomorrowDate.getTime()+86400000);
+    const tomorrow=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(tomorrowDate);
+    const selectedDate=url.searchParams.get('day')==='tomorrow'?tomorrow:today;
+    return json((await env.DB.prepare("SELECT id,work_date,job_no,customer_name,description,note,tracking_note,status,remind_at,tracking_status,tracked_by,tracked_at FROM graphic_jobs WHERE work_date=? AND status LIKE 'İmalat%' ORDER BY CASE WHEN COALESCE(remind_at,'')='' THEN 1 ELSE 0 END,remind_at,id").bind(selectedDate).all()).results)
   }
   const trackingJob=path.match(/^\/api\/tracking\/(\d+)$/);
   if(trackingJob&&request.method==='PUT'){
     const b=await body(request),done=Boolean(b.done),id=Number(trackingJob[1]);
     const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-    const found=await env.DB.prepare("SELECT id FROM graphic_jobs WHERE id=? AND work_date=? AND status LIKE 'İmalat%'").bind(id,today).first();
-    if(!found)return json({error:'Bu iş bugünün takip listesinde değil.'},403);
+    const tomorrowDate=new Date();tomorrowDate.setTime(tomorrowDate.getTime()+86400000);
+    const tomorrow=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(tomorrowDate);
+    const selectedDate=b.action==='today'||b.view_day==='tomorrow'?tomorrow:today;
+    const found=await env.DB.prepare("SELECT id FROM graphic_jobs WHERE id=? AND work_date=? AND status LIKE 'İmalat%'").bind(id,selectedDate).first();
+    if(!found)return json({error:'Bu iş seçilen takip listesinde değil.'},403);
     if(b.action==='note'){
       const trackingNote=String(b.tracking_note||'').trim().slice(0,1000);
       await env.DB.prepare('UPDATE graphic_jobs SET tracking_note=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(trackingNote,id).run();
       return json({ok:true,tracking_note:trackingNote})
     }
     if(b.action==='tomorrow'){
-      const tomorrowDate=new Date();tomorrowDate.setTime(tomorrowDate.getTime()+86400000);
-      const tomorrow=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(tomorrowDate);
       const job=await env.DB.prepare('SELECT tracking_note FROM graphic_jobs WHERE id=?').bind(id).first();
       await env.DB.prepare('INSERT INTO graphic_job_delays(graphic_job_id,delayed_from,delayed_to,note,delayed_by) VALUES(?,?,?,?,?)').bind(id,today,tomorrow,String(job?.tracking_note||''),'Recep').run();
       await env.DB.prepare("UPDATE graphic_jobs SET work_date=?,remind_at='',tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(tomorrow,id).run();
       return json({ok:true,work_date:tomorrow})
+    }
+    if(b.action==='today'){
+      await env.DB.prepare('DELETE FROM graphic_job_delays WHERE id=(SELECT id FROM graphic_job_delays WHERE graphic_job_id=? AND delayed_from=? AND delayed_to=? ORDER BY id DESC LIMIT 1)').bind(id,today,tomorrow).run();
+      await env.DB.prepare("UPDATE graphic_jobs SET work_date=?,tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(today,id).run();
+      return json({ok:true,work_date:today})
     }
     await env.DB.prepare("UPDATE graphic_jobs SET tracking_status=?,tracked_by=?,tracked_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(done?'Görüşüldü':'',done?'Recep':'',done?new Date().toISOString():'',id).run();
     return json({ok:true})
