@@ -226,6 +226,11 @@ async function api(request, env) {
       await env.DB.prepare('UPDATE graphic_jobs SET tracking_note=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(trackingNote,id).run();
       return json({ok:true,tracking_note:trackingNote})
     }
+    if(b.action==='delivery_place'){
+      const deliveryPlace=['Bursa','Kargo','İstanbul','Otobüs'].includes(String(b.delivery_place||''))?String(b.delivery_place):'';
+      await env.DB.prepare('UPDATE graphic_jobs SET delivery_place=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(deliveryPlace,id).run();
+      return json({ok:true,delivery_place:deliveryPlace})
+    }
     if(b.action==='tomorrow'){
       const job=await env.DB.prepare('SELECT tracking_note FROM graphic_jobs WHERE id=?').bind(id).first();
       await env.DB.prepare('INSERT INTO graphic_job_delays(graphic_job_id,delayed_from,delayed_to,note,delayed_by) VALUES(?,?,?,?,?)').bind(id,today,tomorrow,String(job?.tracking_note||''),'Recep').run();
