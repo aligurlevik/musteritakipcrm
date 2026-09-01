@@ -13,7 +13,7 @@ async function sessionRole(request, env) {
   const cookie = request.headers.get('Cookie') || '';
   const m = cookie.match(/crm_session=([^;]+)/);
   if(!m)return '';
-  for(const role of ['admin','graphic'])if(m[1]===await sessionToken(env,role))return role;
+  for(const role of ['admin','graphic','tracking'])if(m[1]===await sessionToken(env,role))return role;
   return '';
 }
 const json = (data,status=200,headers={}) => new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8',...headers}});
@@ -83,6 +83,9 @@ async function ensureSchema(env) {
   await ensureColumn(env,'graphic_jobs','created_by',"TEXT DEFAULT ''");
   await ensureColumn(env,'graphic_jobs','completed_by',"TEXT DEFAULT ''");
   await ensureColumn(env,'graphic_jobs','remind_at',"TEXT DEFAULT ''");
+  await ensureColumn(env,'graphic_jobs','tracking_status',"TEXT DEFAULT ''");
+  await ensureColumn(env,'graphic_jobs','tracked_by',"TEXT DEFAULT ''");
+  await ensureColumn(env,'graphic_jobs','tracked_at',"TEXT DEFAULT ''");
   await env.DB.prepare("UPDATE graphic_jobs SET remind_at=COALESCE((SELECT a.remind_at FROM agenda_entries a WHERE a.entry_date=graphic_jobs.work_date AND a.note LIKE graphic_jobs.customer_name||' — '||graphic_jobs.job_no||'%' ORDER BY a.id DESC LIMIT 1),'') WHERE COALESCE(remind_at,'')='' ").run();
 
   for (const sql of [
@@ -112,11 +115,11 @@ async function api(request, env) {
   const url = new URL(request.url), path=url.pathname;
   if (path==='/api/login' && request.method==='POST') {
     const b=await body(request);
-    const requestedRole=b.user==='Çağatay'?'graphic':'admin';
-    const valid=requestedRole==='admin'?(env.ADMIN_PASSWORD&&b.password===env.ADMIN_PASSWORD):b.password===(env.CAGATAY_PASSWORD||'4444');
+    const requestedRole=b.user==='Çağatay'?'graphic':b.user==='Recep'?'tracking':'admin';
+    const valid=requestedRole==='admin'?(env.ADMIN_PASSWORD&&b.password===env.ADMIN_PASSWORD):requestedRole==='graphic'?b.password===(env.CAGATAY_PASSWORD||'4444'):b.password===(env.RECEP_PASSWORD||'3333');
     if(!valid) return json({error:'Şifre hatalı'},401);
     const token=await sessionToken(env,requestedRole);
-    return json({ok:true,role:requestedRole,user:requestedRole==='admin'?'Ali':'Çağatay'},200,{'set-cookie':`crm_session=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`});
+    return json({ok:true,role:requestedRole,user:requestedRole==='admin'?'Ali':requestedRole==='graphic'?'Çağatay':'Recep'},200,{'set-cookie':`crm_session=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`});
   }
   if(path==='/api/logout') return json({ok:true},200,{'set-cookie':'crm_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict'});
 
@@ -139,11 +142,25 @@ async function api(request, env) {
 
   const role=await sessionRole(request,env);
   if(!role) return json({error:'Yetkisiz'},401);
-  if(path==='/api/session')return json({ok:true,role,user:role==='admin'?'Ali':'Çağatay'});
+  if(path==='/api/session')return json({ok:true,role,user:role==='admin'?'Ali':role==='graphic'?'Çağatay':'Recep'});
   if(role==='graphic'&&!path.startsWith('/api/graphic-jobs')&&path!=='/api/health')return json({error:'Bu bölüm yalnızca yöneticiye açıktır.'},403);
+  if(role==='tracking'&&!path.startsWith('/api/tracking')&&path!=='/api/health')return json({error:'Recep yalnızca bugünkü takip işlerini görebilir.'},403);
   await ensureSchemaReady(env);
 
   if(path==='/api/health') return json({ok:true});
+  if(path==='/api/tracking'&&request.method==='GET'){
+    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    return json((await env.DB.prepare("SELECT id,work_date,job_no,customer_name,description,status,remind_at,tracking_status,tracked_by,tracked_at FROM graphic_jobs WHERE work_date=? AND status NOT IN ('Tamamlandı','Bitti','İptal','İmalat Bitti','Bekleme Bitti') ORDER BY CASE WHEN COALESCE(remind_at,'')='' THEN 1 ELSE 0 END,remind_at,id").bind(today).all()).results)
+  }
+  const trackingJob=path.match(/^\/api\/tracking\/(\d+)$/);
+  if(trackingJob&&request.method==='PUT'){
+    const b=await body(request),done=Boolean(b.done),id=Number(trackingJob[1]);
+    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    const found=await env.DB.prepare('SELECT id FROM graphic_jobs WHERE id=? AND work_date=?').bind(id,today).first();
+    if(!found)return json({error:'Bu iş bugünün takip listesinde değil.'},403);
+    await env.DB.prepare("UPDATE graphic_jobs SET tracking_status=?,tracked_by=?,tracked_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(done?'Görüşüldü':'',done?'Recep':'',done?new Date().toISOString():'',id).run();
+    return json({ok:true})
+  }
   if(path==='/api/graphic-jobs'&&request.method==='GET'){
     const date=url.searchParams.get('date')||new Date().toISOString().slice(0,10),visibleDate=url.searchParams.get('visible_date'),search=String(url.searchParams.get('search')||'').trim(),upcomingFrom=url.searchParams.get('upcoming_from'),upcomingTo=url.searchParams.get('upcoming_to'),workFrom=url.searchParams.get('work_from'),workTo=url.searchParams.get('work_to'),createdFrom=url.searchParams.get('created_from'),createdTo=url.searchParams.get('created_to');
     const clean=rows=>rows.map(x=>({...x,description:String(x.description||'').toLocaleLowerCase('tr-TR').includes('yapıldı')?'':x.description}));
