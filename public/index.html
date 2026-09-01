@@ -645,7 +645,7 @@ async function updateGraphicJobPrice(id,value){
   }catch(e){showMsg(e.message,'err')}
 }
 const renderGraphicJobsWithStaticPrice=renderGraphicJobs;
-renderGraphicJobs=function(){renderGraphicJobsWithStaticPrice();enableGraphicPriceEditing();showCompletedGraphicStatus();showGraphicEditButtons();renderGraphicPeriodTotals();checkGraphicDeadlineWarnings()};
+renderGraphicJobs=function(){renderGraphicJobsWithStaticPrice();if(currentAccessRole!=='admin')document.querySelector('.graphic-daily-total')?.remove();enableGraphicPriceEditing();showCompletedGraphicStatus();showGraphicEditButtons();renderGraphicPeriodTotals();checkGraphicDeadlineWarnings()};
 ensureGraphicPriceInput();
 if($('g_date')&&!$('g_date').value)$('g_date').value=localDateKey();
 ensureGraphicAlarmControls();
