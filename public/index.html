@@ -468,13 +468,14 @@ async function loadGraphicJobs(){
     req('/api/graphic-jobs?created_from=2000-01-01&created_to='+encodeURIComponent(localDateKey()))
   ];
   const results=await Promise.allSettled(requests);
-  allGraphicJobs=results[0].status==='fulfilled'?results[0].value:[];
-  graphicMonthJobs=results[1].status==='fulfilled'?results[1].value:allGraphicJobs;
-  upcomingGraphicJobs=results[2].status==='fulfilled'?results[2].value:[];
-  graphicCumulativeJobs=results[3].status==='fulfilled'?results[3].value:[];
-  renderGraphicJobs();renderUpcomingGraphicJobs();
-  const failed=results.filter(x=>x.status==='rejected');
-  if(failed.length)console.error('Grafik verilerinin bir bölümü yüklenemedi:',failed.map(x=>x.reason));
+  const arrayResult=(result,fallback=[])=>result.status==='fulfilled'&&Array.isArray(result.value)?result.value:fallback;
+  allGraphicJobs=arrayResult(results[0]);
+  graphicMonthJobs=arrayResult(results[1],allGraphicJobs);
+  upcomingGraphicJobs=arrayResult(results[2]);
+  graphicCumulativeJobs=arrayResult(results[3]);
+  const failed=results.filter(x=>x.status==='rejected'||!Array.isArray(x.value));
+  try{renderGraphicJobs();renderUpcomingGraphicJobs()}catch(error){console.error('Grafik ekranı çizilemedi:',error);const rows=$('graphicJobRows');if(rows)rows.innerHTML='<div class="graphic-empty" style="color:#b91c1c;font-weight:900">Grafik işleri gösterilirken hata oluştu: '+esc(error.message)+'</div>';try{renderGraphicMonth()}catch(calendarError){console.error('Takvim çizilemedi:',calendarError)}}
+  if(failed.length){console.error('Grafik verilerinin bir bölümü yüklenemedi:',failed.map(x=>x.reason||x.value));const rows=$('graphicJobRows');if(rows&&!allGraphicJobs.length)rows.innerHTML='<div class="graphic-empty" style="color:#b91c1c;font-weight:900">İşler sunucudan yüklenemedi. Sayfayı yenileyin.</div>';try{renderGraphicMonth()}catch(error){console.error(error)}}
 }
 async function changeGraphicMonth(delta){graphicMonthDate.setMonth(graphicMonthDate.getMonth()+delta);$('g_date').value=localDateKey(graphicMonthDate);$('graphicSearch').value='';await loadGraphicJobs()}
 async function openGraphicRelativeMonth(offset){const now=new Date(),target=new Date(now.getFullYear(),now.getMonth()+offset,1,12);graphicMonthDate=target;$('g_date').value=offset===0?localDateKey(now):localDateKey(target);$('graphicSearch').value='';await loadGraphicJobs()}
