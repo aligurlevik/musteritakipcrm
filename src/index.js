@@ -282,6 +282,8 @@ async function api(request, env) {
     const summary={total:classified.length,on_time:classified.filter(x=>x.report_status==='Yetişti').length,late:classified.filter(x=>x.report_status==='Yetişmedi').length,pending:classified.filter(x=>x.report_status==='Bekliyor').length};
     const revenue=await env.DB.prepare("SELECT COALESCE(SUM(price),0) total FROM graphic_jobs WHERE date(created_at,'+3 hours')>=? AND date(created_at,'+3 hours')<=?").bind(from,to).first();
     summary.revenue_total=Number(revenue?.total||0);
+    const dailyRevenue=(await env.DB.prepare("SELECT date(created_at,'+3 hours') day,COALESCE(SUM(price),0) total FROM graphic_jobs WHERE date(created_at,'+3 hours')>=? AND date(created_at,'+3 hours')<=? GROUP BY date(created_at,'+3 hours') ORDER BY day").bind(from,to).all()).results;
+    summary.revenue_daily=dailyRevenue.map(x=>({day:x.day,total:Number(x.total||0)}));
     summary.success_rate=(summary.on_time+summary.late)?Math.round(summary.on_time/(summary.on_time+summary.late)*100):0;
     return json({from,to,summary,jobs:classified})
   }
