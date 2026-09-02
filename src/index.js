@@ -280,6 +280,8 @@ async function api(request, env) {
     const localDay=value=>value?new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(value.replace(' ','T')+(String(value).includes('Z')?'':'Z'))):'';
     const classified=jobs.map(x=>{const done=String(x.status||'').includes('Bitti'),late=Boolean(x.delayed)||String(x.work_date||'')>String(x.original_work_date||'')||(done&&x.completed_at&&localDay(x.completed_at)>x.original_work_date),open=!done,status=late?'Yetişmedi':open&&x.original_work_date<=today?'Yetişmedi':open?'Bekliyor':'Yetişti';return {...x,report_status:status}});
     const summary={total:classified.length,on_time:classified.filter(x=>x.report_status==='Yetişti').length,late:classified.filter(x=>x.report_status==='Yetişmedi').length,pending:classified.filter(x=>x.report_status==='Bekliyor').length};
+    const revenue=await env.DB.prepare("SELECT COALESCE(SUM(price),0) total FROM graphic_jobs WHERE date(created_at,'+3 hours')>=? AND date(created_at,'+3 hours')<=?").bind(from,to).first();
+    summary.revenue_total=Number(revenue?.total||0);
     summary.success_rate=(summary.on_time+summary.late)?Math.round(summary.on_time/(summary.on_time+summary.late)*100):0;
     return json({from,to,summary,jobs:classified})
   }
