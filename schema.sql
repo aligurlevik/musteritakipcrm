@@ -84,7 +84,6 @@ CREATE TABLE IF NOT EXISTS graphic_jobs (
   quantity INTEGER DEFAULT 1,
   delivery_date TEXT DEFAULT '',
   delivery_place TEXT DEFAULT '',
-  critical_deadline INTEGER DEFAULT 0,
   status TEXT DEFAULT 'Beklemede',
   note TEXT DEFAULT '',
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
