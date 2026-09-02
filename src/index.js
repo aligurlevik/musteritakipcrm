@@ -20,7 +20,7 @@ function hexBytes(bytes){return [...bytes].map(x=>x.toString(16).padStart(2,'0')
 async function passwordHash(password,saltHex=''){
   const salt=saltHex?new Uint8Array((saltHex.match(/.{2}/g)||[]).map(x=>parseInt(x,16))):crypto.getRandomValues(new Uint8Array(16));
   const key=await crypto.subtle.importKey('raw',enc.encode(String(password)),{name:'PBKDF2'},false,['deriveBits']);
-  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt,iterations:120000},key,256);
+  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt,iterations:100000},key,256);
   return {salt:hexBytes(salt),hash:hexBytes(new Uint8Array(bits))};
 }
 async function passwordMatches(password,row){if(!row)return false;const check=await passwordHash(password,row.salt);let diff=check.hash.length^String(row.password_hash||'').length;for(let i=0;i<check.hash.length;i++)diff|=check.hash.charCodeAt(i)^String(row.password_hash||'').charCodeAt(i);return diff===0}
