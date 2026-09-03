@@ -11,6 +11,7 @@ export default {
       let html=await response.text();
       const pattern=/function renderRevenueTargetChart\(s,range\)\{[\s\S]*?\}\s*async function loadMonthlyCiroGraph/;
       if(pattern.test(html))html=html.replace(pattern,correctedRevenueFunction+'\nasync function loadMonthlyCiroGraph');
+      html=html.replace('<button class="btn green" onclick="saveGraphicJob()">＋ Ekle</button>','<button class="btn green" onclick="saveGraphicJob()">💾 KAYDET</button>');
       const headers=new Headers(response.headers);
       headers.delete('content-length');headers.delete('content-encoding');headers.delete('etag');
       return new Response(html,{status:response.status,statusText:response.statusText,headers});
