@@ -113,6 +113,13 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
+    if(request.method==='GET'&&(url.pathname==='/mobil-ajanda'||url.pathname==='/mobil-ajanda.html')){
+      const assetUrl=new URL(request.url);
+      assetUrl.pathname='/mobil-ajanda.html';
+      assetUrl.search='';
+      return env.ASSETS.fetch(new Request(assetUrl.toString(),request));
+    }
+
     if(url.pathname==='/api/tracking-summary'&&request.method==='GET'){
       const day=url.searchParams.get('day')==='tomorrow'?'tomorrow':'today';
       const authUrl=new URL(request.url);
