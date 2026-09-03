@@ -47,6 +47,8 @@ async function serveMobileNotes(request,env){
   }
   if(response.status!==200)return response;
   let html=await response.text();
+  html=html.replace('placeholder="Notunuzu yazın veya diktafonla ses kaydedin..."','placeholder="Notunuzu buraya yazın..."');
+  html=html.replace("voiceStatus(String(key),'🔴 Kayıt başladı…');","voiceStatus(String(key),'🔴 Ses kaydı başladı — konuşabilirsiniz');");
   const fontBoost=`<style id="mobileNoteFontBoost">
 .text{font-size:15.5px!important}
 .meta{font-size:12.5px!important}
@@ -59,7 +61,19 @@ async function serveMobileNotes(request,env){
 .meta .badge:first-child{font-weight:950!important;background:#fff6bf!important}
 @media(max-width:430px){.text{font-size:15.5px!important}.meta{font-size:12.3px!important}.created{font-size:12.8px!important}.dateRow input{width:150px!important;max-width:54vw!important;font-size:15.5px!important}}
 </style>`;
+  const closedStartPatch=`<script id="mobileClosedStartPatch">
+(function(){
+  function closeNewBoxOnStart(){
+    const box=document.getElementById('newBox');
+    if(box)box.classList.remove('show');
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',closeNewBoxOnStart,{once:true});
+  else closeNewBoxOnStart();
+  window.addEventListener('pageshow',closeNewBoxOnStart);
+})();
+</script>`;
   if(!html.includes('id="mobileNoteFontBoost"'))html=html.replace('</head>',fontBoost+'\n</head>');
+  if(!html.includes('id="mobileClosedStartPatch"'))html=html.replace('</body>',closedStartPatch+'\n</body>');
   mobileHtmlCache=html;
   return new Response(mobileHtmlCache,{status:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-cache'}});
 }
