@@ -10,20 +10,17 @@ const mobileAgendaOnlyPatch = `
     body.mobile-agenda-only .section{display:none!important}
     body.mobile-agenda-only #agenda{display:block!important;width:100%!important;margin:0!important}
 
-    body.mobile-agenda-only #agenda .toolbar{display:none!important}
+    body.mobile-agenda-only #agenda .toolbar{display:flex!important;gap:8px!important;align-items:flex-start!important}
     body.mobile-agenda-only #agenda .agenda-overview{display:block!important;width:100%!important}
     body.mobile-agenda-only #agenda .agenda-overview>div{display:none!important}
     body.mobile-agenda-only #agenda .done-panel{display:block!important;width:100%!important;min-width:0!important;max-width:none!important;margin:0!important}
-    body.mobile-agenda-only #agenda .month-calendar,
-    body.mobile-agenda-only #agenda .month-weekdays,
-    body.mobile-agenda-only #agenda .month-grid{display:none!important}
 
     body.mobile-agenda-only #agenda .inline-agenda-add{grid-template-columns:1fr!important;gap:8px!important;width:100%!important}
     body.mobile-agenda-only #agenda .inline-agenda-add>div{grid-template-columns:minmax(0,1fr) auto!important}
     body.mobile-agenda-only #agenda input,
     body.mobile-agenda-only #agenda textarea{font-size:16px!important;min-width:0!important}
-    body.mobile-agenda-only #agenda .done-item{grid-template-columns:auto minmax(0,1fr)!important;gap:8px!important}
-    body.mobile-agenda-only #agenda .done-item-meta{grid-column:1/-1!important}
+    body.mobile-agenda-only #agenda .done-item{grid-template-columns:25px minmax(0,1fr) auto!important;gap:7px!important}
+    body.mobile-agenda-only #agenda .done-item-meta{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;flex-wrap:wrap!important}
     body.mobile-agenda-only #agenda h2,
     body.mobile-agenda-only #agenda h3{margin-top:8px!important}
   }
@@ -40,14 +37,6 @@ const mobileAgendaOnlyPatch = `
     if(agenda)agenda.classList.add('active');
     var title=document.getElementById('title');
     if(title)title.textContent='Ajanda';
-    try{
-      if(typeof agendaDate!=='undefined')agendaDate=new Date();
-      if(typeof agendaView!=='undefined')agendaView='month';
-      if(typeof loadAgenda==='function'){
-        setTimeout(function(){loadAgenda().catch(function(){})},100);
-        setTimeout(function(){loadAgenda().catch(function(){})},700);
-      }
-    }catch(_){ }
   }
 
   if(typeof window.applyAccess==='function'&&!window.applyAccess.__mobileAgendaWrapped){
