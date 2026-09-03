@@ -13,8 +13,10 @@ export default {
     const isHome=request.method==='GET'&&(url.pathname==='/'||url.pathname==='/index.html');
 
     if(isHome&&isMobileRequest(request)){
-      const target=new URL('/mobil-ajanda.html',url.origin);
-      return Response.redirect(target.toString(),302);
+      const assetUrl=new URL(request.url);
+      assetUrl.pathname='/mobil-ajanda.html';
+      assetUrl.search='';
+      return env.ASSETS.fetch(new Request(assetUrl.toString(),request));
     }
 
     return worker.fetch(request,env,ctx);
