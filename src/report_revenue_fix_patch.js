@@ -24,6 +24,33 @@ const ciroReadabilityCss = `
     font-weight:1000!important;
     line-height:1.05!important;
   }
+
+  /* Teslim yeri secimini buyut ve okunakli yap. */
+  #graphicJobs #g_delivery_place{
+    width:145px!important;
+    min-width:145px!important;
+    height:34px!important;
+    min-height:34px!important;
+    padding:4px 32px 4px 10px!important;
+    font-size:14px!important;
+    font-weight:900!important;
+    color:#7c2d12!important;
+    background:#fff7ed!important;
+    border:2px solid #f59e0b!important;
+    border-radius:8px!important;
+  }
+  #graphicJobs #g_delivery_place option{
+    font-size:14px!important;
+    font-weight:800!important;
+    color:#111827!important;
+  }
+  #graphicJobs .graphic-delivery-place{
+    min-width:48px!important;
+    padding:5px 7px!important;
+    font-size:10px!important;
+    font-weight:900!important;
+    text-align:center!important;
+  }
 </style>`;
 
 export default {
