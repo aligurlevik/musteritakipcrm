@@ -7,11 +7,50 @@ function isMobileRequest(request){
   return /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua);
 }
 
-function mobileNotesRequest(request){
-  const assetUrl=new URL(request.url);
-  assetUrl.pathname='/notlar-v2';
-  assetUrl.search='';
-  return new Request(assetUrl.toString(),request);
+function assetRequest(request, pathname){
+  const url=new URL(request.url);
+  url.pathname=pathname;
+  url.search='';
+  return new Request(url.toString(),{
+    method:'GET',
+    headers:request.headers,
+    redirect:'manual'
+  });
+}
+
+async function serveMobileNotes(request,env){
+  let response=await env.ASSETS.fetch(assetRequest(request,'/notlar-v2.html'));
+
+  // Cloudflare HTML assets sometimes answer with a canonical-path redirect.
+  // Follow it inside the Worker so the browser never enters a redirect loop.
+  for(let i=0;i<4&&response.status>=300&&response.status<400;i++){
+    const location=response.headers.get('location');
+    if(!location)break;
+    const next=new URL(location,new URL(request.url).origin);
+    response=await env.ASSETS.fetch(assetRequest(request,next.pathname));
+  }
+
+  // Fallback to the extensionless asset path if needed.
+  if(response.status!==200){
+    response=await env.ASSETS.fetch(assetRequest(request,'/notlar-v2'));
+    for(let i=0;i<4&&response.status>=300&&response.status<400;i++){
+      const location=response.headers.get('location');
+      if(!location)break;
+      const next=new URL(location,new URL(request.url).origin);
+      response=await env.ASSETS.fetch(assetRequest(request,next.pathname));
+    }
+  }
+
+  if(response.status!==200)return response;
+
+  const html=await response.text();
+  const headers=new Headers(response.headers);
+  headers.set('content-type','text/html; charset=utf-8');
+  headers.set('cache-control','no-store, no-cache, must-revalidate');
+  headers.delete('location');
+  headers.delete('content-length');
+  headers.delete('etag');
+  return new Response(html,{status:200,headers});
 }
 
 export default {
@@ -19,15 +58,21 @@ export default {
     const url=new URL(request.url);
     const isGet=request.method==='GET';
     const isHome=isGet&&(url.pathname==='/'||url.pathname==='/index.html');
-    const isMobilePage=isGet&&(url.pathname==='/mobil-ajanda'||url.pathname==='/mobil-ajanda.html'||url.pathname==='/notlar-v2'||url.pathname==='/notlar-v2.html');
+    const isMobilePage=isGet&&(
+      url.pathname==='/mobil-ajanda'||
+      url.pathname==='/mobil-ajanda.html'||
+      url.pathname==='/notlar-v2'||
+      url.pathname==='/notlar-v2/'||
+      url.pathname==='/notlar-v2.html'
+    );
     const forceMobile=url.searchParams.get('mobile')==='1';
 
     if(isMobilePage){
-      return env.ASSETS.fetch(mobileNotesRequest(request));
+      return serveMobileNotes(request,env);
     }
 
     if(isHome&&(forceMobile||isMobileRequest(request))){
-      return env.ASSETS.fetch(mobileNotesRequest(request));
+      return serveMobileNotes(request,env);
     }
 
     return worker.fetch(request,env,ctx);
