@@ -9,14 +9,26 @@ const mobileAgendaOnlyPatch = `
     body.mobile-agenda-only .top{display:none!important}
     body.mobile-agenda-only .section{display:none!important}
     body.mobile-agenda-only #agenda{display:block!important;width:100%!important;margin:0!important}
-    body.mobile-agenda-only #agenda .toolbar{gap:8px!important;align-items:flex-start!important}
-    body.mobile-agenda-only #agenda .agenda-overview{display:grid!important;grid-template-columns:1fr!important;gap:12px!important;width:100%!important}
-    body.mobile-agenda-only #agenda .done-panel{width:100%!important;min-width:0!important}
-    body.mobile-agenda-only #agenda .month-calendar{width:100%!important;min-width:0!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+
+    body.mobile-agenda-only #agenda .toolbar{display:block!important;margin:2px 0 10px!important}
+    body.mobile-agenda-only #agendaViewSubtitle,
+    body.mobile-agenda-only #agendaMonthControls,
+    body.mobile-agenda-only #agendaDayControls{display:none!important}
+    body.mobile-agenda-only #agendaViewTitle{font-size:22px!important;margin:0!important}
+
+    body.mobile-agenda-only #agenda .agenda-overview{display:block!important;width:100%!important}
+    body.mobile-agenda-only #agenda .agenda-overview>div{display:none!important}
+    body.mobile-agenda-only #agenda .done-panel{display:block!important;width:100%!important;min-width:0!important;max-width:none!important;margin:0!important}
+    body.mobile-agenda-only #agenda .month-calendar,
     body.mobile-agenda-only #agenda .month-weekdays,
-    body.mobile-agenda-only #agenda .month-grid{min-width:560px!important}
-    body.mobile-agenda-only #agenda .inline-agenda-add{grid-template-columns:1fr!important;gap:8px!important}
-    body.mobile-agenda-only #agenda .agenda-schedule-line{display:flex!important;flex-wrap:wrap!important;gap:6px!important}
+    body.mobile-agenda-only #agenda .month-grid{display:none!important}
+
+    body.mobile-agenda-only #agenda .inline-agenda-add{grid-template-columns:1fr!important;gap:8px!important;width:100%!important}
+    body.mobile-agenda-only #agenda .inline-agenda-add>div{grid-template-columns:minmax(0,1fr) auto!important}
+    body.mobile-agenda-only #agenda input,
+    body.mobile-agenda-only #agenda textarea{font-size:16px!important;min-width:0!important}
+    body.mobile-agenda-only #agenda .done-item{grid-template-columns:auto minmax(0,1fr)!important;gap:8px!important}
+    body.mobile-agenda-only #agenda .done-item-meta{grid-column:1/-1!important}
     body.mobile-agenda-only #agenda h2,
     body.mobile-agenda-only #agenda h3{margin-top:8px!important}
   }
@@ -24,6 +36,19 @@ const mobileAgendaOnlyPatch = `
 <script>
 (function(){
   function isPhone(){return window.matchMedia&&window.matchMedia('(max-width:820px)').matches}
+
+  function refreshPhoneNotes(){
+    if(!isPhone())return;
+    try{
+      if(typeof agendaDate!=='undefined')agendaDate=new Date();
+      if(typeof agendaView!=='undefined')agendaView='month';
+      var viewTitle=document.getElementById('agendaViewTitle');
+      if(viewTitle)viewTitle.textContent='Notlarım';
+      var subtitle=document.getElementById('agendaViewSubtitle');
+      if(subtitle)subtitle.textContent='';
+      if(typeof loadAgenda==='function')loadAgenda().catch(function(){});
+    }catch(_){ }
+  }
 
   function showAgendaOnly(role){
     if(role!=='admin'||!isPhone())return;
@@ -33,6 +58,7 @@ const mobileAgendaOnlyPatch = `
     if(agenda)agenda.classList.add('active');
     var title=document.getElementById('title');
     if(title)title.textContent='Ajanda';
+    refreshPhoneNotes();
   }
 
   if(typeof window.applyAccess==='function'&&!window.applyAccess.__mobileAgendaWrapped){
