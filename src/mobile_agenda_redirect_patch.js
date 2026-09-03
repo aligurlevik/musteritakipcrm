@@ -9,7 +9,7 @@ function isMobileRequest(request){
 
 function mobileNotesRequest(request){
   const assetUrl=new URL(request.url);
-  assetUrl.pathname='/notlar-v2.html';
+  assetUrl.pathname='/notlar-v2';
   assetUrl.search='';
   return new Request(assetUrl.toString(),request);
 }
