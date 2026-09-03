@@ -1,4 +1,4 @@
-import worker from './agenda_hide_customer_delete_patch.js';
+import worker from './ali_ajanda_only_force_patch.js';
 
 const mobileAgendaOnlyPatch = `
 <style>
