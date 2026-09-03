@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/cagatay_agenda_patch.js",
+  "main": "src/agenda_selected_day_safe_patch.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
