@@ -5,7 +5,7 @@ const deliveryDateTimePatch = String.raw`
   #g_entry_date_label{display:none!important}
   #g_delivery_time_wrap{display:none!important}
   #g_delivery_quick_box{
-    display:grid;gap:5px;min-width:430px;padding:6px 8px;background:#eff6ff;
+    display:grid;gap:5px;min-width:390px;padding:6px 8px;background:#eff6ff;
     border:2px solid #2563eb;border-radius:10px
   }
   .delivery-quick-line{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
@@ -20,14 +20,19 @@ const deliveryDateTimePatch = String.raw`
     margin-left:auto;padding:4px 8px;border-radius:7px;background:#dbeafe;color:#1e3a8a;
     font-size:11px;font-weight:1000;white-space:nowrap
   }
-  .delivery-custom-fields{display:none;align-items:center;gap:6px;flex-wrap:wrap;padding-left:57px}
-  .delivery-custom-fields.open{display:flex}
-  #g_delivery_quick_box #g_delivery,#g_delivery_quick_box #g_delivery_time{
-    display:block!important;height:30px!important;padding:4px 7px!important;background:#fff!important;
-    border:1px solid #93c5fd!important;border-radius:7px!important;font-weight:900!important
+  .delivery-manual-time{
+    display:flex;align-items:center;gap:6px
   }
-  #g_delivery_quick_box #g_delivery{width:132px!important}
-  #g_delivery_quick_box #g_delivery_time{width:92px!important}
+  #g_delivery_quick_box #g_delivery_time{
+    display:block!important;width:105px!important;min-width:105px!important;height:30px!important;
+    padding:4px 7px!important;background:#fff!important;border:1px solid #2563eb!important;
+    border-radius:7px!important;font-weight:900!important
+  }
+  #g_delivery_quick_box #g_delivery{
+    display:none!important;width:132px!important;height:30px!important;padding:4px 7px!important;
+    background:#fff!important;border:1px solid #93c5fd!important;border-radius:7px!important;font-weight:900!important
+  }
+  #g_delivery_quick_box #g_delivery.custom-open{display:block!important}
   @media(max-width:950px){
     #g_delivery_quick_box{min-width:0;width:100%}
     .delivery-quick-summary{width:100%;margin-left:57px}
@@ -47,52 +52,55 @@ const deliveryDateTimePatch = String.raw`
     if(!box||!date||!time)return;
     const value=date.value||'';
     box.querySelectorAll('[data-day-offset]').forEach(btn=>btn.classList.toggle('active',value===addDays(Number(btn.dataset.dayOffset))));
-    box.querySelectorAll('[data-quick-time]').forEach(btn=>btn.classList.toggle('active',time.value===btn.dataset.quickTime));
     const summary=box.querySelector('.delivery-quick-summary');
     if(summary)summary.textContent='TESLİM: '+trDate(value)+(time.value?' • '+time.value:'');
   }
 
-  function showCustomFields(focusTarget){
-    const box=document.getElementById('g_delivery_quick_box');if(!box)return;
-    const custom=box.querySelector('.delivery-custom-fields');if(custom)custom.classList.add('open');
-    const target=document.getElementById(focusTarget);if(target){target.focus();try{target.showPicker&&target.showPicker()}catch{}}
-  }
-
   function mountQuickDelivery(){
-    if(document.getElementById('g_delivery_quick_box')){syncQuickDelivery();return true}
+    const existing=document.getElementById('g_delivery_quick_box');
+    if(existing){syncQuickDelivery();return true}
+
     const date=document.getElementById('g_delivery');
     const time=document.getElementById('g_delivery_time');
     if(!date||!time)return false;
     const oldLabel=document.getElementById('g_entry_date_label');
-    const oldTimeWrap=document.getElementById('g_delivery_time_wrap');
     const parent=date.parentNode;if(!parent)return false;
 
     const box=document.createElement('div');
     box.id='g_delivery_quick_box';
-    box.innerHTML='<div class="delivery-quick-line"><b class="delivery-quick-label">GÜN</b><button type="button" class="delivery-quick-btn" data-day-offset="0">Bugün</button><button type="button" class="delivery-quick-btn" data-day-offset="1">Yarın</button><button type="button" class="delivery-quick-btn" data-day-offset="2">+2 Gün</button><button type="button" class="delivery-quick-btn" data-custom-date>Tarih Seç</button><span class="delivery-quick-summary"></span></div><div class="delivery-quick-line"><b class="delivery-quick-label">SAAT</b><button type="button" class="delivery-quick-btn" data-quick-time="10:00">10:00</button><button type="button" class="delivery-quick-btn" data-quick-time="12:00">12:00</button><button type="button" class="delivery-quick-btn" data-quick-time="13:00">13:00</button><button type="button" class="delivery-quick-btn" data-quick-time="15:00">15:00</button><button type="button" class="delivery-quick-btn" data-quick-time="16:00">16:00</button><button type="button" class="delivery-quick-btn" data-quick-time="17:00">17:00</button><button type="button" class="delivery-quick-btn" data-other-time>Diğer</button></div><div class="delivery-custom-fields"><span style="font-size:11px;font-weight:900;color:#64748b">Özel:</span></div>';
+    box.innerHTML='<div class="delivery-quick-line"><b class="delivery-quick-label">GÜN</b><button type="button" class="delivery-quick-btn" data-day-offset="0">Bugün</button><button type="button" class="delivery-quick-btn" data-day-offset="1">Yarın</button><button type="button" class="delivery-quick-btn" data-day-offset="2">+2 Gün</button><button type="button" class="delivery-quick-btn" data-custom-date>Tarih Seç</button><span class="delivery-quick-summary"></span></div><div class="delivery-quick-line"><b class="delivery-quick-label">SAAT</b><span class="delivery-manual-time"><span style="font-size:13px">🕒</span></span></div>';
 
     parent.insertBefore(box,oldLabel&&oldLabel.parentNode===parent?oldLabel:date);
-    const custom=box.querySelector('.delivery-custom-fields');
-    custom.appendChild(date);
-    if(oldTimeWrap&&oldTimeWrap.contains(time))custom.appendChild(time);else custom.appendChild(time);
+    box.appendChild(date);
+    box.querySelector('.delivery-manual-time').appendChild(time);
     if(oldLabel)oldLabel.style.display='none';
-    if(oldTimeWrap&&oldTimeWrap.parentNode)oldTimeWrap.remove();
 
-    box.querySelectorAll('[data-day-offset]').forEach(btn=>btn.onclick=()=>{date.value=addDays(Number(btn.dataset.dayOffset));custom.classList.remove('open');syncQuickDelivery()});
-    box.querySelectorAll('[data-quick-time]').forEach(btn=>btn.onclick=()=>{time.value=btn.dataset.quickTime;syncQuickDelivery()});
-    box.querySelector('[data-custom-date]').onclick=()=>showCustomFields('g_delivery');
-    box.querySelector('[data-other-time]').onclick=()=>showCustomFields('g_delivery_time');
-    date.addEventListener('change',syncQuickDelivery);
+    box.querySelectorAll('[data-day-offset]').forEach(btn=>btn.onclick=()=>{
+      date.value=addDays(Number(btn.dataset.dayOffset));
+      date.classList.remove('custom-open');
+      syncQuickDelivery();
+    });
+    box.querySelector('[data-custom-date]').onclick=()=>{
+      date.classList.add('custom-open');
+      date.focus();
+      try{date.showPicker&&date.showPicker()}catch{}
+    };
+    date.addEventListener('change',()=>{date.classList.remove('custom-open');syncQuickDelivery()});
+    time.addEventListener('input',syncQuickDelivery);
     time.addEventListener('change',syncQuickDelivery);
     syncQuickDelivery();
+
+    if(!window.__graphicJobsReloadedAfterQuickDelivery){
+      window.__graphicJobsReloadedAfterQuickDelivery=true;
+      setTimeout(()=>{try{if(typeof loadGraphicJobs==='function')loadGraphicJobs()}catch(e){console.error(e)}},150);
+    }
     return true;
   }
 
   function start(){
-    mountQuickDelivery();
-    const observer=new MutationObserver(()=>mountQuickDelivery());
-    observer.observe(document.body,{childList:true,subtree:true});
-    let tries=0;const timer=setInterval(()=>{if(mountQuickDelivery()||++tries>40)clearInterval(timer)},250);
+    if(mountQuickDelivery())return;
+    let tries=0;
+    const timer=setInterval(()=>{if(mountQuickDelivery()||++tries>40)clearInterval(timer)},250);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
