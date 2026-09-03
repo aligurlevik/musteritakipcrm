@@ -3,47 +3,99 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Mobil Ajanda</title>
+<title>Notlarım</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial,sans-serif;color:#0f172a;background:#dff4e4}button,input,textarea{font:inherit}.wrap{max-width:720px;margin:0 auto;min-height:100vh;padding:10px}.paper{min-height:calc(100vh - 20px);border:1px solid #8fc9a0;border-radius:16px;padding:14px;background-color:#eaf8ed;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 39px,rgba(33,120,68,.20) 40px);box-shadow:0 8px 24px rgba(20,83,45,.12)}.head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}.head h1{font-size:22px;margin:0;color:#065f46}.logout{border:0;background:#dbeafe;color:#1e40af;border-radius:9px;padding:8px 10px;font-weight:800}.datebar{display:grid;grid-template-columns:auto 1fr auto auto;gap:7px;margin-bottom:14px}.datebar button,.datebar input{border:1px solid #8fc9a0;border-radius:10px;padding:10px;background:#fff}.datebar button{font-weight:900;color:#065f46}.today{background:#059669!important;color:#fff!important}.list{display:grid;gap:8px}.item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:9px;align-items:start;background:rgba(255,255,255,.90);border-left:4px solid #059669;border-radius:10px;padding:10px}.item.done{opacity:.65;border-left-color:#16a34a}.check{width:22px;height:22px}.txt{white-space:pre-wrap;word-break:break-word;font-size:15px}.meta{font-size:12px;color:#a16207;margin-top:4px}.del{border:0;border-radius:8px;background:#dc2626;color:#fff;font-weight:900;padding:7px 9px}.empty{padding:14px;text-align:center;color:#64748b;background:rgba(255,255,255,.72);border-radius:10px}.add{display:grid;gap:8px;margin-top:16px;padding:12px;border-top:1px dashed #5da875;background:rgba(234,248,237,.88);border-radius:10px}.add textarea{width:100%;min-height:100px;resize:vertical;border:1px solid #8fc9a0;border-radius:10px;padding:11px;background:#fff;font-size:16px}.time{display:grid;grid-template-columns:1fr 78px 78px;gap:7px}.time input{width:100%;border:1px solid #8fc9a0;border-radius:10px;padding:10px;background:#fff;font-size:16px}.addbtn{border:0;border-radius:10px;background:#059669;color:white;font-weight:900;padding:12px 14px;font-size:16px}.msg{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);max-width:90vw;background:#0f172a;color:#fff;border-radius:10px;padding:10px 14px;font-weight:800;display:none;text-align:center;z-index:50}.login{position:fixed;inset:0;background:#dff4e4;display:none;align-items:center;justify-content:center;padding:20px;z-index:100}.login.show{display:flex}.loginbox{width:min(380px,100%);background:#fff;border:1px solid #8fc9a0;border-radius:16px;padding:20px}.loginbox h2{margin:0 0 14px;color:#065f46}.loginbox input{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:11px;margin-bottom:9px;font-size:16px}.loginbox button{width:100%;border:0;border-radius:10px;background:#059669;color:#fff;font-weight:900;padding:12px}.loginerr{color:#b91c1c;font-size:13px;margin-top:8px}@media(max-width:430px){.wrap{padding:7px}.paper{padding:10px;min-height:calc(100vh - 14px)}.datebar{grid-template-columns:auto 1fr auto}.datebar .today{grid-column:1/-1}.time{grid-template-columns:1fr 68px 68px}.head h1{font-size:20px}}
+:root{--yellow:#ffd338;--yellow-dark:#e5b800;--ink:#2b2b2b;--muted:#747474;--bg:#f2f3f5;--line:#d7e4f3;--red:#d93b3b;--green:#14956f}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;color:var(--ink);background:var(--bg)}button,input,textarea{font:inherit}.app{max-width:720px;min-height:100vh;margin:0 auto;background:#f7f7f8}.topbar{position:sticky;top:0;z-index:20;background:var(--yellow);padding:14px 16px 12px;box-shadow:0 2px 8px #0002}.toprow{display:flex;align-items:center;justify-content:space-between;gap:10px}.title{font-size:28px;font-weight:900;line-height:1}.today-label{font-size:12px;font-weight:800;color:#6f5b00;margin-top:6px}.logout{border:0;background:#ffffff88;color:#514400;border-radius:10px;padding:8px 10px;font-weight:900}.content{padding:12px 12px 92px}.note-list{display:grid;gap:10px}.note-card{position:relative;border:1px solid #ead67a;border-left:6px solid #e8b915;border-radius:12px;background:#fff7bd;padding:12px 12px 11px;box-shadow:0 2px 8px #00000012;cursor:pointer}.note-card:nth-child(4n+2){background:#e8f5e9;border-color:#bddfc1;border-left-color:#43a047}.note-card:nth-child(4n+3){background:#e6f2ff;border-color:#c1daf2;border-left-color:#2684d8}.note-card:nth-child(4n+4){background:#fde8ef;border-color:#efc6d4;border-left-color:#d94b7b}.note-card.done{opacity:.60}.note-card.done .note-text{text-decoration:line-through}.note-main{display:grid;grid-template-columns:25px minmax(0,1fr);gap:9px;align-items:start}.check{width:21px;height:21px;margin:1px 0 0}.note-text{font-size:16px;line-height:1.38;font-weight:650;white-space:pre-wrap;word-break:break-word}.note-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 0 34px;font-size:11px;font-weight:800;color:#6d5b19}.badge{display:inline-flex;align-items:center;gap:3px;background:#ffffff99;border:1px solid #00000010;border-radius:999px;padding:4px 7px}.empty{margin-top:16vh;text-align:center;color:#8a8a8a}.empty .icon{font-size:50px;margin-bottom:10px}.empty b{display:block;font-size:18px;color:#5f5f5f;margin-bottom:5px}.fab{position:fixed;right:max(20px,calc((100vw - 720px)/2 + 20px));bottom:24px;width:60px;height:60px;border:0;border-radius:50%;background:var(--yellow);color:#4e4100;font-size:36px;line-height:1;font-weight:500;box-shadow:0 5px 16px #0004;z-index:30}.composer{position:fixed;inset:0;z-index:60;background:#fffef7;display:none;flex-direction:column}.composer.show{display:flex}.editor-head{display:grid;grid-template-columns:48px 1fr auto;align-items:center;gap:6px;background:var(--yellow);padding:10px 10px;box-shadow:0 2px 8px #0002}.back{border:0;background:transparent;font-size:30px;color:#574900;padding:2px}.editor-title{font-size:20px;font-weight:900;color:#463b00}.save{border:0;background:#fff8d1;color:#564900;border-radius:9px;padding:9px 12px;font-weight:900}.paper-wrap{flex:1;min-height:0;display:flex;padding:0 10px 0 38px;background-color:#fffef8;background-image:linear-gradient(90deg,transparent 0,transparent 27px,#ef9a9a 28px,#ef9a9a 29px,transparent 30px),repeating-linear-gradient(to bottom,transparent 0,transparent 35px,var(--line) 36px,transparent 37px)}.paper-wrap textarea{flex:1;width:100%;min-height:100%;border:0;outline:0;resize:none;background:transparent;padding:17px 10px;font-size:18px;line-height:36px;color:#222}.alarm-panel{border-top:1px solid #e7e0c6;background:#fffdf2;padding:10px 12px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -2px 8px #0000000d}.alarm-title{font-size:12px;font-weight:900;color:#8c6500;margin-bottom:7px}.alarm-row{display:grid;grid-template-columns:minmax(0,1fr) 74px 74px;gap:7px}.alarm-row input{width:100%;min-width:0;border:1px solid #d7c777;border-radius:9px;background:#fff;padding:10px 8px}.editor-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.delete{border:0;border-radius:9px;background:#fee2e2;color:#a61b1b;padding:10px;font-weight:900}.donebtn{border:0;border-radius:9px;background:#e8f5ef;color:#087653;padding:10px;font-weight:900}.msg{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:110;background:#1f2937;color:white;border-radius:10px;padding:10px 14px;font-weight:800;display:none;max-width:88vw;text-align:center}.login{position:fixed;inset:0;z-index:100;background:#f4f4f4;display:none;align-items:center;justify-content:center;padding:20px}.login.show{display:flex}.loginbox{width:min(390px,100%);background:white;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px #0002}.loginhead{background:var(--yellow);padding:20px;font-size:24px;font-weight:900}.loginbody{padding:18px}.loginbody input{width:100%;border:1px solid #d4d4d4;border-radius:10px;padding:12px;font-size:16px}.loginbody button{width:100%;border:0;border-radius:10px;background:var(--yellow);color:#4e4100;font-weight:900;padding:12px;margin-top:10px}.loginerr{color:#b91c1c;font-size:13px;margin-top:8px}@media(max-width:430px){.title{font-size:25px}.content{padding-left:9px;padding-right:9px}.note-card{padding:11px 9px}.paper-wrap textarea{font-size:17px}.alarm-row{grid-template-columns:minmax(0,1fr) 68px 68px}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <main class="paper">
-    <div class="head"><h1>Günlük Ajanda</h1><button class="logout" onclick="logoutMobile()">Çıkış</button></div>
-    <div class="datebar"><button onclick="shiftDay(-1)">←</button><input id="day" type="date" onchange="loadNotes()"><button onclick="shiftDay(1)">→</button><button class="today" onclick="goToday()">Bugün</button></div>
-    <div id="list" class="list"></div>
-    <div class="add">
-      <textarea id="note" placeholder="Notunuzu buraya yazın..."></textarea>
-      <div class="time"><input id="remDate" type="date"><input id="hour" type="number" min="0" max="23" placeholder="Saat"><input id="minute" type="number" min="0" max="59" placeholder="Dk"></div>
-      <button class="addbtn" onclick="addNote()">Notu Ekle</button>
-    </div>
-  </main>
+<div class="app">
+  <header class="topbar"><div class="toprow"><div><div class="title">Notlarım</div><div id="todayLabel" class="today-label"></div></div><button class="logout" onclick="logoutMobile()">Çıkış</button></div></header>
+  <main class="content"><div id="list" class="note-list"></div></main>
+  <button class="fab" aria-label="Yeni not" onclick="openNewNote()">+</button>
 </div>
-<div id="login" class="login"><div class="loginbox"><h2>Mobil Ajanda</h2><input id="pw" type="password" placeholder="Ali şifresi" onkeydown="if(event.key==='Enter')loginMobile()"><button onclick="loginMobile()">Giriş Yap</button><div id="loginerr" class="loginerr"></div></div></div>
+
+<section id="composer" class="composer">
+  <div class="editor-head"><button class="back" onclick="closeEditor()">‹</button><div id="editorTitle" class="editor-title">Yeni Not</div><button class="save" onclick="saveNote()">Kaydet</button></div>
+  <div class="paper-wrap"><textarea id="noteText" placeholder="Notunuzu yazın..."></textarea></div>
+  <div class="alarm-panel">
+    <div class="alarm-title">🔔 ALARM / HATIRLATMA</div>
+    <div class="alarm-row"><input id="noteDate" type="date"><input id="noteHour" type="number" inputmode="numeric" min="0" max="23" placeholder="Saat"><input id="noteMinute" type="number" inputmode="numeric" min="0" max="59" placeholder="Dk"></div>
+    <div class="editor-actions"><button id="deleteButton" class="delete" onclick="deleteCurrentNote()">Sil</button><button id="doneButton" class="donebtn" onclick="toggleCurrentDone()">✓ Tamamlandı</button></div>
+  </div>
+</section>
+
+<div id="login" class="login"><div class="loginbox"><div class="loginhead">📝 Notlarım</div><div class="loginbody"><input id="pw" type="password" placeholder="Şifre" onkeydown="if(event.key==='Enter')loginMobile()"><button onclick="loginMobile()">Giriş Yap</button><div id="loginerr" class="loginerr"></div></div></div></div>
 <div id="msg" class="msg"></div>
+
 <script>
 (function(){
-  const state={items:[]};
+  const state={items:[],editingId:null};
   const $=id=>document.getElementById(id);
   const pad=n=>String(n).padStart(2,'0');
-  function key(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
-  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+  const dateKey=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const monthKey=d=>d.getFullYear()+'-'+pad(d.getMonth()+1);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const today=()=>dateKey(new Date());
   function flash(text){const m=$('msg');m.textContent=text;m.style.display='block';clearTimeout(window.__msg);window.__msg=setTimeout(()=>m.style.display='none',2200)}
   async function api(path,opts){const r=await fetch(path,Object.assign({headers:{'content-type':'application/json'}},opts||{}));let d={};try{d=await r.json()}catch(_){ }if(!r.ok)throw new Error(d.error||'İşlem başarısız');return d}
-  function selected(){return $('day').value||key(new Date())}
-  function monthKey(){return selected().slice(0,7)}
-  function render(){const d=selected();const arr=state.items.filter(x=>x.entry_date===d).sort((a,b)=>Number(a.entry_status==='Yapıldı')-Number(b.entry_status==='Yapıldı')||Number(a.id)-Number(b.id));$('list').innerHTML=arr.length?arr.map(x=>{const done=x.entry_status==='Yapıldı',meta=x.remind_at?'⏰ '+new Date(x.remind_at).toLocaleString('tr-TR'):'';return '<div class="item '+(done?'done':'')+'"><input class="check" type="checkbox" '+(done?'checked':'')+' onchange="toggleNote('+x.id+',this.checked)"><div><div class="txt">'+esc(x.note)+'</div>'+(meta?'<div class="meta">'+esc(meta)+'</div>':'')+'</div><button class="del" onclick="deleteNote('+x.id+')">SİL</button></div>'}).join(''):'<div class="empty">Bu gün için henüz not yok.</div>'}
-  window.loadNotes=async function(){const d=selected();$('remDate').value=d;try{await api('/api/agenda/rollover',{method:'POST',body:JSON.stringify({today:key(new Date())})});state.items=await api('/api/agenda?month='+monthKey());render()}catch(e){if(String(e.message).includes('Oturum'))$('login').classList.add('show');else flash(e.message)}};
-  window.addNote=async function(){try{const note=$('note').value.trim();if(!note)return flash('Not yazmalısınız.');const date=$('remDate').value||selected(),h=$('hour').value.trim(),m=$('minute').value.trim();if(h!==''&&(Number(h)<0||Number(h)>23))return flash('Saat 0-23 olmalı.');if(m!==''&&(Number(m)<0||Number(m)>59))return flash('Dakika 0-59 olmalı.');const remind=h!==''?date+'T'+pad(Number(h))+':'+pad(Number(m||0)):'';await api('/api/agenda',{method:'POST',body:JSON.stringify({entry_date:date,note:note,remind_at:remind})});$('note').value='';$('hour').value='';$('minute').value='';$('day').value=date;await loadNotes();flash('Not eklendi.')}catch(e){flash(e.message)}};
-  window.deleteNote=async function(id){try{await api('/api/agenda/'+id,{method:'DELETE'});await loadNotes();flash('Not silindi.')}catch(e){flash(e.message)}};
-  window.toggleNote=async function(id,done){try{await api('/api/agenda/'+id+(done?'/task-done':'/task-undo'),{method:'POST',body:done?JSON.stringify({completed_date:key(new Date())}):'{}'});await loadNotes()}catch(e){flash(e.message)}};
-  window.shiftDay=function(delta){const p=selected().split('-').map(Number),d=new Date(p[0],p[1]-1,p[2],12);d.setDate(d.getDate()+delta);$('day').value=key(d);loadNotes()};
-  window.goToday=function(){$('day').value=key(new Date());loadNotes()};
-  window.loginMobile=async function(){const err=$('loginerr');err.textContent='';try{const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({user:'Ali',password:$('pw').value})});let d={};try{d=await r.json()}catch(_){ }if(!r.ok){err.textContent=d.error||'Şifre hatalı.';return}$('pw').value='';$('login').classList.remove('show');goToday()}catch(e){err.textContent='Bağlantı kurulamadı.'}};
+  function fmtDate(value){if(!value)return'';const p=value.split('-').map(Number);return new Date(p[0],p[1]-1,p[2],12).toLocaleDateString('tr-TR',{day:'numeric',month:'short'})}
+  function fmtAlarm(value){if(!value)return'';const d=new Date(value);return d.toLocaleDateString('tr-TR',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}
+  function itemById(id){return state.items.find(x=>Number(x.id)===Number(id))}
+
+  function render(){
+    const items=[...state.items].sort((a,b)=>Number(a.entry_status==='Yapıldı')-Number(b.entry_status==='Yapıldı')||String(a.entry_date).localeCompare(String(b.entry_date))||Number(b.id)-Number(a.id));
+    $('list').innerHTML=items.length?items.map(x=>{
+      const done=x.entry_status==='Yapıldı';
+      return '<article class="note-card '+(done?'done':'')+'" onclick="openEditNote('+x.id+')"><div class="note-main"><input class="check" type="checkbox" '+(done?'checked':'')+' onclick="event.stopPropagation()" onchange="setDone('+x.id+',this.checked)"><div class="note-text">'+esc(x.note)+'</div></div><div class="note-meta"><span class="badge">📅 '+esc(fmtDate(x.entry_date))+'</span>'+(x.remind_at?'<span class="badge">🔔 '+esc(fmtAlarm(x.remind_at))+'</span>':'')+'</div></article>';
+    }).join(''):'<div class="empty"><div class="icon">📝</div><b>Henüz not yok</b><span>Sağ alttaki + ile yeni not ekleyin.</span></div>';
+  }
+
+  async function loadNotes(){
+    try{
+      await api('/api/agenda/rollover',{method:'POST',body:JSON.stringify({today:today()})});
+      const now=new Date();
+      state.items=await api('/api/agenda?month='+monthKey(now));
+      render();
+    }catch(e){
+      if(/Oturum|Giriş|Yetki/i.test(String(e.message)))$('login').classList.add('show'); else flash(e.message);
+    }
+  }
+
+  window.openNewNote=function(){
+    state.editingId=null;
+    $('editorTitle').textContent='Yeni Not';$('noteText').value='';$('noteDate').value=today();$('noteHour').value='';$('noteMinute').value='';$('deleteButton').style.visibility='hidden';$('doneButton').style.visibility='hidden';$('composer').classList.add('show');setTimeout(()=>$('noteText').focus(),80);
+  };
+  window.openEditNote=function(id){
+    const x=itemById(id);if(!x)return;
+    state.editingId=Number(id);$('editorTitle').textContent='Notu Düzenle';$('noteText').value=x.note||'';$('noteDate').value=x.entry_date||today();
+    if(x.remind_at){const d=new Date(x.remind_at);$('noteHour').value=pad(d.getHours());$('noteMinute').value=pad(d.getMinutes())}else{$('noteHour').value='';$('noteMinute').value=''}
+    $('deleteButton').style.visibility='visible';$('doneButton').style.visibility='visible';$('doneButton').textContent=x.entry_status==='Yapıldı'?'↩ Yapılacak':'✓ Tamamlandı';$('composer').classList.add('show');
+  };
+  window.closeEditor=function(){$('composer').classList.remove('show');state.editingId=null};
+  window.saveNote=async function(){
+    try{
+      const note=$('noteText').value.trim();if(!note)return flash('Not yazmalısınız.');
+      const date=$('noteDate').value||today(),h=String($('noteHour').value||'').trim(),m=String($('noteMinute').value||'').trim();
+      if(h!==''&&(!/^\d{1,2}$/.test(h)||Number(h)>23))return flash('Saat 0-23 olmalı.');
+      if(m!==''&&(!/^\d{1,2}$/.test(m)||Number(m)>59))return flash('Dakika 0-59 olmalı.');
+      if(m!==''&&h==='')return flash('Dakika için saat de yazın.');
+      const remind=h!==''?date+'T'+pad(Number(h))+':'+pad(Number(m||0)):'';
+      if(state.editingId){await api('/api/agenda/'+state.editingId,{method:'PUT',body:JSON.stringify({entry_date:date,note:note,remind_at:remind})});flash('Not kaydedildi.')}else{await api('/api/agenda',{method:'POST',body:JSON.stringify({entry_date:date,note:note,remind_at:remind})});flash('Not eklendi.');}
+      closeEditor();await loadNotes();
+    }catch(e){flash(e.message)}
+  };
+  window.deleteCurrentNote=async function(){if(!state.editingId)return;try{await api('/api/agenda/'+state.editingId,{method:'DELETE'});closeEditor();await loadNotes();flash('Not silindi.')}catch(e){flash(e.message)}};
+  window.setDone=async function(id,done){try{await api('/api/agenda/'+id+(done?'/task-done':'/task-undo'),{method:'POST',body:done?JSON.stringify({completed_date:today()}):'{}'});await loadNotes()}catch(e){flash(e.message)}};
+  window.toggleCurrentDone=async function(){const x=itemById(state.editingId);if(!x)return;const done=x.entry_status!=='Yapıldı';await setDone(x.id,done);closeEditor()};
+  window.loginMobile=async function(){const err=$('loginerr');err.textContent='';try{const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({user:'Ali',password:$('pw').value})});let d={};try{d=await r.json()}catch(_){ }if(!r.ok){err.textContent=d.error||'Şifre hatalı.';return}$('pw').value='';$('login').classList.remove('show');await loadNotes()}catch(e){err.textContent='Bağlantı kurulamadı.'}};
   window.logoutMobile=async function(){try{await fetch('/api/logout')}catch(_){ }$('login').classList.add('show')};
-  async function boot(){ $('day').value=key(new Date());$('remDate').value=key(new Date());try{const s=await api('/api/session');if(s.role!=='admin')throw new Error('Oturum süresi doldu.');await loadNotes()}catch(_){$('login').classList.add('show')}}
+
+  async function boot(){
+    $('todayLabel').textContent=new Date().toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    try{const s=await api('/api/session');if(s.role!=='admin')throw new Error('Oturum süresi doldu.');await loadNotes()}catch(_){$('login').classList.add('show')}
+  }
   boot();
 })();
 </script>
