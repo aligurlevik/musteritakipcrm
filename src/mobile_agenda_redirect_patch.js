@@ -43,7 +43,17 @@ async function serveMobileNotes(request,env){
 
   if(response.status!==200)return response;
 
-  const html=await response.text();
+  let html=await response.text();
+  const rowFontPatch=`<style id="mobileRowFontPatch">
+.text{font-size:14px!important}
+.meta{font-size:10px!important}
+.badge{font-size:inherit!important}
+@media(max-width:430px){.text{font-size:13.5px!important}.meta{font-size:10px!important}}
+</style>`;
+  if(!html.includes('id="mobileRowFontPatch"')){
+    html=html.replace('</head>',rowFontPatch+'\n</head>');
+  }
+
   const headers=new Headers(response.headers);
   headers.set('content-type','text/html; charset=utf-8');
   headers.set('cache-control','no-store, no-cache, must-revalidate');
