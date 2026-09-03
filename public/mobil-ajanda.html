@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mobil Ajanda</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial,sans-serif;color:#0f172a;background:#dff4e4}button,input,textarea{font:inherit}.wrap{max-width:720px;margin:0 auto;min-height:100vh;padding:10px}.paper{min-height:calc(100vh - 20px);border:1px solid #8fc9a0;border-radius:16px;padding:14px;background-color:#eaf8ed;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 39px,rgba(33,120,68,.20) 40px);box-shadow:0 8px 24px rgba(20,83,45,.12)}.head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}.head h1{font-size:22px;margin:0;color:#065f46}.logout{border:0;background:#dbeafe;color:#1e40af;border-radius:9px;padding:8px 10px;font-weight:800}.datebar{display:grid;grid-template-columns:auto 1fr auto auto;gap:7px;margin-bottom:14px}.datebar button,.datebar input{border:1px solid #8fc9a0;border-radius:10px;padding:10px;background:#fff}.datebar button{font-weight:900;color:#065f46}.today{background:#059669!important;color:#fff!important}.list{display:grid;gap:8px}.item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:9px;align-items:start;background:rgba(255,255,255,.90);border-left:4px solid #059669;border-radius:10px;padding:10px}.item.done{opacity:.65;border-left-color:#16a34a}.check{width:22px;height:22px}.txt{white-space:pre-wrap;word-break:break-word;font-size:15px}.meta{font-size:12px;color:#a16207;margin-top:4px}.del{border:0;border-radius:8px;background:#dc2626;color:#fff;font-weight:900;padding:7px 9px}.empty{padding:14px;text-align:center;color:#64748b;background:rgba(255,255,255,.72);border-radius:10px}.add{display:grid;gap:8px;margin-top:16px;padding:12px;border-top:1px dashed #5da875;background:rgba(234,248,237,.88);border-radius:10px}.add textarea{width:100%;min-height:100px;resize:vertical;border:1px solid #8fc9a0;border-radius:10px;padding:11px;background:#fff;font-size:16px}.time{display:grid;grid-template-columns:1fr 78px 78px;gap:7px}.time input{width:100%;border:1px solid #8fc9a0;border-radius:10px;padding:10px;background:#fff;font-size:16px}.addbtn{border:0;border-radius:10px;background:#059669;color:white;font-weight:900;padding:12px 14px;font-size:16px}.msg{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);max-width:90vw;background:#0f172a;color:#fff;border-radius:10px;padding:10px 14px;font-weight:800;display:none;text-align:center;z-index:50}.login{position:fixed;inset:0;background:#dff4e4;display:none;align-items:center;justify-content:center;padding:20px;z-index:100}.login.show{display:flex}.loginbox{width:min(380px,100%);background:#fff;border:1px solid #8fc9a0;border-radius:16px;padding:20px}.loginbox h2{margin:0 0 14px;color:#065f46}.loginbox input{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:11px;margin-bottom:9px;font-size:16px}.loginbox button{width:100%;border:0;border-radius:10px;background:#059669;color:#fff;font-weight:900;padding:12px}.loginerr{color:#b91c1c;font-size:13px;margin-top:8px}@media(max-width:430px){.wrap{padding:7px}.paper{padding:10px;min-height:calc(100vh - 14px)}.datebar{grid-template-columns:auto 1fr auto}.datebar .today{grid-column:1/-1}.time{grid-template-columns:1fr 68px 68px}.head h1{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="paper">
+    <div class="head"><h1>Günlük Ajanda</h1><button class="logout" onclick="logoutMobile()">Çıkış</button></div>
+    <div class="datebar"><button onclick="shiftDay(-1)">←</button><input id="day" type="date" onchange="loadNotes()"><button onclick="shiftDay(1)">→</button><button class="today" onclick="goToday()">Bugün</button></div>
+    <div id="list" class="list"></div>
+    <div class="add">
+      <textarea id="note" placeholder="Notunuzu buraya yazın..."></textarea>
+      <div class="time"><input id="remDate" type="date"><input id="hour" type="number" min="0" max="23" placeholder="Saat"><input id="minute" type="number" min="0" max="59" placeholder="Dk"></div>
+      <button class="addbtn" onclick="addNote()">Notu Ekle</button>
+    </div>
+  </main>
+</div>
+<div id="login" class="login"><div class="loginbox"><h2>Mobil Ajanda</h2><input id="pw" type="password" placeholder="Ali şifresi" onkeydown="if(event.key==='Enter')loginMobile()"><button onclick="loginMobile()">Giriş Yap</button><div id="loginerr" class="loginerr"></div></div></div>
+<div id="msg" class="msg"></div>
+<script>
+(function(){
+  const state={items:[]};
+  const $=id=>document.getElementById(id);
+  const pad=n=>String(n).padStart(2,'0');
+  function key(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+  function flash(text){const m=$('msg');m.textContent=text;m.style.display='block';clearTimeout(window.__msg);window.__msg=setTimeout(()=>m.style.display='none',2200)}
+  async function api(path,opts){const r=await fetch(path,Object.assign({headers:{'content-type':'application/json'}},opts||{}));let d={};try{d=await r.json()}catch(_){ }if(!r.ok)throw new Error(d.error||'İşlem başarısız');return d}
+  function selected(){return $('day').value||key(new Date())}
+  function monthKey(){return selected().slice(0,7)}
+  function render(){const d=selected();const arr=state.items.filter(x=>x.entry_date===d).sort((a,b)=>Number(a.entry_status==='Yapıldı')-Number(b.entry_status==='Yapıldı')||Number(a.id)-Number(b.id));$('list').innerHTML=arr.length?arr.map(x=>{const done=x.entry_status==='Yapıldı',meta=x.remind_at?'⏰ '+new Date(x.remind_at).toLocaleString('tr-TR'):'';return '<div class="item '+(done?'done':'')+'"><input class="check" type="checkbox" '+(done?'checked':'')+' onchange="toggleNote('+x.id+',this.checked)"><div><div class="txt">'+esc(x.note)+'</div>'+(meta?'<div class="meta">'+esc(meta)+'</div>':'')+'</div><button class="del" onclick="deleteNote('+x.id+')">SİL</button></div>'}).join(''):'<div class="empty">Bu gün için henüz not yok.</div>'}
+  window.loadNotes=async function(){const d=selected();$('remDate').value=d;try{await api('/api/agenda/rollover',{method:'POST',body:JSON.stringify({today:key(new Date())})});state.items=await api('/api/agenda?month='+monthKey());render()}catch(e){if(String(e.message).includes('Oturum'))$('login').classList.add('show');else flash(e.message)}};
+  window.addNote=async function(){try{const note=$('note').value.trim();if(!note)return flash('Not yazmalısınız.');const date=$('remDate').value||selected(),h=$('hour').value.trim(),m=$('minute').value.trim();if(h!==''&&(Number(h)<0||Number(h)>23))return flash('Saat 0-23 olmalı.');if(m!==''&&(Number(m)<0||Number(m)>59))return flash('Dakika 0-59 olmalı.');const remind=h!==''?date+'T'+pad(Number(h))+':'+pad(Number(m||0)):'';await api('/api/agenda',{method:'POST',body:JSON.stringify({entry_date:date,note:note,remind_at:remind})});$('note').value='';$('hour').value='';$('minute').value='';$('day').value=date;await loadNotes();flash('Not eklendi.')}catch(e){flash(e.message)}};
+  window.deleteNote=async function(id){try{await api('/api/agenda/'+id,{method:'DELETE'});await loadNotes();flash('Not silindi.')}catch(e){flash(e.message)}};
+  window.toggleNote=async function(id,done){try{await api('/api/agenda/'+id+(done?'/task-done':'/task-undo'),{method:'POST',body:done?JSON.stringify({completed_date:key(new Date())}):'{}'});await loadNotes()}catch(e){flash(e.message)}};
+  window.shiftDay=function(delta){const p=selected().split('-').map(Number),d=new Date(p[0],p[1]-1,p[2],12);d.setDate(d.getDate()+delta);$('day').value=key(d);loadNotes()};
+  window.goToday=function(){$('day').value=key(new Date());loadNotes()};
+  window.loginMobile=async function(){const err=$('loginerr');err.textContent='';try{const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({user:'Ali',password:$('pw').value})});let d={};try{d=await r.json()}catch(_){ }if(!r.ok){err.textContent=d.error||'Şifre hatalı.';return}$('pw').value='';$('login').classList.remove('show');goToday()}catch(e){err.textContent='Bağlantı kurulamadı.'}};
+  window.logoutMobile=async function(){try{await fetch('/api/logout')}catch(_){ }$('login').classList.add('show')};
+  async function boot(){ $('day').value=key(new Date());$('remDate').value=key(new Date());try{const s=await api('/api/session');if(s.role!=='admin')throw new Error('Oturum süresi doldu.');await loadNotes()}catch(_){$('login').classList.add('show')}}
+  boot();
+})();
+</script>
+</body>
+</html>
