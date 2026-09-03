@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/ali_ajanda_login_option_patch.js",
+  "main": "src/ali_ajanda_only_force_patch.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
