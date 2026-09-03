@@ -46,7 +46,16 @@ async function serveMobileNotes(request,env){
     }
   }
   if(response.status!==200)return response;
-  mobileHtmlCache=await response.text();
+  let html=await response.text();
+  const fontBoost=`<style id="mobileNoteFontBoost">
+.text{font-size:15.5px!important}
+.meta{font-size:12.5px!important}
+.created{font-size:13px!important}
+.badge{font-size:inherit!important}
+@media(max-width:430px){.text{font-size:15.5px!important}.meta{font-size:12.3px!important}.created{font-size:12.8px!important}}
+</style>`;
+  if(!html.includes('id="mobileNoteFontBoost"'))html=html.replace('</head>',fontBoost+'\n</head>');
+  mobileHtmlCache=html;
   return new Response(mobileHtmlCache,{status:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-cache'}});
 }
 
