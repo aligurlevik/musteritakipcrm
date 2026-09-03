@@ -9,7 +9,7 @@ function isMobileRequest(request){
 
 function mobileNotesRequest(request){
   const assetUrl=new URL(request.url);
-  assetUrl.pathname='/mobil-ajanda';
+  assetUrl.pathname='/notlar-v2.html';
   assetUrl.search='';
   return new Request(assetUrl.toString(),request);
 }
@@ -19,7 +19,7 @@ export default {
     const url=new URL(request.url);
     const isGet=request.method==='GET';
     const isHome=isGet&&(url.pathname==='/'||url.pathname==='/index.html');
-    const isMobilePage=isGet&&(url.pathname==='/mobil-ajanda'||url.pathname==='/mobil-ajanda.html');
+    const isMobilePage=isGet&&(url.pathname==='/mobil-ajanda'||url.pathname==='/mobil-ajanda.html'||url.pathname==='/notlar-v2'||url.pathname==='/notlar-v2.html');
     const forceMobile=url.searchParams.get('mobile')==='1';
 
     if(isMobilePage){
