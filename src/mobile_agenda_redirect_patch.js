@@ -50,16 +50,24 @@ async function serveMobileNotes(request,env){
   html=html.replace('placeholder="Notunuzu yazın veya diktafonla ses kaydedin..."','placeholder="Notunuzu buraya yazın..."');
   html=html.replace("voiceStatus(String(key),'🔴 Kayıt başladı…');","voiceStatus(String(key),'🔴 Ses kaydı başladı — konuşabilirsiniz');");
   const fontBoost=`<style id="mobileNoteFontBoost">
-.text{font-size:15.5px!important}
-.meta{font-size:12.5px!important}
-.created{font-size:13px!important}
-.badge{font-size:inherit!important}
+.title{font-size:24.5px!important}
+.date{font-size:12.5px!important}
+.text{font-size:17px!important;font-weight:850!important;color:#111!important}
+.meta{font-size:14px!important;font-weight:900!important}
+.created{font-size:14.5px!important;font-weight:950!important;color:#111!important}
+.badge{font-size:inherit!important;line-height:1.35!important}
+.topbtn,.logout,.smallbtn,.importantToggle{font-size:14px!important}
+.voiceplay,.quickDelete{font-size:12.5px!important}
+.newbox textarea,.inlineEditor textarea{font-size:16.5px!important}
+.voiceStatus{font-size:12.5px!important}
+.alarmPart label{font-size:11.5px!important}
+.alarmPart select{font-size:15px!important}
 .dateRow{display:flex!important;align-items:center!important;gap:7px!important;margin:2px 0 5px!important;padding:1px 2px!important;background:transparent!important;border:0!important;border-radius:0!important}
 .dateRow label{font-size:0!important;min-width:auto!important;flex:0 0 auto!important;color:#665100!important}
-.dateRow label:after{content:"📅 Tarih";font-size:13px!important;font-weight:950!important}
-.dateRow input{width:154px!important;max-width:54vw!important;min-width:0!important;height:34px!important;padding:3px 7px!important;border:1px solid #d6c679!important;border-radius:6px!important;background:#fff!important;font-size:15.5px!important;font-weight:850!important}
-.meta .badge:first-child{font-weight:950!important;background:#fff6bf!important}
-@media(max-width:430px){.text{font-size:15.5px!important}.meta{font-size:12.3px!important}.created{font-size:12.8px!important}.dateRow input{width:150px!important;max-width:54vw!important;font-size:15.5px!important}}
+.dateRow label:after{content:"📅 Tarih";font-size:14.5px!important;font-weight:950!important}
+.dateRow input{width:158px!important;max-width:56vw!important;min-width:0!important;height:35px!important;padding:3px 7px!important;border:1px solid #d6c679!important;border-radius:6px!important;background:#fff!important;font-size:17px!important;font-weight:900!important}
+.meta .badge:first-child{font-weight:950!important;background:#fff6bf!important;color:#111!important}
+@media(max-width:430px){.text{font-size:17px!important}.meta{font-size:13.8px!important}.created{font-size:14.2px!important}.dateRow input{width:154px!important;max-width:56vw!important;font-size:17px!important}}
 </style>`;
   const closedStartPatch=`<script id="mobileClosedStartPatch">
 (function(){
