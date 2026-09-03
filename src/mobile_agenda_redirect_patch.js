@@ -11,8 +11,9 @@ export default {
   async fetch(request,env,ctx){
     const url=new URL(request.url);
     const isHome=request.method==='GET'&&(url.pathname==='/'||url.pathname==='/index.html');
+    const forceMobile=url.searchParams.get('mobile')==='1';
 
-    if(isHome&&isMobileRequest(request)){
+    if(isHome&&(forceMobile||isMobileRequest(request))){
       const assetUrl=new URL(request.url);
       assetUrl.pathname='/mobil-ajanda.html';
       assetUrl.search='';
