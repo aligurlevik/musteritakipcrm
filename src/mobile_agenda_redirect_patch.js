@@ -62,7 +62,7 @@ async function serveMobileNotes(request,env){
 .voiceStatus{font-size:12.5px!important}
 .alarmPart label{font-size:11.5px!important}
 .alarmPart select{font-size:15px!important}
-.dateRow{display:flex!important;align-items:center!important;gap:7px!important;margin:2px 0 5px!important;padding:1px 2px!important;background:transparent!important;border:0!important;border-radius:0!important}
+.dateRow{display:flex!important;align-items:center!important;gap:7px!important;margin:4px 0 5px!important;padding:1px 2px!important;background:transparent!important;border:0!important;border-radius:0!important}
 .dateRow label{font-size:0!important;min-width:auto!important;flex:0 0 auto!important;color:#665100!important}
 .dateRow label:after{content:"📅 Tarih";font-size:14.5px!important;font-weight:950!important}
 .dateRow input{width:158px!important;max-width:56vw!important;min-width:0!important;height:35px!important;padding:3px 7px!important;border:1px solid #d6c679!important;border-radius:6px!important;background:#fff!important;font-size:17px!important;font-weight:900!important}
@@ -80,8 +80,25 @@ async function serveMobileNotes(request,env){
   window.addEventListener('pageshow',closeNewBoxOnStart);
 })();
 </script>`;
+  const layoutOrderPatch=`<script id="mobileNoteOrderPatch">
+(function(){
+  function orderBox(box){
+    if(!box)return;
+    const area=box.querySelector('textarea');
+    const date=box.querySelector('.dateRow');
+    if(area&&date&&area.nextElementSibling!==date)area.insertAdjacentElement('afterend',date);
+  }
+  function apply(){
+    orderBox(document.getElementById('newBox'));
+    document.querySelectorAll('.inlineEditor').forEach(orderBox);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply,{once:true});else apply();
+  new MutationObserver(apply).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>`;
   if(!html.includes('id="mobileNoteFontBoost"'))html=html.replace('</head>',fontBoost+'\n</head>');
   if(!html.includes('id="mobileClosedStartPatch"'))html=html.replace('</body>',closedStartPatch+'\n</body>');
+  if(!html.includes('id="mobileNoteOrderPatch"'))html=html.replace('</body>',layoutOrderPatch+'\n</body>');
   mobileHtmlCache=html;
   return new Response(mobileHtmlCache,{status:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-cache'}});
 }
