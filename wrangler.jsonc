@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/tracking_total_count_patch.js",
+  "main": "src/mobile_agenda_redirect_patch.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
