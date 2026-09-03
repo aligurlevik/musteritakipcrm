@@ -106,6 +106,9 @@ const deliveryDateTimePatch = String.raw`
 })();
 </script>`;
 
+const saveGraphicJobStart = "async function saveGraphicJob(allowDuplicate=false,selectedStatus=''){const status=selectedStatus||await chooseGraphicJobStatus();";
+const saveGraphicJobRequired = "async function saveGraphicJob(allowDuplicate=false,selectedStatus=''){const requiredDeliveryPlace=$('g_delivery_place')?.value||'';const requiredPriceRaw=String($('g_price')?.value||'').trim();const requiredPrice=Number(requiredPriceRaw.replace(',','.'));if(!requiredDeliveryPlace){$('g_delivery_place')?.focus();return showMsg('Teslim yeri seçmeden iş kaydedilemez.','err')}if(!requiredPriceRaw||!(requiredPrice>0)){$('g_price')?.focus();return showMsg('Fiyat girmeden iş kaydedilemez.','err')}const status=selectedStatus||await chooseGraphicJobStatus();";
+
 export default {
   async fetch(request, env, ctx) {
     const response = await worker.fetch(request, env, ctx);
@@ -113,6 +116,7 @@ export default {
     const contentType = response.headers.get('content-type') || '';
     if(request.method==='GET'&&response.status===200&&(url.pathname==='/'||url.pathname==='/index.html')&&contentType.includes('text/html')){
       let html=await response.text();
+      html=html.split(saveGraphicJobStart).join(saveGraphicJobRequired);
       if(!html.includes('id="g_delivery_quick_box"'))html=html.replace('</body>',deliveryDateTimePatch+'\n</body>');
       const headers=new Headers(response.headers);headers.delete('content-length');headers.delete('content-encoding');headers.delete('etag');
       return new Response(html,{status:response.status,statusText:response.statusText,headers});
