@@ -86,9 +86,19 @@ async function plannerApi(request,env,url){
 }
 function assetRequest(request,path){const u=new URL(request.url);u.pathname=path;u.search='';return new Request(u.toString(),{method:'GET',headers:request.headers,redirect:'manual'})}
 async function servePlanner(request,env){
-  let r=await env.ASSETS.fetch(assetRequest(request,'/planlama.html'));
+  const r=await env.ASSETS.fetch(assetRequest(request,'/planlama.html'));
   const h=new Headers(r.headers);h.set('cache-control','no-cache, no-store, must-revalidate');
-  return new Response(r.body,{status:r.status,statusText:r.statusText,headers:h});
+  if(!r.ok)return new Response(r.body,{status:r.status,statusText:r.statusText,headers:h});
+  let html=await r.text();
+  if(!html.includes('id="plannerLogoutBtn"')){
+    const css='<style id="plannerLogoutCss">#plannerLogoutBtn{border:0;border-radius:9px;padding:9px 11px;background:#b42318;color:#fff;font-weight:950;white-space:nowrap}@media(max-width:650px){#plannerLogoutBtn{padding:8px 8px;font-size:12px}}</style>';
+    const script='<script id="plannerLogoutScript">window.logoutPlanner=async function(){try{await fetch("/api/logout",{method:"GET",credentials:"same-origin"})}catch(_){}location.href="/notlar-v2.html"};</script>';
+    html=html.replace('</head>',css+'</head>');
+    html=html.replace('<button class="addBtn" onclick="openNew()">＋ Ekle</button>','<button class="addBtn" onclick="openNew()">＋ Ekle</button><button id="plannerLogoutBtn" onclick="logoutPlanner()">🚪 Çıkış</button>');
+    html=html.replace('</body>',script+'</body>');
+  }
+  h.set('content-type','text/html; charset=utf-8');
+  return new Response(html,{status:r.status,statusText:r.statusText,headers:h});
 }
 async function injectPlannerButton(response){
   if(!response.ok)return response;
