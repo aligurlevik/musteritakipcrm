@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/planner_wrapper.js",
+  "main": "src/top_menu_wrapper.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,3 @@
     }
   ]
 }
-// planner-page-2026-09-04
