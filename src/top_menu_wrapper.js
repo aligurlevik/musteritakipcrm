@@ -3,13 +3,21 @@ import worker from './planner_wrapper.js';
 function wantsMenu(path){
   return ['/notlar-v2','/notlar-v2/','/notlar-v2.html','/planlama','/planlama/','/planlama.html'].includes(path);
 }
+function isMobileRequest(request){
+  const hint=(request.headers.get('sec-ch-ua-mobile')||'').trim();
+  if(hint==='?1')return true;
+  return /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(request.headers.get('user-agent')||'');
+}
 
 async function injectTopMenu(response,path){
   if(!response.ok)return response;
   const ct=response.headers.get('content-type')||'';
   if(!ct.includes('text/html'))return response;
   let html=await response.text();
-  if(html.includes('id="topQuickMenu"'))return response;
+  if(html.includes('id="topQuickMenu"')){
+    const h=new Headers(response.headers);h.set('cache-control','no-cache, no-store, must-revalidate');
+    return new Response(html,{status:response.status,statusText:response.statusText,headers:h});
+  }
 
   const css=`<style id="topQuickMenuCss">
   #topQuickMenu{position:relative;display:inline-block;z-index:500}
@@ -39,6 +47,8 @@ async function injectTopMenu(response,path){
         html=html.replace(/<button class="newbtn"([^>]*)>＋ Yeni Not<\/button>/,
           '<div style="display:flex;gap:7px;align-items:center"><button class="newbtn"$1>＋ Yeni Not</button>'+menu+'</div>');
       }
+    }else if(html.includes('class="logout"')){
+      html=html.replace(/<button class="logout"[^>]*>Çıkış<\/button>/,menu);
     }
   }
 
@@ -51,7 +61,8 @@ export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url);
     const response=await worker.fetch(request,env,ctx);
-    if(request.method==='GET'&&wantsMenu(url.pathname))return injectTopMenu(response,url.pathname);
+    const mobileHome=request.method==='GET'&&(url.pathname==='/'||url.pathname==='/index.html')&&isMobileRequest(request);
+    if(request.method==='GET'&&(wantsMenu(url.pathname)||mobileHome))return injectTopMenu(response,url.pathname);
     return response;
   }
 };
