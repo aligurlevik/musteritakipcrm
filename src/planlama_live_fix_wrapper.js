@@ -20,7 +20,7 @@ async function fetchPlannerAsset(request,env){
   return r;
 }
 function menuMarkup(){
-  return `<details id="topQuickMenu"><summary aria-label="Menü">⋮</summary><div id="topQuickMenuBox"><a class="mNotes" href="/notlar-v2.html">📝 Notlar</a><a class="mPlanner" href="/planlama.html?v=20260904-3">📅 Planlama</a><button class="mLogout" onclick="window.topMenuLogout()">🚪 Çıkış</button></div></details>`;
+  return `<details id="topQuickMenu"><summary aria-label="Menü">⋮</summary><div id="topQuickMenuBox"><a class="mNotes" href="/notlar-v2.html">📝 Notlar</a><a class="mPlanner" href="/planlama.html?v=20260904-4">📅 Planlama</a><button class="mLogout" onclick="window.topMenuLogout()">🚪 Çıkış</button></div></details>`;
 }
 async function servePlanner(request,env){
   const r=await fetchPlannerAsset(request,env);
@@ -37,7 +37,32 @@ async function servePlanner(request,env){
   #topQuickMenuBox .mNotes{background:#e8f3ff;color:#14578f}
   #topQuickMenuBox .mPlanner{background:#fff3b8;color:#6c5300}
   #topQuickMenuBox .mLogout{background:#ffe1dd;color:#a3261c}
-  @media(max-width:520px){#topQuickMenu>summary{width:38px;height:36px;font-size:23px}#topQuickMenuBox{width:176px}}
+  @media(max-width:650px){
+    .top{padding:5px 7px!important}
+    .title{font-size:17px!important}
+    .actions{gap:4px!important}
+    .actions .addBtn{padding:6px 7px!important;font-size:10.5px!important;border-radius:7px!important}
+    #topQuickMenu>summary{width:32px;height:30px;font-size:20px;border-radius:7px}
+    #topQuickMenuBox{top:35px;width:168px;padding:5px}
+    #topQuickMenuBox a,#topQuickMenuBox button{padding:9px 8px;font-size:12px}
+    .nav{padding:6px 7px!important;gap:5px!important}
+    .nav button{padding:5px 7px!important;font-size:10.5px!important}
+    .range{font-size:12px!important}
+    .legend{padding:5px 7px!important;gap:4px!important}
+    .chip{padding:3px 6px!important;font-size:9.5px!important}
+    .legend button{padding:4px 7px!important;font-size:10px!important}
+    .calendar{min-width:760px!important}
+    .day{padding:5px 2px!important;font-size:11px!important}
+    .day small{font-size:9.5px!important;margin-top:1px!important}
+    .allrow{min-height:48px!important}
+    .alllabel{font-size:9px!important;padding:5px 3px!important}
+    .allcell{padding:2px!important;gap:2px!important}
+    .allitem{font-size:9.5px!important;padding:3px 4px!important}
+    .hourlabel{font-size:9px!important;padding:3px 4px!important}
+    .event{font-size:9.5px!important;padding:3px 4px!important;min-height:25px!important}
+    .time{font-size:8.5px!important;margin-bottom:1px!important}
+    .wrap{max-height:calc(100vh - 118px)!important}
+  }
   </style>`;
   const menu=menuMarkup();
   const script=`<script id="planlamaLiveMenuScript">
@@ -56,7 +81,8 @@ async function patchPlannerLink(response){
   const ct=response.headers.get('content-type')||'';
   if(!ct.includes('text/html'))return response;
   let html=await response.text();
-  html=html.replaceAll('href="/planlama.html"','href="/planlama.html?v=20260904-3"');
+  html=html.replaceAll('href="/planlama.html"','href="/planlama.html?v=20260904-4"');
+  html=html.replaceAll('href="/planlama.html?v=20260904-3"','href="/planlama.html?v=20260904-4"');
   const h=new Headers(response.headers);
   h.set('content-type','text/html; charset=utf-8');
   h.set('cache-control','no-cache, no-store, must-revalidate');
