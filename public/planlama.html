@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Planlama</title>
+<style>
+:root{--yellow:#ffd338;--ink:#102033;--blue:#1769c2;--line:#d8e3ee;--bg:#eef4fa;--hourH:54px;--dayW:120px}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink)}button,input,select,textarea{font:inherit}.app{max-width:1180px;margin:auto;min-height:100vh;background:#fff}.top{position:sticky;top:0;z-index:50;background:var(--yellow);box-shadow:0 2px 8px #0002;padding:9px 10px}.toprow{display:flex;align-items:center;justify-content:space-between;gap:8px}.title{font-size:24px;font-weight:950}.actions{display:flex;gap:7px}.actions a,.actions button{border:0;border-radius:9px;padding:9px 11px;text-decoration:none;font-weight:950}.notesBtn{background:#fff7c6;color:#4b3c00}.addBtn{background:#111;color:#fff}.nav{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:10px;border-bottom:1px solid var(--line);background:#fff}.nav button{border:1px solid #b7c9da;border-radius:8px;background:#f5f9fd;padding:8px 10px;font-weight:900;color:#21476b}.range{text-align:center;font-weight:950;font-size:17px}.legend{display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid var(--line);background:#f9fbfd}.chip{border-radius:999px;padding:5px 9px;font-size:12px;font-weight:950}.c-note{background:#dceeff;color:#0f5899}.c-rem{background:#ffe6a3;color:#7c4e00}.c-task{background:#d9f5e7;color:#087046}.c-bday{background:#f5defb;color:#78248d}.wrap{overflow:auto;max-height:calc(100vh - 145px);background:#fff}.calendar{min-width:920px;position:relative}.dayhead{position:sticky;top:0;z-index:25;display:grid;grid-template-columns:66px repeat(7,minmax(var(--dayW),1fr));background:#fff;border-bottom:2px solid #9bb7d0}.corner{border-right:1px solid var(--line)}.day{padding:8px 4px;text-align:center;border-right:1px solid var(--line);font-weight:900}.day.today{background:#fff5bf}.day small{display:block;margin-top:2px;color:#58728a}.allrow{display:grid;grid-template-columns:66px repeat(7,minmax(var(--dayW),1fr));min-height:62px;border-bottom:2px solid #a9bdd0}.alllabel{padding:8px 4px;font-size:11px;font-weight:900;color:#6d7d8d;border-right:1px solid var(--line)}.allcell{border-right:1px solid var(--line);padding:3px;display:flex;gap:3px;flex-direction:column}.allitem{border-radius:6px;padding:4px 5px;font-size:11px;font-weight:900;line-height:1.15;cursor:pointer;overflow:hidden}.grid{position:relative}.hourrow{display:grid;grid-template-columns:66px repeat(7,minmax(var(--dayW),1fr));height:var(--hourH)}.hourlabel{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:4px 6px;text-align:right;font-size:11px;font-weight:850;color:#6f8293}.slot{position:relative;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}.slot.half:after{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px dashed #e8eef4}.event{position:absolute;z-index:10;left:3px;right:3px;border-radius:7px;padding:5px 6px;font-size:11px;font-weight:900;line-height:1.18;box-shadow:0 1px 4px #0002;cursor:pointer;overflow:hidden;min-height:29px}.type-note{background:#bfe0ff;color:#083d6d;border-left:4px solid #1769c2}.type-rem{background:#ffd66f;color:#634000;border-left:4px solid #e69b00}.type-task{background:#bcebd1;color:#075c42;border-left:4px solid #079669}.type-bday{background:#edc7f7;color:#652076;border-left:4px solid #9a43ad}.event.done{opacity:.55;text-decoration:line-through}.time{display:block;font-size:10px;opacity:.8;margin-bottom:2px}.emptyMsg{padding:28px;text-align:center;color:#678;font-weight:800}.modal{position:fixed;inset:0;z-index:100;display:none;align-items:flex-end;justify-content:center;background:#0a213a77}.modal.show{display:flex}.sheet{width:min(620px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:18px 18px 0 0;padding:14px}.sheet h3{margin:0 0 10px}.field{margin-top:9px}.field label{display:block;font-size:12px;font-weight:950;color:#34566f;margin-bottom:4px}.field input,.field select,.field textarea{width:100%;border:2px solid #9bb7d0;border-radius:9px;padding:9px;background:#fff}.field textarea{min-height:120px;resize:vertical}.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:13px}.buttons button{border:0;border-radius:9px;padding:11px;font-weight:950}.save{background:#079669;color:#fff}.cancel{background:#e2edf7;color:#21476b}.danger{background:#fee0dc!important;color:#a82317!important}.doneBtn{background:#dceeff!important;color:#174d7c!important}.alarm{position:fixed;left:10px;right:10px;top:10px;z-index:200;display:none;background:#fff0a8;border:4px solid #d92d20;border-radius:14px;padding:14px;box-shadow:0 12px 36px #0004}.alarm.show{display:block;animation:pulse .7s infinite alternate}.alarm h2{margin:0 0 6px}.alarm button{width:100%;border:0;background:#111;color:#fff;border-radius:9px;padding:10px;font-weight:950;margin-top:10px}@keyframes pulse{to{transform:scale(1.012);background:#ffd338}}@media(max-width:650px){.title{font-size:21px}.actions a,.actions button{padding:8px 8px;font-size:12px}.range{font-size:14px}.nav{grid-template-columns:auto 1fr auto}.calendar{min-width:900px}.wrap{max-height:calc(100vh - 150px)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top"><div class="toprow"><div class="title">📅 Planlama</div><div class="actions"><a class="notesBtn" href="/notlar-v2.html">📝 Notlar</a><button class="addBtn" onclick="openNew()">＋ Ekle</button></div></div></header>
+  <section class="nav"><button onclick="moveWeek(-1)">‹ Önceki</button><div id="range" class="range"></div><button onclick="moveWeek(1)">Sonraki ›</button></section>
+  <div class="legend"><span class="chip c-note">Not</span><span class="chip c-rem">Hatırlatıcı</span><span class="chip c-task">Görev</span><span class="chip c-bday">Doğum Günü</span><button onclick="goToday()" style="margin-left:auto;border:0;border-radius:8px;padding:5px 9px;font-weight:900">Bugün</button></div>
+  <div class="wrap"><div id="calendar" class="calendar"></div></div>
+</div>
+
+<div id="modal" class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet">
+  <h3 id="modalTitle">Yeni Plan</h3>
+  <div class="field"><label>TÜR</label><select id="type"><option>Hatırlatıcı</option><option>Görev</option><option>Doğum Günü</option><option>Genel Not</option></select></div>
+  <div class="field"><label>BAŞLIK</label><input id="title" placeholder="Örn: Ahmet Bey doğum günü"></div>
+  <div class="field"><label>NOT / AÇIKLAMA</label><textarea id="note" placeholder="İstersen ayrıntı yaz..."></textarea></div>
+  <div class="two"><div class="field"><label>TARİH</label><input id="date" type="date"></div><div class="field"><label>SAAT (isteğe bağlı)</label><input id="time" type="time"></div></div>
+  <div id="editExtra" class="buttons" style="display:none"><button class="doneBtn" onclick="toggleDone()">✓ Yapıldı / Geri Al</button><button class="danger" onclick="deleteItem()">🗑 Sil</button></div>
+  <div class="buttons"><button class="cancel" onclick="closeModal()">Kapat</button><button class="save" onclick="saveItem()">Kaydet</button></div>
+</div></div>
+
+<div id="alarm" class="alarm"><h2>🔔 HATIRLATMA</h2><div id="alarmText"></div><button onclick="dismissAlarm()">Tamam</button></div>
+
+<script>
+(function(){
+const state={items:[],weekStart:null,editing:null,fired:new Set()};
+const $=id=>document.getElementById(id),pad=n=>String(n).padStart(2,'0');
+const fmtKey=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parseDate=s=>{const p=String(s||'').split('-').map(Number);return new Date(p[0],(p[1]||1)-1,p[2]||1,12)};
+function monday(d){const x=new Date(d);x.setHours(12,0,0,0);const day=x.getDay()||7;x.setDate(x.getDate()-day+1);return x}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function typeClass(t){return t==='Hatırlatıcı'?'type-rem':t==='Görev'?'type-task':t==='Doğum Günü'?'type-bday':'type-note'}
+function label(x){return String(x.title||x.note||'Plan').trim()}
+function eventDateKey(x,weekYear){
+  if(String(x.note_type||'')==='Doğum Günü'&&x.entry_date){const d=parseDate(x.entry_date);return weekYear+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  return String(x.entry_date||'').slice(0,10)
+}
+async function api(path,opts){const r=await fetch(path,Object.assign({headers:{'content-type':'application/json'}},opts||{}));let d={};try{d=await r.json()}catch(_){}if(!r.ok)throw new Error(d.error||'İşlem başarısız');return d}
+async function load(){
+  try{state.items=await api('/api/notes-v3?scope=all&notebook=1');render();checkAlarm()}catch(e){if(/Yetkisiz/i.test(e.message))location.href='/notlar-v2.html';else alert(e.message)}
+}
+function render(){
+  const start=state.weekStart||monday(new Date());state.weekStart=start;
+  const days=Array.from({length:7},(_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return d});
+  const end=new Date(days[6]);
+  $('range').textContent=start.toLocaleDateString('tr-TR',{day:'numeric',month:'long'})+' – '+end.toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'});
+  const today=fmtKey(new Date());
+  let html='<div class="dayhead"><div class="corner"></div>'+days.map(d=>'<div class="day '+(fmtKey(d)===today?'today':'')+'">'+d.toLocaleDateString('tr-TR',{weekday:'short'})+'<small>'+d.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'})+'</small></div>').join('')+'</div>';
+  html+='<div class="allrow"><div class="alllabel">Gün boyu</div>';
+  for(const d of days){const key=fmtKey(d);const arr=state.items.filter(x=>eventDateKey(x,d.getFullYear())===key&&!String(x.remind_at||'').includes('T'));html+='<div class="allcell">'+arr.map(x=>'<div class="allitem '+typeClass(x.note_type)+'" onclick="openEdit('+x.id+')">'+esc(label(x))+'</div>').join('')+'</div>'}
+  html+='</div><div class="grid">';
+  for(let h=7;h<=21;h++){
+    html+='<div class="hourrow"><div class="hourlabel">'+pad(h)+':00</div>';
+    for(const d of days){const key=fmtKey(d);html+='<div class="slot half" data-date="'+key+'" data-hour="'+h+'">';
+      const arr=state.items.filter(x=>eventDateKey(x,d.getFullYear())===key&&String(x.remind_at||'').includes('T')&&Number(String(x.remind_at).slice(11,13))===h);
+      for(const x of arr){const min=Number(String(x.remind_at).slice(14,16))||0;const top=Math.round(min/60*54);html+='<div class="event '+typeClass(x.note_type)+' '+(x.entry_status==='Yapıldı'?'done':'')+'" style="top:'+top+'px" onclick="openEdit('+x.id+')"><span class="time">'+pad(h)+':'+pad(min)+'</span>'+esc(label(x))+'</div>'}
+      html+='</div>'
+    }
+    html+='</div>'
+  }
+  html+='</div>';$('calendar').innerHTML=html;
+}
+window.moveWeek=function(n){const d=new Date(state.weekStart);d.setDate(d.getDate()+n*7);state.weekStart=d;render()};
+window.goToday=function(){state.weekStart=monday(new Date());render();document.querySelector('.wrap').scrollTop=2*54};
+window.openNew=function(){state.editing=null;$('modalTitle').textContent='Yeni Plan';$('type').value='Hatırlatıcı';$('title').value='';$('note').value='';$('date').value=fmtKey(new Date());$('time').value='09:00';$('editExtra').style.display='none';$('modal').classList.add('show')};
+window.openEdit=function(id){const x=state.items.find(a=>Number(a.id)===Number(id));if(!x)return;state.editing=x;$('modalTitle').textContent='Planı Düzenle';$('type').value=x.note_type||'Genel Not';$('title').value=x.title||'';$('note').value=x.note||'';$('date').value=x.entry_date||fmtKey(new Date());$('time').value=String(x.remind_at||'').includes('T')?String(x.remind_at).slice(11,16):'';$('editExtra').style.display='grid';$('modal').classList.add('show')};
+window.closeModal=function(){$('modal').classList.remove('show');state.editing=null};
+window.saveItem=async function(){
+  try{const type=$('type').value,title=$('title').value.trim(),note=$('note').value.trim(),date=$('date').value,time=$('time').value;if(!title&&!note)return alert('Başlık veya not yazmalısınız.');if(!date)return alert('Tarih seçmelisiniz.');const remind=time?date+'T'+time:'';const payload={note_type:type,title,note:note||title,entry_date:date,remind_at:remind};if(state.editing)await api('/api/planner/'+state.editing.id,{method:'PUT',body:JSON.stringify(payload)});else await api('/api/planner',{method:'POST',body:JSON.stringify(payload)});closeModal();await load()}catch(e){alert(e.message)}
+};
+window.deleteItem=async function(){if(!state.editing)return;if(!confirm('Bu kaydı silelim mi?'))return;try{await api('/api/notes-v3/'+state.editing.id,{method:'DELETE'});closeModal();await load()}catch(e){alert(e.message)}};
+window.toggleDone=async function(){if(!state.editing)return;try{const done=state.editing.entry_status==='Yapıldı';await api('/api/notes-v3/'+state.editing.id+'/'+(done?'undo':'done'),{method:'POST',body:'{}'});closeModal();await load()}catch(e){alert(e.message)}};
+function beep(){try{const A=window.AudioContext||window.webkitAudioContext,c=new A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;g.gain.value=.08;o.start();setTimeout(()=>{o.stop();c.close()},650)}catch(_){}}
+function checkAlarm(){const now=new Date(),key=fmtKey(now)+'T'+pad(now.getHours())+':'+pad(now.getMinutes());for(const x of state.items){if(x.entry_status==='Yapıldı'||!x.remind_at)continue;const k=String(x.remind_at).slice(0,16);if(k===key&&!state.fired.has(x.id)){state.fired.add(x.id);$('alarmText').textContent=label(x);$('alarm').classList.add('show');beep();try{if(Notification.permission==='granted')new Notification('Hatırlatma',{body:label(x)})}catch(_){}break}}}
+window.dismissAlarm=function(){$('alarm').classList.remove('show')};
+if('Notification'in window&&Notification.permission==='default')Notification.requestPermission().catch(()=>{});
+state.weekStart=monday(new Date());load();setInterval(checkAlarm,15000);setInterval(load,120000);setTimeout(()=>{document.querySelector('.wrap').scrollTop=2*54},150);
+})();
+</script>
+</body></html>
