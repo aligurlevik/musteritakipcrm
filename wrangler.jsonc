@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/d1_like_global_fix.js",
+  "main": "src/report_total_revenue_safe.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,4 @@
     }
   ]
 }
-// global-d1-like-fix-2026-09-04-1526
+// safe-total-revenue-2026-09-04-1535
