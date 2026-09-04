@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/graphic_fast_daily_load_patch.js",
+  "main": "src/d1_like_emergency_patch.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,4 @@
     }
   ]
 }
-// graphic-fast-daily-load-2026-09-04-1505
+// d1-like-emergency-fix-2026-09-04-1520
