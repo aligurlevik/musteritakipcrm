@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/note_page_lock_wrapper.js",
+  "main": "src/compact_top_layout_patch.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,4 @@
     }
   ]
 }
-// emergency-rollback-base-crm-2026-09-04
+// emergency-core-rollback-2026-09-04-1435
