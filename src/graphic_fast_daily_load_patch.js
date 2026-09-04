@@ -1,4 +1,4 @@
-import worker from './compact_top_layout_patch.js';
+import worker from './graphic_first_load_patch.js';
 
 const fastLoadGraphicJobs = String.raw`async function loadGraphicJobs(){
   ensureGraphicAlarmControls();
