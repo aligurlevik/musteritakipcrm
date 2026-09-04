@@ -2,8 +2,15 @@ import worker from './d1_like_emergency_patch.js';
 
 function isProblematicLegacyLike(sql){
   const s=String(sql||'').replace(/\s+/g,' ').trim();
-  return s.includes("UPDATE graphic_jobs SET remind_at=COALESCE((SELECT a.remind_at FROM agenda_entries a WHERE a.entry_date=graphic_jobs.work_date AND a.note LIKE graphic_jobs.customer_name||' — '||graphic_jobs.job_no||'%'")
-    || s.includes("UPDATE agenda_entries SET source_type='graphic_job' WHERE COALESCE(source_type,'manual')='manual' AND EXISTS (SELECT 1 FROM graphic_jobs g WHERE agenda_entries.note LIKE g.customer_name||' — '||g.job_no||'%')");
+  const upper=s.toUpperCase();
+  // Eski şema eşleştirmeleri iki tabloyu dinamik LIKE deseniyle birbirine bağlıyor.
+  // Bazı eski/uzun kayıtlarda SQLite "LIKE or GLOB pattern too complex" hatası veriyor.
+  // Bunlar yalnızca yardımcı otomatik eşleştirmeler; ana kayıtları okumak/yazmak için zorunlu değiller.
+  return upper.startsWith('UPDATE ')
+    && upper.includes('AGENDA_ENTRIES')
+    && upper.includes('GRAPHIC_JOBS')
+    && upper.includes(' LIKE ')
+    && s.includes('||');
 }
 
 function skippedStatement(){
@@ -19,26 +26,26 @@ function skippedStatement(){
 }
 
 function safeDatabase(db){
-  return new Proxy(db,{
-    get(target,prop){
-      if(prop==='prepare'){
-        return function(sql){
-          if(isProblematicLegacyLike(sql)){
-            console.warn('Eski problemli LIKE şema eşleştirmesi atlandı.');
-            return skippedStatement();
-          }
-          return target.prepare(sql);
-        };
-      }
-      const value=target[prop];
-      return typeof value==='function'?value.bind(target):value;
+  const prepare=(sql)=>{
+    if(isProblematicLegacyLike(sql)){
+      console.warn('Eski problemli dinamik LIKE eşleştirmesi atlandı.');
+      return skippedStatement();
     }
-  });
+    return db.prepare(sql);
+  };
+  // Proxy yerine sade bir sarmalayıcı kullanıyoruz; D1 binding davranışı daha öngörülebilir.
+  return {
+    prepare,
+    batch: typeof db.batch==='function' ? db.batch.bind(db) : undefined,
+    exec: typeof db.exec==='function' ? db.exec.bind(db) : undefined,
+    dump: typeof db.dump==='function' ? db.dump.bind(db) : undefined
+  };
 }
 
 export default{
   async fetch(request,env,ctx){
-    const safeEnv={...env,DB:safeDatabase(env.DB)};
+    const safeEnv=Object.create(env);
+    Object.defineProperty(safeEnv,'DB',{value:safeDatabase(env.DB),enumerable:true,configurable:true});
     return worker.fetch(request,safeEnv,ctx);
   }
 };
