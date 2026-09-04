@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/safe_last_revenue_wrapper.js",
+  "main": "src/planner_0900_wrapper.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,4 @@
     }
   ]
 }
-// safe-last-revenue-2026-09-04
+// rollback-safe-2026-09-04
