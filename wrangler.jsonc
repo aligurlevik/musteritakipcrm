@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/planlama_live_fix_wrapper.js",
+  "main": "src/planner_0900_wrapper.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,4 @@
     }
   ]
 }
-// planlama-live-route-fix-2026-09-04-1225
+// planlama-untimed-notes-0900-2026-09-04
