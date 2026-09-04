@@ -1,148 +1,29 @@
 import worker from './mobile_agenda_redirect_patch.js';
 
 const enc=new TextEncoder();
-const NOTE_TYPES=new Set(['Genel Not','Toplantı','Özel Not']);
-
-async function hmac(secret,value){
-  const key=await crypto.subtle.importKey('raw',enc.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);
-  const sig=await crypto.subtle.sign('HMAC',key,enc.encode(value));
-  return [...new Uint8Array(sig)].map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-async function sessionRole(request,env){
-  const cookie=request.headers.get('Cookie')||'';
-  const m=cookie.match(/crm_session=([^;]+)/);
-  if(!m)return '';
-  const day=new Date().toISOString().slice(0,10);
-  for(const role of ['admin','graphic','tracking']){
-    const token=role+'.'+day+'.'+await hmac(env.SESSION_SECRET||'change-me',role+'.'+day);
-    if(m[1]===token)return role;
-  }
-  return '';
-}
-const json=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store',...headers}});
-async function requestBody(request){try{return await request.json()}catch{return {}}}
+async function hmac(secret,value){const key=await crypto.subtle.importKey('raw',enc.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);const sig=await crypto.subtle.sign('HMAC',key,enc.encode(value));return [...new Uint8Array(sig)].map(b=>b.toString(16).padStart(2,'0')).join('')}
+async function sessionRole(request,env){const c=request.headers.get('Cookie')||'',m=c.match(/crm_session=([^;]+)/);if(!m)return'';const day=new Date().toISOString().slice(0,10);for(const role of ['admin','graphic','tracking']){const token=role+'.'+day+'.'+await hmac(env.SESSION_SECRET||'change-me',role+'.'+day);if(m[1]===token)return role}return''}
+const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
+async function body(r){try{return await r.json()}catch{return{}}}
 function todayTR(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())}
-function cleanType(value){const t=String(value||'Genel Not').trim();return NOTE_TYPES.has(t)?t:'Genel Not'}
-function cleanText(value,max=12000){return String(value??'').trim().slice(0,max)}
-
-let notesSchemaPromise;
-async function tableColumns(env,table){
-  const r=await env.DB.prepare(`PRAGMA table_info(${table})`).all();
-  return new Set((r.results||[]).map(x=>x.name));
-}
-async function ensureColumn(env,table,name,def){const cols=await tableColumns(env,table);if(!cols.has(name))await env.DB.prepare(`ALTER TABLE ${table} ADD COLUMN ${name} ${def}`).run()}
-async function ensureNotesSchema(env){
-  if(notesSchemaPromise)return notesSchemaPromise;
-  notesSchemaPromise=(async()=>{
-    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS agenda_entries (
-      id INTEGER PRIMARY KEY AUTOINCREMENT, entry_date TEXT NOT NULL, sort_order INTEGER DEFAULT 1,
-      note TEXT NOT NULL, remind_at TEXT DEFAULT '', reminder_status TEXT DEFAULT '',
-      entry_status TEXT DEFAULT 'Yapılacak', completed_date TEXT DEFAULT '', image_data TEXT DEFAULT '',
-      source_type TEXT DEFAULT 'manual', created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )`).run();
-    await ensureColumn(env,'agenda_entries','source_type',"TEXT DEFAULT 'manual'");
-    await ensureColumn(env,'agenda_entries','title',"TEXT DEFAULT ''");
-    await ensureColumn(env,'agenda_entries','note_type',"TEXT DEFAULT 'Genel Not'");
-    await ensureColumn(env,'agenda_entries','is_important','INTEGER DEFAULT 0');
-    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS agenda_voice_notes (
-      agenda_id INTEGER PRIMARY KEY,
-      mime_type TEXT NOT NULL DEFAULT 'audio/webm',
-      audio_base64 TEXT NOT NULL,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )`).run();
-  })().catch(e=>{notesSchemaPromise=undefined;throw e});
-  return notesSchemaPromise;
-}
-
+const clean=(v,n=12000)=>String(v??'').trim().slice(0,n);
+let schemaPromise;
+async function columns(env,t){const r=await env.DB.prepare(`PRAGMA table_info(${t})`).all();return new Set((r.results||[]).map(x=>x.name))}
+async function ensureCol(env,t,n,d){const c=await columns(env,t);if(!c.has(n))await env.DB.prepare(`ALTER TABLE ${t} ADD COLUMN ${n} ${d}`).run()}
+async function ensureSchema(env){if(schemaPromise)return schemaPromise;schemaPromise=(async()=>{await env.DB.prepare(`CREATE TABLE IF NOT EXISTS agenda_entries(id INTEGER PRIMARY KEY AUTOINCREMENT,entry_date TEXT NOT NULL,sort_order INTEGER DEFAULT 1,note TEXT NOT NULL,remind_at TEXT DEFAULT '',reminder_status TEXT DEFAULT '',entry_status TEXT DEFAULT 'Yapılacak',completed_date TEXT DEFAULT '',image_data TEXT DEFAULT '',source_type TEXT DEFAULT 'manual',created_at TEXT DEFAULT CURRENT_TIMESTAMP)`).run();for(const [n,d] of [['source_type',"TEXT DEFAULT 'manual'"],['title',"TEXT DEFAULT ''"],['note_type',"TEXT DEFAULT 'Genel Not'"],['is_important','INTEGER DEFAULT 0'],['is_archived','INTEGER DEFAULT 0'],['is_locked','INTEGER DEFAULT 0']])await ensureCol(env,'agenda_entries',n,d);await env.DB.prepare(`CREATE TABLE IF NOT EXISTS agenda_voice_notes(agenda_id INTEGER PRIMARY KEY,mime_type TEXT NOT NULL DEFAULT 'audio/webm',audio_base64 TEXT NOT NULL,created_at TEXT DEFAULT CURRENT_TIMESTAMP,updated_at TEXT DEFAULT CURRENT_TIMESTAMP)`).run()})().catch(e=>{schemaPromise=undefined;throw e});return schemaPromise}
 async function getNote(env,id){return env.DB.prepare("SELECT * FROM agenda_entries WHERE id=? AND COALESCE(source_type,'manual')='manual'").bind(id).first()}
+async function unlocked(env,id){const n=await getNote(env,id);if(!n)return{err:json({error:'Not bulunamadı.'},404)};if(Number(n.is_locked||0))return{err:json({error:'Not kilitli. Önce kilidi açın.'},423)};return{n}}
 
-async function handleNotesApi(request,env,url){
-  const role=await sessionRole(request,env);
-  if(role!=='admin')return json({error:'Yetkisiz'},401);
-  await ensureNotesSchema(env);
-  const path=url.pathname;
-
-  if(path==='/api/notes-v3'&&request.method==='GET'){
-    const scope=String(url.searchParams.get('scope')||'active');
-    let where="COALESCE(a.source_type,'manual')='manual'";
-    if(scope==='archive')where+=" AND COALESCE(a.entry_status,'Yapılacak')='Yapıldı'";
-    else if(scope!=='all')where+=" AND COALESCE(a.entry_status,'Yapılacak')<>'Yapıldı'";
-    const rows=(await env.DB.prepare(`SELECT a.*,CASE WHEN v.agenda_id IS NULL THEN 0 ELSE 1 END AS has_voice
-      FROM agenda_entries a LEFT JOIN agenda_voice_notes v ON v.agenda_id=a.id
-      WHERE ${where}
-      ORDER BY COALESCE(a.is_important,0) DESC, a.id DESC LIMIT 1200`).all()).results||[];
-    return json(rows);
-  }
-
-  if(path==='/api/notes-v3'&&request.method==='POST'){
-    const b=await requestBody(request),note=cleanText(b.note);
-    if(!note)return json({error:'Not boş olamaz.'},400);
-    const title=cleanText(b.title,160),type=cleanType(b.note_type),entryDate=String(b.entry_date||todayTR()).slice(0,10),remindAt=cleanText(b.remind_at,40),important=b.is_important?1:0;
-    const last=await env.DB.prepare("SELECT COALESCE(MAX(sort_order),0) n FROM agenda_entries WHERE COALESCE(source_type,'manual')='manual' AND entry_date=?").bind(entryDate).first();
-    const r=await env.DB.prepare(`INSERT INTO agenda_entries(entry_date,sort_order,note,remind_at,reminder_status,entry_status,completed_date,image_data,source_type,title,note_type,is_important)
-      VALUES(?,?,?,?,?,'Yapılacak','','','manual',?,?,?)`)
-      .bind(entryDate,Number(last?.n||0)+1,note,remindAt,remindAt?'Açık':'',title,type,important).run();
-    return json({ok:true,id:r.meta.last_row_id},201);
-  }
-
-  const item=path.match(/^\/api\/notes-v3\/(\d+)$/);
-  if(item&&request.method==='PUT'){
-    const id=Number(item[1]),old=await getNote(env,id);if(!old)return json({error:'Not bulunamadı.'},404);
-    const b=await requestBody(request);
-    const title=b.title===undefined?String(old.title||''):cleanText(b.title,160);
-    const note=b.note===undefined?String(old.note||''):cleanText(b.note);
-    if(!note)return json({error:'Not boş olamaz.'},400);
-    const type=b.note_type===undefined?cleanType(old.note_type):cleanType(b.note_type);
-    const remindAt=b.remind_at===undefined?String(old.remind_at||''):cleanText(b.remind_at,40);
-    const entryDate=b.entry_date===undefined?String(old.entry_date||todayTR()).slice(0,10):String(b.entry_date||todayTR()).slice(0,10);
-    const important=b.is_important===undefined?Number(old.is_important||0):(b.is_important?1:0);
-    let reminderStatus=String(old.reminder_status||'');
-    if(b.remind_at!==undefined)reminderStatus=remindAt?'Açık':'';
-    await env.DB.prepare('UPDATE agenda_entries SET title=?,note_type=?,note=?,entry_date=?,remind_at=?,reminder_status=?,is_important=? WHERE id=?')
-      .bind(title,type,note,entryDate,remindAt,reminderStatus,important,id).run();
-    return json({ok:true});
-  }
-  if(item&&request.method==='DELETE'){
-    const id=Number(item[1]);
-    await env.DB.prepare('DELETE FROM agenda_voice_notes WHERE agenda_id=?').bind(id).run();
-    await env.DB.prepare("DELETE FROM agenda_entries WHERE id=? AND COALESCE(source_type,'manual')='manual'").bind(id).run();
-    return json({ok:true});
-  }
-
-  const done=path.match(/^\/api\/notes-v3\/(\d+)\/done$/);
-  if(done&&request.method==='POST'){
-    await env.DB.prepare("UPDATE agenda_entries SET entry_status='Yapıldı',completed_date=?,reminder_status=CASE WHEN COALESCE(remind_at,'')<>'' THEN 'Tamamlandı' ELSE reminder_status END WHERE id=? AND COALESCE(source_type,'manual')='manual'").bind(todayTR(),Number(done[1])).run();
-    return json({ok:true});
-  }
-  const undo=path.match(/^\/api\/notes-v3\/(\d+)\/undo$/);
-  if(undo&&request.method==='POST'){
-    await env.DB.prepare("UPDATE agenda_entries SET entry_status='Yapılacak',completed_date='',reminder_status=CASE WHEN COALESCE(remind_at,'')<>'' THEN 'Açık' ELSE '' END WHERE id=? AND COALESCE(source_type,'manual')='manual'").bind(Number(undo[1])).run();
-    return json({ok:true});
-  }
-  const fired=path.match(/^\/api\/notes-v3\/(\d+)\/alarm-fired$/);
-  if(fired&&request.method==='POST'){
-    await env.DB.prepare("UPDATE agenda_entries SET reminder_status='Çaldı' WHERE id=? AND COALESCE(source_type,'manual')='manual'").bind(Number(fired[1])).run();
-    return json({ok:true});
-  }
-  return json({error:'Bulunamadı'},404);
+async function api(request,env,url){if(await sessionRole(request,env)!=='admin')return json({error:'Yetkisiz'},401);await ensureSchema(env);const p=url.pathname;
+  if(p==='/api/notes-v3'&&request.method==='GET'){const scope=url.searchParams.get('scope')||'all';let w="COALESCE(a.source_type,'manual')='manual'";w+=scope==='archive'?" AND COALESCE(a.is_archived,0)=1":" AND COALESCE(a.is_archived,0)=0";const rows=(await env.DB.prepare(`SELECT a.*,CASE WHEN v.agenda_id IS NULL THEN 0 ELSE 1 END has_voice FROM agenda_entries a LEFT JOIN agenda_voice_notes v ON v.agenda_id=a.id WHERE ${w} ORDER BY COALESCE(a.is_locked,0) DESC,a.id DESC LIMIT 1200`).all()).results||[];return json(rows)}
+  if(p==='/api/notes-v3'&&request.method==='POST'){const b=await body(request),note=clean(b.note);if(!note)return json({error:'Not boş olamaz.'},400);const d=String(b.entry_date||todayTR()).slice(0,10),rem=clean(b.remind_at,40);const last=await env.DB.prepare("SELECT COALESCE(MAX(sort_order),0) n FROM agenda_entries WHERE COALESCE(source_type,'manual')='manual' AND entry_date=?").bind(d).first();const r=await env.DB.prepare(`INSERT INTO agenda_entries(entry_date,sort_order,note,remind_at,reminder_status,entry_status,completed_date,image_data,source_type,title,note_type,is_important,is_archived,is_locked) VALUES(?,?,?,?,?,'Yapılacak','','','manual','','Genel Not',0,0,0)`).bind(d,Number(last?.n||0)+1,note,rem,rem?'Açık':'').run();return json({ok:true,id:r.meta.last_row_id},201)}
+  const item=p.match(/^\/api\/notes-v3\/(\d+)$/);if(item&&request.method==='PUT'){const id=+item[1],u=await unlocked(env,id);if(u.err)return u.err;const b=await body(request),note=b.note===undefined?u.n.note:clean(b.note);if(!note)return json({error:'Not boş olamaz.'},400);const rem=b.remind_at===undefined?String(u.n.remind_at||''):clean(b.remind_at,40),rs=b.remind_at===undefined?String(u.n.reminder_status||''):(rem?'Açık':'');await env.DB.prepare('UPDATE agenda_entries SET note=?,remind_at=?,reminder_status=? WHERE id=?').bind(note,rem,rs,id).run();return json({ok:true})}
+  if(item&&request.method==='DELETE'){const id=+item[1],u=await unlocked(env,id);if(u.err)return u.err;await env.DB.prepare('DELETE FROM agenda_voice_notes WHERE agenda_id=?').bind(id).run();await env.DB.prepare("DELETE FROM agenda_entries WHERE id=? AND COALESCE(source_type,'manual')='manual'").bind(id).run();return json({ok:true})}
+  for(const [name,val] of [['archive',1],['unarchive',0]]){const m=p.match(new RegExp('^/api/notes-v3/(\\d+)/'+name+'$'));if(m&&request.method==='POST'){const id=+m[1],u=await unlocked(env,id);if(u.err)return u.err;await env.DB.prepare('UPDATE agenda_entries SET is_archived=? WHERE id=?').bind(val,id).run();return json({ok:true})}}
+  const lm=p.match(/^\/api\/notes-v3\/(\d+)\/(lock|unlock)$/);if(lm&&request.method==='POST'){await env.DB.prepare('UPDATE agenda_entries SET is_locked=? WHERE id=?').bind(lm[2]==='lock'?1:0,+lm[1]).run();return json({ok:true})}
+  const dm=p.match(/^\/api\/notes-v3\/(\d+)\/(done|undo)$/);if(dm&&request.method==='POST'){const done=dm[2]==='done';await env.DB.prepare(`UPDATE agenda_entries SET entry_status=?,completed_date=?,reminder_status=CASE WHEN COALESCE(remind_at,'')<>'' THEN ? ELSE reminder_status END WHERE id=? AND COALESCE(source_type,'manual')='manual'`).bind(done?'Yapıldı':'Yapılacak',done?todayTR():'',done?'Tamamlandı':'Açık',+dm[1]).run();return json({ok:true})}
+  const fm=p.match(/^\/api\/notes-v3\/(\d+)\/alarm-fired$/);if(fm&&request.method==='POST'){await env.DB.prepare("UPDATE agenda_entries SET reminder_status='Çaldı' WHERE id=?").bind(+fm[1]).run();return json({ok:true})}
+  return json({error:'Bulunamadı'},404)
 }
-
-async function serveAsset(request,env,pathname){
-  const u=new URL(request.url);u.pathname=pathname;u.search='';
-  const res=await env.ASSETS.fetch(new Request(u.toString(),{method:'GET',headers:request.headers}));
-  const h=new Headers(res.headers);h.set('cache-control','no-cache, no-store, must-revalidate');
-  return new Response(res.body,{status:res.status,statusText:res.statusText,headers:h});
-}
-
-export default {
-  async fetch(request,env,ctx){
-    const url=new URL(request.url),path=url.pathname;
-    if(path==='/api/notes-v3'||path.startsWith('/api/notes-v3/')){
-      try{return await handleNotesApi(request,env,url)}catch(err){console.error(err);return json({error:err?.message||String(err)},500)}
-    }
-    if(request.method==='GET'&&['/notlar-v2','/notlar-v2/','/notlar-v2.html'].includes(path))return serveAsset(request,env,'/notlar-v2.html');
-    if(request.method==='GET'&&['/yeni-not','/yeni-not/','/yeni-not.html'].includes(path))return serveAsset(request,env,'/yeni-not.html');
-    return worker.fetch(request,env,ctx);
-  }
-};
+async function asset(request,env,path){const u=new URL(request.url);u.pathname=path;u.search='';const r=await env.ASSETS.fetch(new Request(u,{method:'GET',headers:request.headers}));const h=new Headers(r.headers);h.set('cache-control','no-cache, no-store, must-revalidate');return new Response(r.body,{status:r.status,statusText:r.statusText,headers:h})}
+export default{async fetch(request,env,ctx){const u=new URL(request.url),p=u.pathname;if(p==='/api/notes-v3'||p.startsWith('/api/notes-v3/')){try{return await api(request,env,u)}catch(e){console.error(e);return json({error:e?.message||String(e)},500)}}if(request.method==='GET'&&['/notlar-v2','/notlar-v2/','/notlar-v2.html'].includes(p))return asset(request,env,'/notlar-v2.html');if(request.method==='GET'&&['/yeni-not','/yeni-not/','/yeni-not.html'].includes(p))return asset(request,env,'/yeni-not.html');return worker.fetch(request,env,ctx)}};
