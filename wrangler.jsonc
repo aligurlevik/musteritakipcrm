@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/mobile_agenda_redirect_patch.js",
+  "main": "src/notes_v3_patch.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,4 @@
     }
   ]
 }
-// force-deploy-mobile-note-first-layout-2026-09-03
+// force-deploy-notes-v3-two-page-2026-09-04
