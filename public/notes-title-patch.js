@@ -1,6 +1,7 @@
 (function(){
   const path=location.pathname;
   const previousFetch=window.fetch.bind(window);
+  const pad=n=>String(n).padStart(2,'0');
 
   function fallbackTitle(note){
     const first=String(note||'').split(/\r?\n/).map(x=>x.trim()).find(Boolean)||'Başlıksız Not';
@@ -24,6 +25,9 @@
       .editorImageWrap{display:none;margin:9px 0}
       .editorImageWrap.show{display:block}
       .editorImageWrap img{display:block;max-width:100%;max-height:260px;object-fit:contain;border:1px solid #ccd5dd;border-radius:10px;background:#f8fafc}
+      .alarmGrid.editAlarmSplit{grid-template-columns:minmax(0,1fr) 76px 76px!important;gap:7px!important}
+      #editAlarmHour,#editAlarmMinute{width:100%;min-width:0;text-align:center;font-weight:900}
+      @media(max-width:560px){.alarmGrid.editAlarmSplit{grid-template-columns:minmax(0,1fr) 68px 68px!important;gap:6px!important}}
     `;
     document.head.appendChild(s);
   }
@@ -82,11 +86,41 @@
     }finally{decorating=false}
   }
 
+  function syncAlarmFromHidden(){
+    const hidden=document.getElementById('editAlarmTime'),hour=document.getElementById('editAlarmHour'),minute=document.getElementById('editAlarmMinute');
+    if(!hidden||!hour||!minute)return;
+    const m=String(hidden.value||'').match(/^(\d{1,2}):(\d{2})/);
+    if(m){hour.value=String(Number(m[1]));minute.value=String(Number(m[2]))}else{hour.value='';minute.value=''}
+  }
+  function syncAlarmToHidden(){
+    const hidden=document.getElementById('editAlarmTime'),hour=document.getElementById('editAlarmHour'),minute=document.getElementById('editAlarmMinute');
+    if(!hidden||!hour||!minute)return true;
+    const hv=String(hour.value||'').trim(),mv=String(minute.value||'').trim();
+    if(!hv&&!mv){hidden.value='';return true}
+    if(!hv||!mv){alert('Alarm için saat ve dakikayı birlikte yazın.');(hv?minute:hour).focus();return false}
+    const h=Number(hv),m=Number(mv);
+    if(!Number.isInteger(h)||h<0||h>23){alert('Saat 0 ile 23 arasında olmalı.');hour.focus();return false}
+    if(!Number.isInteger(m)||m<0||m>59){alert('Dakika 0 ile 59 arasında olmalı.');minute.focus();return false}
+    hidden.value=pad(h)+':'+pad(m);
+    return true;
+  }
+  function installAlarmSplit(){
+    const hidden=document.getElementById('editAlarmTime');if(!hidden||document.getElementById('editAlarmHour'))return;
+    const grid=hidden.closest('.alarmGrid');if(!grid)return;
+    hidden.style.display='none';hidden.setAttribute('aria-hidden','true');hidden.tabIndex=-1;
+    const hour=document.createElement('input');hour.id='editAlarmHour';hour.type='number';hour.inputMode='numeric';hour.min='0';hour.max='23';hour.placeholder='Saat';hour.setAttribute('aria-label','Saat');
+    const minute=document.createElement('input');minute.id='editAlarmMinute';minute.type='number';minute.inputMode='numeric';minute.min='0';minute.max='59';minute.placeholder='Dakika';minute.setAttribute('aria-label','Dakika');
+    hidden.insertAdjacentElement('afterend',hour);hour.insertAdjacentElement('afterend',minute);grid.classList.add('editAlarmSplit');
+  }
+
   function showEditorExtras(id){
-    const row=titleCache.get(Number(id));if(!row)return;
-    const el=document.getElementById('editTitle');if(el)el.value=String(row.title||'').trim()||fallbackTitle(row.note);
-    const wrap=document.getElementById('editorImageWrap'),img=document.getElementById('editorImage');
-    if(wrap&&img){if(row.image_data){img.src=row.image_data;wrap.classList.add('show')}else{img.src='';wrap.classList.remove('show')}}
+    const row=titleCache.get(Number(id));
+    if(row){
+      const el=document.getElementById('editTitle');if(el)el.value=String(row.title||'').trim()||fallbackTitle(row.note);
+      const wrap=document.getElementById('editorImageWrap'),img=document.getElementById('editorImage');
+      if(wrap&&img){if(row.image_data){img.src=row.image_data;wrap.classList.add('show')}else{img.src='';wrap.classList.remove('show')}}
+    }
+    syncAlarmFromHidden();
   }
 
   function installEditor(){
@@ -96,10 +130,12 @@
     noteField.insertAdjacentElement('beforebegin',wrap);
     const imgWrap=document.createElement('div');imgWrap.id='editorImageWrap';imgWrap.className='editorImageWrap';imgWrap.innerHTML='<img id="editorImage" alt="Not resmi">';
     noteField.insertAdjacentElement('afterend',imgWrap);
+    installAlarmSplit();
     const oldOpen=window.openEditor;
     if(typeof oldOpen==='function')window.openEditor=function(id){currentEditId=Number(id);const r=oldOpen(id);setTimeout(()=>showEditorExtras(id),0);return r};
     const oldSave=window.saveEdit;
     if(typeof oldSave==='function')window.saveEdit=async function(){
+      if(!syncAlarmToHidden())return;
       const title=document.getElementById('editTitle')?.value.trim();
       if(!title)return alert('Başlık boş olamaz.');
       if(currentEditId){
