@@ -20,6 +20,7 @@
       .pageLockBody{padding:15px}
       .pageLockInfo{font-size:13px;font-weight:800;color:#52606d;margin-bottom:10px}
       .pageLockBody input{width:100%;height:44px;border:2px solid #a8b8c7;border-radius:10px;padding:8px 11px;margin:5px 0;font-size:18px;font-weight:850}
+      .pageLockCode{-webkit-text-security:disc}
       .pageLockErr{min-height:18px;color:#b42318;font-size:12px;font-weight:900;margin-top:5px}
       .pageLockActions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
       .pageLockActions button{border:0;border-radius:10px;padding:11px 8px;font-weight:950}
@@ -32,9 +33,9 @@
     return new Promise(resolve=>{
       resolveModal=resolve;
       modal=document.createElement('div');modal.className='pageLockOverlay';
-      modal.innerHTML='<div class="pageLockCard"><div class="pageLockHead">🔒 Sayfa '+n+'</div><div class="pageLockBody"><div class="pageLockInfo">'+(configured?'Bu sayfa için ikinci şifreyi girin.':'Bu sayfa için ikinci şifre oluşturun.')+'</div><input id="plPass1" type="password" inputmode="text" autocomplete="off" placeholder="'+(configured?'İkinci şifre':'Yeni şifre')+'">'+(configured?'':'<input id="plPass2" type="password" inputmode="text" autocomplete="off" placeholder="Şifreyi tekrar yazın">')+'<div id="plErr" class="pageLockErr"></div><div class="pageLockActions"><button class="pageLockCancel" type="button">Vazgeç</button><button class="pageLockOk" type="button">'+(configured?'Giriş Yap':'Şifreyi Oluştur')+'</button></div></div></div>';
+      modal.innerHTML='<div class="pageLockCard"><div class="pageLockHead">🔒 Sayfa '+n+'</div><div class="pageLockBody"><div class="pageLockInfo">'+(configured?'Bu sayfa için ikinci şifreyi girin.':'Bu sayfa için ikinci şifre oluşturun.')+'</div><input id="plCode1" class="pageLockCode" type="text" inputmode="text" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" placeholder="'+(configured?'İkinci şifre':'Yeni şifre')+'">'+(configured?'':'<input id="plCode2" class="pageLockCode" type="text" inputmode="text" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" placeholder="Şifreyi tekrar yazın">')+'<div id="plErr" class="pageLockErr"></div><div class="pageLockActions"><button class="pageLockCancel" type="button">Vazgeç</button><button class="pageLockOk" type="button">'+(configured?'Giriş Yap':'Şifreyi Oluştur')+'</button></div></div></div>';
       document.body.appendChild(modal);
-      const p1=modal.querySelector('#plPass1'),p2=modal.querySelector('#plPass2'),err=modal.querySelector('#plErr'),ok=modal.querySelector('.pageLockOk');
+      const p1=modal.querySelector('#plCode1'),p2=modal.querySelector('#plCode2'),err=modal.querySelector('#plErr'),ok=modal.querySelector('.pageLockOk');
       modal.querySelector('.pageLockCancel').onclick=()=>closeModal(false);
       async function submit(){
         err.textContent='';const pass=p1.value;
