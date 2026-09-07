@@ -20,7 +20,9 @@ export default {
 
     let html=await response.text();
     if(!html.includes('/mobile-notification-permission.js')){
-      html=html.replace('</body>','<script src="/mobile-notification-permission.js?v=20260907-1"></script>\n</body>');
+      html=html.replace('</body>','<script src="/mobile-notification-permission.js?v=20260907-2"></script>\n</body>');
+    }else{
+      html=html.replace(/\/mobile-notification-permission\.js\?v=[^"']+/g,'/mobile-notification-permission.js?v=20260907-2');
     }
     const headers=new Headers(response.headers);
     headers.delete('content-length');
