@@ -25,14 +25,24 @@ async function mobileAgenda(request,env){
   if(!response.ok)return response;
 
   let html=await response.text();
-  const menuFix=`<style id="mobileMenuOpacityFix">
+  const mobileFixes=`<style id="mobileMenuOpacityFix">
 .card.done{opacity:1!important}
 .card.done .body{opacity:.68}
 .card.done .menu,.card.done .menuBox,.card.done .menuBox *{opacity:1!important}
 .menu[open]{z-index:150!important}
 .menu[open] .menuBox{z-index:200!important;background:#fff!important;opacity:1!important}
+.mobileTopActions{display:flex;align-items:center;gap:5px;flex:0 0 auto}
+.refreshbtn{border:0;border-radius:10px;padding:9px 9px;background:#fff;color:#123f68;font-size:13px;font-weight:950;white-space:nowrap;box-shadow:0 1px 4px #0002}
+@media(max-width:430px){.toprow{gap:5px}.title{font-size:21px}.mobileTopActions .newbtn{padding:9px 9px;font-size:13px}.refreshbtn{padding:9px 7px;font-size:12px}}
 </style>`;
-  if(!html.includes('id="mobileMenuOpacityFix"'))html=html.replace('</head>',menuFix+'\n</head>');
+  if(!html.includes('id="mobileMenuOpacityFix"'))html=html.replace('</head>',mobileFixes+'\n</head>');
+
+  if(!html.includes('class="refreshbtn"')){
+    html=html.replace(
+      '<div class="title">📝 Notlarım</div><button class="newbtn" onclick="location.href=\'/yeni-not.html\'">＋ Yeni Not</button>',
+      '<div class="title">📝 Notlarım</div><div class="mobileTopActions"><button class="refreshbtn" onclick="location.reload()">⟳ Yenile</button><button class="newbtn" onclick="location.href=\'/yeni-not.html\'">＋ Yeni Not</button></div>'
+    );
+  }
 
   const headers=new Headers(response.headers);
   headers.delete('content-length');
