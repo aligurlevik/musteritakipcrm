@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/blank_price_edit_fix.js",
+  "main": "src/mobile_latest_entry.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,4 @@
     }
   ]
 }
-// blank-price-edit-fix-2026-09-04-1540
+// mobile-latest-entry-2026-09-07
