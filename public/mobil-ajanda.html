@@ -26,7 +26,7 @@
   </div>
 </section>
 
-<div id="login" class="login"><div class="loginbox"><div class="loginhead">📝 Notlarım</div><div class="loginbody"><input id="pw" type="password" placeholder="Şifre" onkeydown="if(event.key==='Enter')loginMobile()"><button onclick="loginMobile()">Giriş Yap</button><div id="loginerr" class="loginerr"></div></div></div></div>
+<div id="login" class="login"><div class="loginbox"><div class="loginhead">📝 Notlarım</div><div class="loginbody"><div id="pwSlot"></div><button onclick="loginMobile()">Giriş Yap</button><div id="loginerr" class="loginerr"></div></div></div></div>
 <div id="msg" class="msg"></div>
 
 <script>
@@ -39,6 +39,8 @@
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const today=()=>dateKey(new Date());
   function flash(text){const m=$('msg');m.textContent=text;m.style.display='block';clearTimeout(window.__msg);window.__msg=setTimeout(()=>m.style.display='none',2200)}
+  function showLogin(){let pw=$('pw');if(!pw){pw=document.createElement('input');pw.id='pw';pw.type='password';pw.autocomplete='current-password';pw.placeholder='Şifre';pw.setAttribute('aria-label','Şifre');pw.addEventListener('keydown',e=>{if(e.key==='Enter')window.loginMobile()});$('pwSlot').replaceChildren(pw)}$('login').classList.add('show');setTimeout(()=>pw.focus(),50)}
+  function hideLogin(){const pw=$('pw');if(pw){pw.value='';pw.remove()}$('login').classList.remove('show')}
   async function api(path,opts){const r=await fetch(path,Object.assign({headers:{'content-type':'application/json'}},opts||{}));let d={};try{d=await r.json()}catch(_){ }if(!r.ok)throw new Error(d.error||'İşlem başarısız');return d}
   function fmtDate(value){if(!value)return'';const p=value.split('-').map(Number);return new Date(p[0],p[1]-1,p[2],12).toLocaleDateString('tr-TR',{day:'numeric',month:'short'})}
   function fmtAlarm(value){if(!value)return'';const d=new Date(value);return d.toLocaleDateString('tr-TR',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}
@@ -59,7 +61,7 @@
       state.items=await api('/api/agenda?month='+monthKey(now));
       render();
     }catch(e){
-      if(/Oturum|Giriş|Yetki/i.test(String(e.message)))$('login').classList.add('show'); else flash(e.message);
+      if(/Oturum|Giriş|Yetki/i.test(String(e.message)))showLogin(); else flash(e.message);
     }
   }
 
@@ -89,12 +91,12 @@
   window.deleteCurrentNote=async function(){if(!state.editingId)return;try{await api('/api/agenda/'+state.editingId,{method:'DELETE'});closeEditor();await loadNotes();flash('Not silindi.')}catch(e){flash(e.message)}};
   window.setDone=async function(id,done){try{await api('/api/agenda/'+id+(done?'/task-done':'/task-undo'),{method:'POST',body:done?JSON.stringify({completed_date:today()}):'{}'});await loadNotes()}catch(e){flash(e.message)}};
   window.toggleCurrentDone=async function(){const x=itemById(state.editingId);if(!x)return;const done=x.entry_status!=='Yapıldı';await setDone(x.id,done);closeEditor()};
-  window.loginMobile=async function(){const err=$('loginerr');err.textContent='';try{const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({user:'Ali',password:$('pw').value})});let d={};try{d=await r.json()}catch(_){ }if(!r.ok){err.textContent=d.error||'Şifre hatalı.';return}$('pw').value='';$('login').classList.remove('show');await loadNotes()}catch(e){err.textContent='Bağlantı kurulamadı.'}};
-  window.logoutMobile=async function(){try{await fetch('/api/logout')}catch(_){ }$('login').classList.add('show')};
+  window.loginMobile=async function(){const err=$('loginerr'),pw=$('pw');err.textContent='';if(!pw)return showLogin();try{const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({user:'Ali',password:pw.value})});let d={};try{d=await r.json()}catch(_){ }if(!r.ok){err.textContent=d.error||'Şifre hatalı.';return}hideLogin();await loadNotes()}catch(e){err.textContent='Bağlantı kurulamadı.'}};
+  window.logoutMobile=async function(){try{await fetch('/api/logout')}catch(_){ }showLogin()};
 
   async function boot(){
     $('todayLabel').textContent=new Date().toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-    try{const s=await api('/api/session');if(s.role!=='admin')throw new Error('Oturum süresi doldu.');await loadNotes()}catch(_){$('login').classList.add('show')}
+    try{const s=await api('/api/session');if(s.role!=='admin')throw new Error('Oturum süresi doldu.');await loadNotes()}catch(_){showLogin()}
   }
   boot();
 })();
