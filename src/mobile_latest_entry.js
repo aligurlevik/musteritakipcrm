@@ -23,14 +23,26 @@ async function mobileAgenda(request,env){
     }
   }
   if(!response.ok)return response;
+
+  let html=await response.text();
+  const menuFix=`<style id="mobileMenuOpacityFix">
+.card.done{opacity:1!important}
+.card.done .body{opacity:.68}
+.card.done .menu,.card.done .menuBox,.card.done .menuBox *{opacity:1!important}
+.menu[open]{z-index:150!important}
+.menu[open] .menuBox{z-index:200!important;background:#fff!important;opacity:1!important}
+</style>`;
+  if(!html.includes('id="mobileMenuOpacityFix"'))html=html.replace('</head>',menuFix+'\n</head>');
+
   const headers=new Headers(response.headers);
   headers.delete('content-length');
   headers.delete('content-encoding');
   headers.delete('etag');
+  headers.set('content-type','text/html; charset=utf-8');
   headers.set('cache-control','no-cache, no-store, must-revalidate');
   headers.set('pragma','no-cache');
   headers.set('expires','0');
-  return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
+  return new Response(html,{status:response.status,statusText:response.statusText,headers});
 }
 
 export default {
@@ -38,7 +50,7 @@ export default {
     const url=new URL(request.url);
     const isGet=request.method==='GET';
     const isHome=isGet&&(url.pathname==='/'||url.pathname==='/index.html');
-    const explicitMobile=isGet&&['/mobil-ajanda','/mobil-ajanda.html','/notlar-v2','/notlar-v2/'].includes(url.pathname);
+    const explicitMobile=isGet&&['/mobil-ajanda','/mobil-ajanda.html','/notlar-v2','/notlar-v2/','/notlar-v2.html'].includes(url.pathname);
     const forceMobile=url.searchParams.get('mobile')==='1';
 
     if(explicitMobile || (isHome&&(forceMobile||isMobileRequest(request)))){
