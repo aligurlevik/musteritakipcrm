@@ -1,4 +1,4 @@
-import worker from './blank_price_edit_fix.js';
+import worker from './mobile_notes_latest_api.js';
 
 function isMobileRequest(request){
   const hint=(request.headers.get('sec-ch-ua-mobile')||'').trim();
