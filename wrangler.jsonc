@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/mobile_latest_entry.js",
+  "main": "src/mobile_notification_entry.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,4 @@
     }
   ]
 }
-// mobile-latest-entry-2026-09-07
+// mobile-notification-entry-2026-09-07
