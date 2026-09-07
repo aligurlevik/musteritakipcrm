@@ -27,35 +27,39 @@
   function style(){
     if(document.getElementById('notesPagesStyle'))return;
     const s=document.createElement('style');s.id='notesPagesStyle';
-    s.textContent='.notePagesBar{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:7px 9px;background:#f7fbff;border-bottom:1px solid #c7d5e2}.notePageBtn{border:1px solid #aabfd2;border-radius:8px;background:#edf5fc;color:#21476b;padding:8px 5px;font-weight:950}.notePageBtn.on{background:#111;color:#fff;border-color:#111}.notePageLabel{font-size:12px;font-weight:900;color:#526b80;text-align:center;padding:5px 0 0}.newPageBox{padding:7px 12px;background:#fff;border-bottom:1px solid #dde4ea}.newPageBox .notePagesBar{padding:0;border:0;background:#fff}';
+    s.textContent='.notePagesBar{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:7px 9px;background:#f7fbff;border-bottom:1px solid #c7d5e2}.notePageBtn{border:1px solid #aabfd2;border-radius:8px;background:#edf5fc;color:#21476b;padding:8px 4px;font-size:12px;font-weight:950}.notePageBtn.on{background:#111;color:#fff;border-color:#111}.plannerPageBtn{background:#fff2ad!important;color:#5d4900!important;border-color:#e5bd19!important}.notePageLabel{font-size:12px;font-weight:900;color:#526b80;text-align:center;padding:5px 0 0}.newPageBox{padding:7px 12px;background:#fff;border-bottom:1px solid #dde4ea}.newPageBox .notePagesBar{grid-template-columns:repeat(3,1fr);padding:0;border:0;background:#fff}@media(max-width:430px){.notePageBtn{font-size:11px;padding:8px 2px}.notePagesBar{gap:4px;padding:6px}}';
     document.head.appendChild(s);
   }
-  function buttons(onChange){
+  function buttons(onChange,withPlanner){
     const bar=document.createElement('div');bar.className='notePagesBar';
     for(let i=1;i<=3;i++){
-      const b=document.createElement('button');b.type='button';b.className='notePageBtn'+(i===page?' on':'');b.textContent='Sayfa '+i;
+      const b=document.createElement('button');b.type='button';b.className='notePageBtn'+(i===page?' on':'');b.textContent='Not '+i;
       b.onclick=()=>onChange(i);
       bar.appendChild(b);
+    }
+    if(withPlanner){
+      const p=document.createElement('button');p.type='button';p.className='notePageBtn plannerPageBtn';p.textContent='📅 Planlama';p.onclick=()=>{location.href='/planlama.html'};bar.appendChild(p);
     }
     return bar;
   }
   function setPage(n,reload){
     page=clamp(n);localStorage.setItem('crm_notes_page',String(page));
     if(reload){const u=new URL(location.href);u.searchParams.set('page',String(page));location.href=u.pathname+u.search;}
-    else document.querySelectorAll('.notePageBtn').forEach((b,i)=>b.classList.toggle('on',i+1===page));
+    else document.querySelectorAll('.notePageBtn:not(.plannerPageBtn)').forEach((b,i)=>b.classList.toggle('on',i+1===page));
   }
   function install(){
     style();
     const isNew=location.pathname.includes('yeni-not');
+    const isNotes=location.pathname.includes('notlar-v2')||location.pathname==='/'||location.pathname==='/index.html'||location.pathname.includes('mobil-ajanda');
     if(isNew){
-      const header=document.querySelector('.top');if(!header)return;
+      const header=document.querySelector('.top');if(!header||document.querySelector('.newPageBox'))return;
       const box=document.createElement('div');box.className='newPageBox';
       const label=document.createElement('div');label.className='notePageLabel';label.textContent='Bu not hangi sayfaya kaydedilsin?';
-      box.appendChild(label);box.appendChild(buttons(n=>setPage(n,false)));
+      box.appendChild(label);box.appendChild(buttons(n=>setPage(n,false),false));
       header.insertAdjacentElement('afterend',box);
-    }else if(location.pathname.includes('notlar-v2')){
-      const tabs=document.querySelector('.tabs');if(!tabs)return;
-      tabs.insertAdjacentElement('afterend',buttons(n=>setPage(n,true)));
+    }else if(isNotes){
+      const tabs=document.querySelector('.tabs');if(!tabs||document.querySelector('.notePagesBar'))return;
+      tabs.insertAdjacentElement('afterend',buttons(n=>setPage(n,true),true));
       const newBtn=document.querySelector('.newbtn');
       if(newBtn)newBtn.onclick=()=>{location.href='/yeni-not.html?page='+page};
     }
