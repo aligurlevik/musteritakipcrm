@@ -38,8 +38,15 @@ export default {
       }
     }
 
-    if(planPage&&!html.includes('/planlama-monthly-patch.js')){
-      html=html.replace('</body>','<script src="/planlama-monthly-patch.js?v=20260907-1"></script>\n</body>');
+    if(planPage){
+      if(!html.includes('/planlama-monthly-patch.js')){
+        html=html.replace('</body>','<script src="/planlama-monthly-patch.js?v=20260907-2"></script>\n</body>');
+      }else{
+        html=html.replace(/\/planlama-monthly-patch\.js\?v=[^"']+/g,'/planlama-monthly-patch.js?v=20260907-2');
+      }
+      if(!html.includes('/planlama-daily-patch.js')){
+        html=html.replace('</body>','<script src="/planlama-daily-patch.js?v=20260907-1"></script>\n</body>');
+      }
     }
 
     const headers=new Headers(response.headers);
