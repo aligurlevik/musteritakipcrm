@@ -17,14 +17,17 @@ export default {
     )&&(isMobileRequest(request)||url.searchParams.get('mobile')==='1'||url.pathname!=='/');
     const newNotePage=isGet&&['/yeni-not','/yeni-not/','/yeni-not.html'].includes(url.pathname)
       &&(isMobileRequest(request)||url.searchParams.get('mobile')==='1'||url.pathname!=='/');
+    const planPage=isGet&&['/planlama','/planlama/','/planlama.html'].includes(url.pathname);
 
     const type=response.headers.get('content-type')||'';
-    if((!notesPage&&!newNotePage)||!response.ok||!type.includes('text/html'))return response;
+    if((!notesPage&&!newNotePage&&!planPage)||!response.ok||!type.includes('text/html'))return response;
 
     let html=await response.text();
 
-    if(!html.includes('/notes-pages-patch.js')){
-      html=html.replace('<script>','<script src="/notes-pages-patch.js?v=20260907-restore"></script>\n<script>');
+    if(notesPage||newNotePage){
+      if(!html.includes('/notes-pages-patch.js')){
+        html=html.replace('<script>','<script src="/notes-pages-patch.js?v=20260907-restore"></script>\n<script>');
+      }
     }
 
     if(notesPage){
@@ -33,6 +36,10 @@ export default {
       }else{
         html=html.replace(/\/mobile-notification-permission\.js\?v=[^"']+/g,'/mobile-notification-permission.js?v=20260907-3');
       }
+    }
+
+    if(planPage&&!html.includes('/planlama-monthly-patch.js')){
+      html=html.replace('</body>','<script src="/planlama-monthly-patch.js?v=20260907-1"></script>\n</body>');
     }
 
     const headers=new Headers(response.headers);
