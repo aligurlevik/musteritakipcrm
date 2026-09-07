@@ -135,7 +135,7 @@ async function patchHtml(response){
   if(!response||response.status!==200)return response;
   const ct=response.headers.get('content-type')||'';if(!ct.includes('text/html'))return response;
   let html=await response.text();
-  if(!html.includes('/notes-page-lock-patch.js'))html=html.replace('</body>','<script src="/notes-page-lock-patch.js?v=20260904-1"></script></body>');
+  if(!html.includes('/notes-page-lock-patch.js'))html=html.replace('</body>','<script src="/notes-page-lock-patch.js?v=20260907-2"></script></body>');
   const h=new Headers(response.headers);h.set('content-type','text/html; charset=utf-8');h.set('cache-control','no-cache, no-store, must-revalidate');
   return new Response(html,{status:response.status,statusText:response.statusText,headers:h});
 }
