@@ -10,7 +10,17 @@ const REPORT_REVENUE_FIX = `async function renderRevenueTargetChart(s,range){
   }
   const monthlyTarget=2000000;
   const dayKey=$('reportDate').value||localDateKey();
-  const dailyTarget=monthlyTarget/monthlyWorkWeight(dayKey);
+  const targetDate=new Date(dayKey+'T12:00:00');
+  let businessDays=0;
+  const cursor=new Date(targetDate.getFullYear(),targetDate.getMonth(),1,12);
+  const monthEnd=new Date(targetDate.getFullYear(),targetDate.getMonth()+1,0,12);
+  while(cursor<=monthEnd){
+    const weekDay=cursor.getDay();
+    const key=localDateKey(cursor);
+    if(weekDay!==0&&weekDay!==6&&!trackingHolidays.has(key))businessDays++;
+    cursor.setDate(cursor.getDate()+1);
+  }
+  const dailyTarget=monthlyTarget/Math.max(businessDays,1);
   let actual=0;
   let dayJobs=[];
   try{
