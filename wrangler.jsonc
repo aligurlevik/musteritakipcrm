@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/graphic_delivery_1700_patch.js",
+  "main": "src/waiting_price_optional_patch.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,4 @@
     }
   ]
 }
-// graphic-delivery-1700-patch-2026-09-09
+// waiting-price-optional-patch-2026-09-09
