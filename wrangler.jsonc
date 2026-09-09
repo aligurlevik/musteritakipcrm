@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/agenda_rolling_week_patch.js",
+  "main": "src/agenda_today_date_fix.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,4 @@
     }
   ]
 }
-// agenda-rolling-week-patch-2026-09-09
+// agenda-today-date-fix-2026-09-09
