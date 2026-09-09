@@ -1,0 +1,66 @@
+name: Ajanda günlük liste düzeltmesi
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Günlük ajandayı kalıcı yapılacaklar listesine çevir
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          html_path = Path('public/index.html')
+          worker_path = Path('src/index.js')
+          html = html_path.read_text(encoding='utf-8')
+          worker = worker_path.read_text(encoding='utf-8')
+
+          old_load = "async function loadAgenda(){const today=localDateKey();await req('/api/agenda/rollover',{method:'POST',body:JSON.stringify({today})});agendaEntries=await req('/api/agenda?month='+agendaMonthKey());todayAgendaEntries=agendaEntries.filter(x=>x.entry_date===agendaDateKey());renderAgenda();setupAgendaTimeSelectors()}"
+          new_load = "function refreshTodayAgendaEntries(){const today=localDateKey();todayAgendaEntries=agendaEntries.filter(x=>{const d=String(x.entry_date||'');return d===today||(d>today&&x.entry_status!=='Yapıldı')}).sort((a,b)=>String(a.entry_date||'').localeCompare(String(b.entry_date||''))||agendaTaskSort(a,b))}\nasync function loadAgenda(){const today=localDateKey();await req('/api/agenda/rollover',{method:'POST',body:JSON.stringify({today})});const [monthItems,activeItems]=await Promise.all([req('/api/agenda?month='+agendaMonthKey()),req('/api/agenda/active?from='+today)]);const byId=new Map();for(const x of [...monthItems,...activeItems])byId.set(Number(x.id),x);agendaEntries=[...byId.values()].sort((a,b)=>String(a.entry_date||'').localeCompare(String(b.entry_date||''))||Number(a.id)-Number(b.id));refreshTodayAgendaEntries();renderAgenda();setupAgendaTimeSelectors()}"
+          if old_load not in html:
+              raise SystemExit('loadAgenda hedefi bulunamadı')
+          html = html.replace(old_load, new_load, 1)
+
+          old_assign = "todayAgendaEntries=agendaEntries.filter(x=>x.entry_date===agendaDateKey());"
+          count = html.count(old_assign)
+          if count < 1:
+              raise SystemExit('todayAgendaEntries hedefleri bulunamadı')
+          html = html.replace(old_assign, "refreshTodayAgendaEntries();")
+
+          old_meta = "<div class=\"done-item-meta\">${x.remind_at?`<div class=\"reminder-badge\" title=\"Alarm: ${new Date(x.remind_at).toLocaleString('tr-TR')}\">🔔 ${new Date(x.remind_at).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}</div>`:''}"
+          new_meta = "<div class=\"done-item-meta\">${x.entry_date!==localDateKey()?`<div class=\"reminder-badge\" title=\"Planlanan gün\">📅 ${new Date(x.entry_date+'T12:00:00').toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'})}</div>`:''}${x.remind_at?`<div class=\"reminder-badge\" title=\"Alarm: ${new Date(x.remind_at).toLocaleString('tr-TR')}\">🔔 ${new Date(x.remind_at).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}</div>`:''}"
+          if old_meta not in html:
+              raise SystemExit('günlük liste tarih rozeti hedefi bulunamadı')
+          html = html.replace(old_meta, new_meta, 1)
+
+          marker = "  if(path==='/api/agenda'&&request.method==='GET'){const month=url.searchParams.get('month')||new Date().toISOString().slice(0,7);return json((await env.DB.prepare(\"SELECT * FROM agenda_entries WHERE COALESCE(source_type,'manual')='manual' AND entry_date LIKE ? ORDER BY entry_date,sort_order,id\").bind(month+'%').all()).results)}"
+          active_route = "  if(path==='/api/agenda/active'&&request.method==='GET'){const from=url.searchParams.get('from')||new Date().toISOString().slice(0,10);return json((await env.DB.prepare(\"SELECT * FROM agenda_entries WHERE COALESCE(source_type,'manual')='manual' AND entry_date>=? AND COALESCE(entry_status,'Yapılacak')<>'Yapıldı' ORDER BY entry_date,sort_order,id\").bind(from).all()).results)}\n"
+          if marker not in worker:
+              raise SystemExit('agenda GET endpoint hedefi bulunamadı')
+          worker = worker.replace(marker, active_route + marker, 1)
+
+          html_path.write_text(html, encoding='utf-8')
+          worker_path.write_text(worker, encoding='utf-8')
+          print('Güncellendi. Eski günlük filtre değişim sayısı:', count)
+          PY
+          node --check src/index.js
+          git diff --check
+      - name: Değişiklikleri kaydet
+        shell: bash
+        run: |
+          rm -f .github/workflows/patch-agenda-daily.yml
+          git config user.name "chatgpt-automation"
+          git config user.email "chatgpt-automation@users.noreply.github.com"
+          git add public/index.html src/index.js .github/workflows/patch-agenda-daily.yml
+          git commit -m "Ajandada ileri tarihli notları günlük listede tut" || exit 0
+          git push origin HEAD:main
