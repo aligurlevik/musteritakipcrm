@@ -21,17 +21,8 @@ async function patchHtml(response){
         var jobs=editableGraphicJobsForDay();
         document.querySelectorAll('#graphicJobRows .graphic-price').forEach(function(price,index){
           var job=jobs[index];if(!job)return;
-          var selectedDate=document.getElementById('g_date')?.value||'';
-          var entryDate=String(job.created_date||job.created_at||'').slice(0,10);
           var currentPrice=Number(job.price||0);
-          // Fiyat daha önce girilmişse, başka güne taşınmış kayıtta pasif kalır.
-          // Fiyat boş/0 ise sonradan hangi günde açılırsa açılsın girilebilir.
-          if(entryDate!==selectedDate&&currentPrice>0){
-            price.classList.add('passive-price');
-            price.textContent=currentPrice.toLocaleString('tr-TR')+' TL';
-            price.title='Bu fiyat ilk giriş gününün toplamına dahildir.';
-            return;
-          }
+          // Fiyat hangi gün görüntülenirse görüntülensin sonradan düzenlenebilir.
           var input=document.createElement('input');
           input.type='number';input.min='0';input.step='0.01';
           input.value=currentPrice||'';input.placeholder='Fiyat ₺';
@@ -44,7 +35,7 @@ async function patchHtml(response){
           tl.textContent='TL';tl.style.color='#047857';wrap.append(input,tl);price.replaceWith(wrap);
         });
       };
-      try{if(document.getElementById('graphicJobs')?.classList.contains('active')&&typeof renderGraphicJobs==='function')renderGraphicJobs()}catch(e){console.error('Boş fiyat düzenleme görünümü yenilenemedi:',e)}
+      try{if(document.getElementById('graphicJobs')?.classList.contains('active')&&typeof renderGraphicJobs==='function')renderGraphicJobs()}catch(e){console.error('Fiyat düzenleme görünümü yenilenemedi:',e)}
     }
     install();
   })();
