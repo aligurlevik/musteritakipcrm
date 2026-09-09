@@ -60,21 +60,25 @@ const REPORT_REVENUE_FIX = `async function renderRevenueTargetChart(s,range){
   let averageLabel='GÜNLÜK CİRO';
   let averageValue=total;
   let heading='Günlük Ciro Hedefi';
+  let periodName='Günlük';
 
   if(period==='weekly'){
     heading='Haftalık Ciro Durumu';
+    periodName='Haftalık';
     targetLabel='HAFTALIK HEDEF';
     targetValue=dailyTarget*totalBusinessDays;
     averageLabel='HAFTALIK GÜNLÜK ORTALAMA';
     averageValue=average;
   }else if(period==='monthly'){
     heading='Aylık Ciro Durumu';
+    periodName='Aylık';
     targetLabel='AYLIK HEDEF';
     targetValue=monthlyTarget;
     averageLabel='AYLIK GÜNLÜK ORTALAMA';
     averageValue=average;
   }else if(period==='custom'){
     heading='Seçilen Dönem Ciro Durumu';
+    periodName='İki Tarih Arası';
     targetLabel='DÖNEM HEDEFİ';
     targetValue=dailyTarget*totalBusinessDays;
     averageLabel='DÖNEM GÜNLÜK ORTALAMA';
@@ -95,11 +99,39 @@ const REPORT_REVENUE_FIX = `async function renderRevenueTargetChart(s,range){
     ? new Date(range.from+'T12:00:00').toLocaleDateString('tr-TR')
     : new Date(range.from+'T12:00:00').toLocaleDateString('tr-TR')+' — '+new Date(range.to+'T12:00:00').toLocaleDateString('tr-TR');
 
+  const statusCell=good
+    ? '<b style="color:#166534">HEDEFİN ÖNÜNDE</b>'
+    : '<b style="color:#991b1b">HEDEFİN GERİSİNDE</b>';
+
   panel.innerHTML='<h3>'+heading+'</h3>'+
     '<div class="revenue-compare" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+
       '<div class="revenue-compare-card target"><span>'+targetLabel+'</span><b>'+Math.round(targetValue).toLocaleString('tr-TR')+' TL</b><small>'+totalBusinessDays+' iş günü</small></div>'+
       '<div class="revenue-compare-card actual '+(good?'good':'bad')+'"><span>'+averageLabel+'</span><b>'+Math.round(averageValue).toLocaleString('tr-TR')+' TL</b><small>'+elapsedBusinessDays+' iş gününün ortalaması</small></div>'+
       '<div class="revenue-compare-card" style="border-color:#059669;background:#ecfdf5;color:#065f46"><span>TOPLAM CİRO</span><b>'+Math.round(total).toLocaleString('tr-TR')+' TL</b><small>'+dateText+' • '+jobs.length+' iş</small></div>'+
+    '</div>'+
+    '<div style="margin-top:14px;overflow:auto;border:2px solid #cbd5e1;border-radius:12px;background:#fff">'+
+      '<table style="width:100%;min-width:900px;border-collapse:collapse">'+
+        '<thead><tr>'+
+          '<th style="padding:11px;background:#e2e8f0">DÖNEM</th>'+
+          '<th style="padding:11px;background:#e2e8f0">TARİH</th>'+
+          '<th style="padding:11px;background:#e2e8f0">HEDEF</th>'+
+          '<th style="padding:11px;background:#e2e8f0">TOPLAM CİRO</th>'+
+          '<th style="padding:11px;background:#e2e8f0">GÜNLÜK ORTALAMA</th>'+
+          '<th style="padding:11px;background:#e2e8f0">HEDEF TEMPOSU</th>'+
+          '<th style="padding:11px;background:#e2e8f0">FARK</th>'+
+          '<th style="padding:11px;background:#e2e8f0">DURUM</th>'+
+        '</tr></thead>'+
+        '<tbody><tr>'+
+          '<td style="padding:12px;font-weight:900">'+periodName+'</td>'+
+          '<td style="padding:12px">'+dateText+'</td>'+
+          '<td style="padding:12px;font-weight:900">'+Math.round(targetValue).toLocaleString('tr-TR')+' TL</td>'+
+          '<td style="padding:12px;font-weight:900;color:#047857">'+Math.round(total).toLocaleString('tr-TR')+' TL</td>'+
+          '<td style="padding:12px;font-weight:900">'+Math.round(averageValue).toLocaleString('tr-TR')+' TL</td>'+
+          '<td style="padding:12px;font-weight:900">%'+performancePercent+'</td>'+
+          '<td style="padding:12px;font-weight:900;color:'+(difference>=0?'#166534':'#991b1b')+'">'+differenceText+'</td>'+
+          '<td style="padding:12px">'+statusCell+'</td>'+
+        '</tr></tbody>'+
+      '</table>'+
     '</div>'+
     '<div style="margin-top:10px;padding:8px 10px;border-radius:9px;font-weight:900;text-align:center;background:'+(good?'#dcfce7':'#fee2e2')+';color:'+(good?'#166534':'#991b1b')+'">'+statusText+'</div>'+
     '<div class="revenue-progress" title="Dönem hedefinin %'+fullTargetPercent+' kadarı tamamlandı"><div class="revenue-progress-fill '+(good?'':'bad')+'" style="width:'+Math.min(100,performancePercent)+'%"></div></div>';
