@@ -3,6 +3,11 @@ import worker from './agenda_rolling_week_patch.js';
 const oldDefaultDate = "const defaultDate=agendaDateKey();";
 const newDefaultDate = "const defaultDate=prefix==='todayInline'?localDateKey():agendaDateKey();";
 
+const oldAgendaTaskSort = "function agendaTaskSort(a,b){return Number(a.entry_status==='Yapıldı')-Number(b.entry_status==='Yapıldı')||Number(a.id)-Number(b.id)}";
+const newAgendaTaskSort = "function agendaTaskSort(a,b){return Number(a.entry_status==='Yapıldı')-Number(b.entry_status==='Yapıldı')||Number(a.id)-Number(b.id)}function agendaDailySort(a,b){const today=localDateKey(),ad=String(a.entry_date||''),bd=String(b.entry_date||''),aFuture=ad===today?0:1,bFuture=bd===today?0:1;if(aFuture!==bFuture)return aFuture-bFuture;if(ad!==bd)return ad.localeCompare(bd);const aDone=Number(a.entry_status==='Yapıldı'),bDone=Number(b.entry_status==='Yapıldı');if(aDone!==bDone)return aDone-bDone;const at=String(a.remind_at||''),bt=String(b.remind_at||'');if(at&&bt&&at!==bt)return at.localeCompare(bt);if(at&&!bt)return 1;if(!at&&bt)return -1;return Number(a.id)-Number(b.id)}";
+const oldDailySort = "[...todayAgendaEntries].sort(agendaTaskSort)";
+const newDailySort = "[...todayAgendaEntries].sort(agendaDailySort)";
+
 const NOTE_DAY_STYLE = `
 <style id="agendaWeekNoteEmphasis">
 .agenda-week-day:has(.agenda-week-count):not(.today){
@@ -29,6 +34,8 @@ export default {
 
     let html=await response.text();
     html=html.split(oldDefaultDate).join(newDefaultDate);
+    html=html.split(oldAgendaTaskSort).join(newAgendaTaskSort);
+    html=html.split(oldDailySort).join(newDailySort);
     if(!html.includes('agendaWeekNoteEmphasis'))html=html.replace('</body>',NOTE_DAY_STYLE+'\n</body>');
 
     const headers=new Headers(response.headers);
