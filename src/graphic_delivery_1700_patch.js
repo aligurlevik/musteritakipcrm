@@ -12,20 +12,23 @@ async function patchHtml(response){
   if(!html.includes('id="graphicJobs"')||html.includes('id="graphicDesktopQuickFixes"'))return response;
 
   const patch=`<style id="graphicDesktopQuickFixesStyle">
-#g_delivery_1700_quick{display:inline-flex!important;align-items:center;justify-content:center;min-width:64px;height:34px;margin-left:6px;border:2px solid #2563eb;border-radius:9px;padding:5px 10px;background:#dbeafe;color:#1d4ed8;font-weight:950;font-size:13px;cursor:pointer;white-space:nowrap;vertical-align:middle;position:relative;z-index:5}
-#g_delivery_1700_quick:hover{background:#bfdbfe}
+#g_delivery_quick_box #g_delivery_1700_quick{display:inline-flex!important;align-items:center;justify-content:center;height:26px!important;min-height:26px!important;margin-left:4px;border:1px solid #93c5fd;border-radius:7px;padding:0 8px;background:#fff;color:#1d4ed8;font-weight:950;font-size:10px;cursor:pointer;white-space:nowrap;position:relative;z-index:5}
+#g_delivery_quick_box #g_delivery_1700_quick:hover{background:#dbeafe}
 </style>
 <script id="graphicDesktopQuickFixes">
 (function(){
   function install1700(){
     var input=document.getElementById('g_delivery_time');
-    var wrap=document.getElementById('g_delivery_time_wrap');
-    if(!input||!wrap)return false;
+    var box=document.getElementById('g_delivery_quick_box');
+    if(!input||!box)return false;
+    var target=box.querySelector('.delivery-manual-time')||box.querySelectorAll('.delivery-quick-line')[1];
+    if(!target)return false;
     var button=document.getElementById('g_delivery_1700_quick');
     if(!button){
       button=document.createElement('button');
       button.type='button';
       button.id='g_delivery_1700_quick';
+      button.className='delivery-quick-btn';
       button.textContent='17:00';
       button.title='Teslim saatini 17:00 yap';
       button.addEventListener('click',function(){
@@ -35,8 +38,10 @@ async function patchHtml(response){
         input.focus();
       });
     }
-    if(button.parentElement!==wrap.parentElement||button.previousElementSibling!==wrap){
-      wrap.insertAdjacentElement('afterend',button);
+    if(button.parentElement!==target){
+      target.appendChild(button);
+    }else if(button.previousElementSibling!==input){
+      input.insertAdjacentElement('afterend',button);
     }
     return true;
   }
