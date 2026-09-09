@@ -8,33 +8,101 @@ const REPORT_REVENUE_FIX = `async function renderRevenueTargetChart(s,range){
     panel.className='revenue-target-chart';
     document.querySelector('#reports .report-kpis')?.insertAdjacentElement('beforebegin',panel);
   }
+
   const monthlyTarget=2000000;
-  const dayKey=$('reportDate').value||localDateKey();
-  const targetDate=new Date(dayKey+'T12:00:00');
-  let businessDays=0;
-  const cursor=new Date(targetDate.getFullYear(),targetDate.getMonth(),1,12);
-  const monthEnd=new Date(targetDate.getFullYear(),targetDate.getMonth()+1,0,12);
-  while(cursor<=monthEnd){
-    const weekDay=cursor.getDay();
-    const key=localDateKey(cursor);
-    if(weekDay!==0&&weekDay!==6&&!trackingHolidays.has(key))businessDays++;
-    cursor.setDate(cursor.getDate()+1);
-  }
-  const dailyTarget=monthlyTarget/Math.max(businessDays,1);
-  let actual=0;
-  let dayJobs=[];
+  const period=range.period||'daily';
+  const selectedKey=$('reportDate').value||localDateKey();
+  const todayKey=localDateKey();
+
+  const isBusinessDay=date=>{
+    const day=date.getDay();
+    const key=localDateKey(date);
+    return day!==0&&day!==6&&!trackingHolidays.has(key);
+  };
+  const businessDaysInMonth=dateKey=>{
+    const base=new Date(dateKey+'T12:00:00');
+    const d=new Date(base.getFullYear(),base.getMonth(),1,12);
+    const end=new Date(base.getFullYear(),base.getMonth()+1,0,12);
+    let count=0;
+    while(d<=end){if(isBusinessDay(d))count++;d.setDate(d.getDate()+1)}
+    return Math.max(count,1);
+  };
+  const countBusinessDays=(fromKey,toKey,stopAtToday=false)=>{
+    const d=new Date(fromKey+'T12:00:00');
+    const end=new Date(toKey+'T12:00:00');
+    let count=0;
+    while(d<=end){
+      const key=localDateKey(d);
+      if(stopAtToday&&key>todayKey)break;
+      if(isBusinessDay(d))count++;
+      d.setDate(d.getDate()+1);
+    }
+    return count;
+  };
+
+  const dailyTarget=monthlyTarget/businessDaysInMonth(selectedKey);
+  const totalBusinessDays=Math.max(countBusinessDays(range.from,range.to,false),1);
+  const elapsedBusinessDays=Math.max(countBusinessDays(range.from,range.to,true),1);
+
+  let jobs=[];
   try{
-    const result=await req('/api/graphic-jobs?created_from='+encodeURIComponent(dayKey)+'&created_to='+encodeURIComponent(dayKey));
-    dayJobs=Array.isArray(result)?result:[];
-    actual=dayJobs.reduce((sum,job)=>sum+Number(job.price||0),0);
+    const result=await req('/api/graphic-jobs?created_from='+encodeURIComponent(range.from)+'&created_to='+encodeURIComponent(range.to));
+    jobs=Array.isArray(result)?result:[];
   }catch(error){
-    console.error('Günlük ciro yüklenemedi:',error);
-    if(range.period==='daily')actual=Number(s.revenue_total||0);
+    console.error('Ciro verisi yüklenemedi:',error);
   }
-  const percent=Math.round(actual/dailyTarget*100);
-  const good=actual>=dailyTarget;
-  const shownDate=new Date(dayKey+'T12:00:00').toLocaleDateString('tr-TR');
-  panel.innerHTML='<h3>Günlük Ciro Hedefi</h3><div class="revenue-compare"><div class="revenue-compare-card target"><span>HEDEF GÜNLÜK CİRO</span><b>'+Math.round(dailyTarget).toLocaleString('tr-TR')+' TL</b></div><div class="revenue-compare-card actual '+(good?'good':'bad')+'"><span>GÜNLÜK CİRO • '+shownDate+'</span><b>'+Math.round(actual).toLocaleString('tr-TR')+' TL</b><small>'+dayJobs.length+' iş</small></div></div><div class="revenue-progress"><div class="revenue-progress-fill '+(good?'':'bad')+'" style="width:'+Math.min(100,percent)+'%"></div></div>';
+
+  const total=jobs.length?jobs.reduce((sum,job)=>sum+Number(job.price||0),0):Number(s.revenue_total||0);
+  const average=total/elapsedBusinessDays;
+
+  let targetLabel='HEDEF GÜNLÜK CİRO';
+  let targetValue=dailyTarget;
+  let averageLabel='GÜNLÜK CİRO';
+  let averageValue=total;
+  let heading='Günlük Ciro Hedefi';
+
+  if(period==='weekly'){
+    heading='Haftalık Ciro Durumu';
+    targetLabel='HAFTALIK HEDEF';
+    targetValue=dailyTarget*totalBusinessDays;
+    averageLabel='HAFTALIK GÜNLÜK ORTALAMA';
+    averageValue=average;
+  }else if(period==='monthly'){
+    heading='Aylık Ciro Durumu';
+    targetLabel='AYLIK HEDEF';
+    targetValue=monthlyTarget;
+    averageLabel='AYLIK GÜNLÜK ORTALAMA';
+    averageValue=average;
+  }else if(period==='custom'){
+    heading='Seçilen Dönem Ciro Durumu';
+    targetLabel='DÖNEM HEDEFİ';
+    targetValue=dailyTarget*totalBusinessDays;
+    averageLabel='DÖNEM GÜNLÜK ORTALAMA';
+    averageValue=average;
+  }
+
+  const expectedToDate=dailyTarget*elapsedBusinessDays;
+  const performancePercent=Math.round(total/Math.max(expectedToDate,1)*100);
+  const fullTargetPercent=Math.round(total/Math.max(targetValue,1)*100);
+  const good=total>=expectedToDate;
+  const difference=total-expectedToDate;
+  const differenceText=(difference>=0?'+':'')+Math.round(difference).toLocaleString('tr-TR')+' TL';
+  const statusText=good
+    ? 'Hedef temposunun '+performancePercent+'% seviyesindesiniz • '+differenceText+' öndesiniz'
+    : 'Hedef temposunun '+performancePercent+'% seviyesindesiniz • '+Math.abs(Math.round(difference)).toLocaleString('tr-TR')+' TL geridesiniz';
+
+  const dateText=period==='daily'
+    ? new Date(range.from+'T12:00:00').toLocaleDateString('tr-TR')
+    : new Date(range.from+'T12:00:00').toLocaleDateString('tr-TR')+' — '+new Date(range.to+'T12:00:00').toLocaleDateString('tr-TR');
+
+  panel.innerHTML='<h3>'+heading+'</h3>'+
+    '<div class="revenue-compare" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+
+      '<div class="revenue-compare-card target"><span>'+targetLabel+'</span><b>'+Math.round(targetValue).toLocaleString('tr-TR')+' TL</b><small>'+totalBusinessDays+' iş günü</small></div>'+
+      '<div class="revenue-compare-card actual '+(good?'good':'bad')+'"><span>'+averageLabel+'</span><b>'+Math.round(averageValue).toLocaleString('tr-TR')+' TL</b><small>'+elapsedBusinessDays+' iş gününün ortalaması</small></div>'+
+      '<div class="revenue-compare-card" style="border-color:#059669;background:#ecfdf5;color:#065f46"><span>TOPLAM CİRO</span><b>'+Math.round(total).toLocaleString('tr-TR')+' TL</b><small>'+dateText+' • '+jobs.length+' iş</small></div>'+
+    '</div>'+
+    '<div style="margin-top:10px;padding:8px 10px;border-radius:9px;font-weight:900;text-align:center;background:'+(good?'#dcfce7':'#fee2e2')+';color:'+(good?'#166534':'#991b1b')+'">'+statusText+'</div>'+
+    '<div class="revenue-progress" title="Dönem hedefinin %'+fullTargetPercent+' kadarı tamamlandı"><div class="revenue-progress-fill '+(good?'':'bad')+'" style="width:'+Math.min(100,performancePercent)+'%"></div></div>';
 }`;
 
 const GRAPHIC_DAILY_FIX = `function moveGraphicTurnoversToCalendar(){
