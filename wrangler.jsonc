@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/ciro_checked_only_fix.js",
+  "main": "src/projet_xlsx_import_patch.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,4 @@
     }
   ]
 }
-// ciro-checked-only-fix-2026-09-10
+// projet-xlsx-import-2026-09-10
