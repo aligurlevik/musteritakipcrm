@@ -149,7 +149,6 @@ const PROJET_XLSX_IMPORT_PATCH = String.raw`
     }
     const cells = readSheetCells(await archive.readFile(sheetPath), shared);
     const delivery = excelSerialToParts(cells.E6);
-    const orderDate = excelSerialToParts(cells.B8).date;
     const company = String(cells.B3 || '').trim();
     const description = String(cells.B4 || '').trim();
     const jobNo = String(cells.B5 || '').trim();
@@ -168,8 +167,7 @@ const PROJET_XLSX_IMPORT_PATCH = String.raw`
       quantity: 1,
       status: normalizeStatus(cells.E7),
       remind_at: delivery.time ? delivery.date+'T'+delivery.time : '',
-      allow_duplicate: false,
-      _order_date: orderDate
+      allow_duplicate: false
     };
   }
 
@@ -185,7 +183,9 @@ const PROJET_XLSX_IMPORT_PATCH = String.raw`
       await req('/api/graphic-jobs',{method:'POST',body:JSON.stringify(payload)});
       if(typeof showMsg === 'function') showMsg('✅ Projet’ten aktarıldı: '+payload.customer_name+' — '+payload.job_no);
       const selectedDate = document.getElementById('g_date');
-      if(selectedDate) selectedDate.value = payload._order_date || (typeof localDateKey === 'function' ? localDateKey() : payload.work_date);
+      if(selectedDate) selectedDate.value = typeof localDateKey === 'function' ? localDateKey() : payload.work_date;
+      const search = document.getElementById('graphicSearch');
+      if(search) search.value = '';
       if(typeof loadGraphicJobs === 'function') await loadGraphicJobs();
     }catch(error){
       const message = String(error?.message || error || 'Aktarım başarısız.');
