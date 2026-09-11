@@ -49,7 +49,7 @@ async function mobileAgenda(request,env){
 .noteTitleMobile{font-size:17px;font-weight:950;line-height:24px;color:#102f4d;padding:3px 4px 5px;border-bottom:2px solid #9db8d0;white-space:normal;word-break:break-word}
 .card.hasMobileTitle .noteText{display:none!important}
 #editTitleMobile{width:100%;border:2px solid #8db0cf;border-radius:9px;padding:9px 10px;font-size:17px;font-weight:900;color:#102f4d;background:#fff}
-@media(max-width:560px){.toprow{display:flex;flex-wrap:wrap;gap:6px}.title{order:1;font-size:21px}.toprow>.newbtn{order:2;margin-left:auto;padding:9px 10px;font-size:13px}.mobileTopActions{order:3;flex:0 0 100%;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,.8fr) minmax(0,1fr);gap:5px}.mobileTopActions>button{width:100%}.refreshbtn,.logoutbtn{padding:8px 6px;font-size:12px}.tabs{top:92px}.noteTitleMobile{font-size:16px}}
+@media(max-width:560px){.toprow{display:flex;flex-wrap:wrap;gap:6px}.title{order:1;font-size:21px}.toprow>.newbtn{order:2;margin-left:auto;padding:9px 10px;font-size:13px}.mobileTopActions{order:3;flex:0 0 100%;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,.8fr) minmax(0,1fr);gap:5px}.mobileTopActions>button{width:100%}.refreshbtn,.logoutbtn{padding:8px 6px;font-size:12px}.tabs{top:92px}.noteTitleMobile{font-size:18px;line-height:26px}}
 </style>`;
   if(!html.includes('id="mobileMenuOpacityFix"'))html=html.replace('</head>',mobileFixes+'\n</head>');
 
