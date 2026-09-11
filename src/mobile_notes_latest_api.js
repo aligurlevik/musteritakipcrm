@@ -91,7 +91,9 @@ async function notesApi(request,env,url){
     const m=p.match(new RegExp('^/api/notes-v3/(\\d+)/'+name+'$'));
     if(m&&request.method==='POST'){
       const id=+m[1],u=await unlocked(env,id);if(u.err)return u.err;
-      await env.DB.prepare('UPDATE agenda_entries SET is_archived=? WHERE id=?').bind(val,id).run();return json({ok:true});
+      if(val)await env.DB.prepare('UPDATE agenda_entries SET is_archived=1 WHERE id=?').bind(id).run();
+      else await env.DB.prepare("UPDATE agenda_entries SET is_archived=0,entry_status='Yapılacak',completed_date='' WHERE id=?").bind(id).run();
+      return json({ok:true});
     }
   }
   const im=p.match(/^\/api\/notes-v3\/(\d+)\/(important|unimportant)$/);
@@ -99,7 +101,7 @@ async function notesApi(request,env,url){
   const lm=p.match(/^\/api\/notes-v3\/(\d+)\/(lock|unlock)$/);
   if(lm&&request.method==='POST'){await env.DB.prepare("UPDATE agenda_entries SET is_locked=? WHERE id=? AND COALESCE(source_type,'manual')='manual'").bind(lm[2]==='lock'?1:0,+lm[1]).run();return json({ok:true})}
   const dm=p.match(/^\/api\/notes-v3\/(\d+)\/(done|undo)$/);
-  if(dm&&request.method==='POST'){const done=dm[2]==='done';await env.DB.prepare(`UPDATE agenda_entries SET entry_status=?,completed_date=?,reminder_status=CASE WHEN COALESCE(remind_at,'')<>'' THEN ? ELSE reminder_status END WHERE id=? AND COALESCE(source_type,'manual')='manual'`).bind(done?'Yapıldı':'Yapılacak',done?todayTR():'',done?'Tamamlandı':'Açık',+dm[1]).run();return json({ok:true})}
+  if(dm&&request.method==='POST'){const done=dm[2]==='done';await env.DB.prepare(`UPDATE agenda_entries SET entry_status=?,completed_date=?,is_archived=?,reminder_status=CASE WHEN COALESCE(remind_at,'')<>'' THEN ? ELSE reminder_status END WHERE id=? AND COALESCE(source_type,'manual')='manual'`).bind(done?'Yapıldı':'Yapılacak',done?todayTR():'',done?1:0,done?'Tamamlandı':'Açık',+dm[1]).run();return json({ok:true})}
   const fm=p.match(/^\/api\/notes-v3\/(\d+)\/alarm-fired$/);
   if(fm&&request.method==='POST'){await env.DB.prepare("UPDATE agenda_entries SET reminder_status='Çaldı' WHERE id=?").bind(+fm[1]).run();return json({ok:true})}
   return json({error:'Bulunamadı'},404);

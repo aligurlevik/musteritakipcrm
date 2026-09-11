@@ -71,6 +71,9 @@ test('Not başlığı yalnızca telefon ekranında büyür',async()=>{
   assert.match(body,/ALI GURLEVIK/);
   assert.match(body,/NOT DEFTERİ/);
   assert.match(body,/class="fingerprintLogin"/);
+  assert.match(body,/archiveDate/);
+  assert.match(body,/Geri Çek/);
+  assert.match(body,/Yazıldı:/);
 });
 
 test('mobile=1 masaüstü tarayıcıda da güvenli mobil yolu kullanır',async()=>{
