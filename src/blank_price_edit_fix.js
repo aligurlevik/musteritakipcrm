@@ -9,7 +9,7 @@ async function patchHtml(response){
   const ct=response.headers.get('content-type')||'';
   if(!ct.includes('text/html'))return response;
   let html=await response.text();
-  if(html.includes('id="blankPriceEditFix"'))return response;
+  const needsPatch=!html.includes('id="blankPriceEditFix"');
 
   const script=`<script id="blankPriceEditFix">
   (function(){
@@ -40,7 +40,7 @@ async function patchHtml(response){
     install();
   })();
   </script>`;
-  html=html.replace('</body>',script+'</body>');
+  if(needsPatch)html=html.replace('</body>',script+'</body>');
   const h=new Headers(response.headers);
   h.delete('content-length');h.delete('content-encoding');h.delete('etag');
   h.set('content-type','text/html; charset=utf-8');

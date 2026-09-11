@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/projet_xlsx_import_patch.js",
+  "main": "src/production_guard.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,4 @@
     }
   ]
 }
-// projet-xlsx-import-2026-09-10
+// production-guard-2026-09-11

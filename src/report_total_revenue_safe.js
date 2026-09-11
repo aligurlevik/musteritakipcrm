@@ -9,7 +9,7 @@ async function patchHtml(response){
   const ct=response.headers.get('content-type')||'';
   if(!ct.includes('text/html'))return response;
   let html=await response.text();
-  if(html.includes('id="safeTotalRevenueScript"'))return response;
+  const needsPatch=!html.includes('id="safeTotalRevenueScript"');
 
   const css=`<style id="safeTotalRevenueCss">
   #reports .revenue-compare{grid-template-columns:repeat(3,minmax(0,1fr))!important}
@@ -74,8 +74,10 @@ async function patchHtml(response){
   })();
   </script>`;
 
-  html=html.replace('</head>',css+'</head>');
-  html=html.replace('</body>',script+'</body>');
+  if(needsPatch){
+    html=html.replace('</head>',css+'</head>');
+    html=html.replace('</body>',script+'</body>');
+  }
   const h=new Headers(response.headers);
   h.delete('content-length');h.delete('content-encoding');h.delete('etag');
   h.set('content-type','text/html; charset=utf-8');
