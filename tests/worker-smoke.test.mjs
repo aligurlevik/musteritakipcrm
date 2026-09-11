@@ -73,6 +73,7 @@ test('Not başlığı yalnızca telefon ekranında büyür',async()=>{
   assert.match(body,/class="fingerprintLogin"/);
   assert.match(body,/archiveDate/);
   assert.match(body,/Geri Çek/);
+  assert.match(body,/Düzenle/);
   assert.match(body,/Yazıldı:/);
 });
 
