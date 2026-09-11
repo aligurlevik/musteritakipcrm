@@ -9,7 +9,7 @@ async function patchHtml(response){
   const type=response.headers.get('content-type')||'';
   if(!type.includes('text/html'))return response;
   let html=await response.text();
-  if(!html.includes('id="graphicJobs"')||html.includes('id="graphicDesktopQuickFixes"'))return response;
+  const needsPatch=html.includes('id="graphicJobs"')&&!html.includes('id="graphicDesktopQuickFixes"');
 
   const patch=`<style id="graphicDesktopQuickFixesStyle">
 #g_delivery_quick_box #g_delivery_1700_quick{display:inline-flex!important;align-items:center;justify-content:center;height:26px!important;min-height:26px!important;margin-left:4px;border:1px solid #93c5fd;border-radius:7px;padding:0 8px;background:#fff;color:#1d4ed8;font-weight:950;font-size:10px;cursor:pointer;white-space:nowrap;position:relative;z-index:5}
@@ -81,7 +81,7 @@ async function patchHtml(response){
 })();
 </script>`;
 
-  html=html.replace('</body>',patch+'\n</body>');
+  if(needsPatch)html=html.replace('</body>',patch+'\n</body>');
   const headers=new Headers(response.headers);
   headers.delete('content-length');headers.delete('content-encoding');headers.delete('etag');
   headers.set('content-type','text/html; charset=utf-8');
