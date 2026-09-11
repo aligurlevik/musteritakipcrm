@@ -20,6 +20,7 @@ async function unlocked(env,id){const n=await getNote(env,id);if(!n)return{err:j
 async function api(request,env,url){if(await sessionRole(request,env)!=='admin')return json({error:'Yetkisiz'},401);await ensureSchema(env);const p=url.pathname;
   if(p==='/api/notes-v3'&&request.method==='GET'){
     const scope=url.searchParams.get('scope')||'all',notebook=notebookNo(url.searchParams.get('notebook'));
+    await env.DB.prepare("UPDATE agenda_entries SET is_archived=1 WHERE COALESCE(source_type,'manual')='manual' AND COALESCE(is_archived,0)=0 AND entry_status='Yapıldı'").run();
     let w="COALESCE(a.source_type,'manual')='manual' AND COALESCE(a.notebook_no,1)="+notebook;
     w+=scope==='archive'?" AND COALESCE(a.is_archived,0)=1":" AND COALESCE(a.is_archived,0)=0";
     const rows=(await env.DB.prepare(`SELECT a.*,CASE WHEN v.agenda_id IS NULL THEN 0 ELSE 1 END has_voice FROM agenda_entries a LEFT JOIN agenda_voice_notes v ON v.agenda_id=a.id WHERE ${w} ORDER BY CASE WHEN COALESCE(a.entry_status,'Yapılacak')='Yapıldı' THEN 1 ELSE 0 END ASC,COALESCE(a.is_important,0) DESC,COALESCE(a.is_locked,0) DESC,a.id DESC LIMIT 1200`).all()).results||[];
