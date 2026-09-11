@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/production_guard.js",
+  "main": "src/temporary_d1_backup.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
