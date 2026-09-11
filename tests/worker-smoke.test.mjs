@@ -70,6 +70,7 @@ test('Not başlığı yalnızca telefon ekranında büyür',async()=>{
   assert.match(body,/@media\(max-width:560px\)[\s\S]*?\.noteTitleMobile\{font-size:18px;line-height:26px\}/);
   assert.match(body,/ALI GURLEVIK/);
   assert.match(body,/NOT DEFTERİ/);
+  assert.match(body,/class="fingerprintLogin"/);
 });
 
 test('mobile=1 masaüstü tarayıcıda da güvenli mobil yolu kullanır',async()=>{
