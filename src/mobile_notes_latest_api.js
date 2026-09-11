@@ -56,7 +56,7 @@ async function notesApi(request,env,url){
   const p=url.pathname;
   if(p==='/api/notes-v3'&&request.method==='GET'){
     const scope=url.searchParams.get('scope')||'all',notebook=notebookNo(url.searchParams.get('notebook'));
-    await env.DB.prepare("UPDATE agenda_entries SET is_archived=1 WHERE COALESCE(source_type,'manual')='manual' AND COALESCE(is_archived,0)=0 AND entry_status='Yapıldı'").run();
+    await env.DB.prepare("UPDATE agenda_entries SET is_archived=1 WHERE COALESCE(source_type,'manual')='manual' AND COALESCE(is_archived,0)=0 AND entry_status='Yapıldı' AND entry_date<?").bind(todayTR()).run();
     let w="COALESCE(a.source_type,'manual')='manual' AND COALESCE(a.notebook_no,1)="+notebook;
     w+=scope==='archive'?" AND COALESCE(a.is_archived,0)=1":" AND COALESCE(a.is_archived,0)=0";
     const rows=(await env.DB.prepare(`SELECT a.*,CASE WHEN v.agenda_id IS NULL THEN 0 ELSE 1 END has_voice
@@ -102,7 +102,7 @@ async function notesApi(request,env,url){
   const lm=p.match(/^\/api\/notes-v3\/(\d+)\/(lock|unlock)$/);
   if(lm&&request.method==='POST'){await env.DB.prepare("UPDATE agenda_entries SET is_locked=? WHERE id=? AND COALESCE(source_type,'manual')='manual'").bind(lm[2]==='lock'?1:0,+lm[1]).run();return json({ok:true})}
   const dm=p.match(/^\/api\/notes-v3\/(\d+)\/(done|undo)$/);
-  if(dm&&request.method==='POST'){const done=dm[2]==='done';await env.DB.prepare(`UPDATE agenda_entries SET entry_status=?,completed_date=?,is_archived=?,reminder_status=CASE WHEN COALESCE(remind_at,'')<>'' THEN ? ELSE reminder_status END WHERE id=? AND COALESCE(source_type,'manual')='manual'`).bind(done?'Yapıldı':'Yapılacak',done?todayTR():'',done?1:0,done?'Tamamlandı':'Açık',+dm[1]).run();return json({ok:true})}
+  if(dm&&request.method==='POST'){const done=dm[2]==='done';await env.DB.prepare(`UPDATE agenda_entries SET entry_status=?,completed_date=?,is_archived=?,reminder_status=CASE WHEN COALESCE(remind_at,'')<>'' THEN ? ELSE reminder_status END WHERE id=? AND COALESCE(source_type,'manual')='manual'`).bind(done?'Yapıldı':'Yapılacak',done?todayTR():'',0,done?'Tamamlandı':'Açık',+dm[1]).run();return json({ok:true})}
   const fm=p.match(/^\/api\/notes-v3\/(\d+)\/alarm-fired$/);
   if(fm&&request.method==='POST'){await env.DB.prepare("UPDATE agenda_entries SET reminder_status='Çaldı' WHERE id=?").bind(+fm[1]).run();return json({ok:true})}
   return json({error:'Bulunamadı'},404);
