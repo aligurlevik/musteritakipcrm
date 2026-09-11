@@ -43,19 +43,20 @@ async function mobileAgenda(request,env){
 .card.done .menu,.card.done .menuBox,.card.done .menuBox *{opacity:1!important}
 .menu[open]{z-index:150!important}
 .menu[open] .menuBox{z-index:200!important;background:#fff!important;opacity:1!important}
-.mobileTopActions{display:flex;align-items:center;gap:5px;flex:0 0 auto}
+.mobileTopActions{display:flex;align-items:center;justify-content:flex-end;gap:5px;flex:1 1 auto}
 .refreshbtn{border:0;border-radius:10px;padding:9px 9px;background:#fff;color:#123f68;font-size:13px;font-weight:950;white-space:nowrap;box-shadow:0 1px 4px #0002}
+.logoutbtn{border:2px solid #c62828;border-radius:10px;padding:7px 10px;background:#fff4f2;color:#9b1c1c;font-size:13px;font-weight:950;white-space:nowrap;box-shadow:0 1px 4px #0002}
 .noteTitleMobile{font-size:17px;font-weight:950;line-height:24px;color:#102f4d;padding:3px 4px 5px;border-bottom:2px solid #9db8d0;white-space:normal;word-break:break-word}
 .card.hasMobileTitle .noteText{display:none!important}
 #editTitleMobile{width:100%;border:2px solid #8db0cf;border-radius:9px;padding:9px 10px;font-size:17px;font-weight:900;color:#102f4d;background:#fff}
-@media(max-width:430px){.toprow{gap:5px}.title{font-size:21px}.mobileTopActions .newbtn{padding:9px 9px;font-size:13px}.refreshbtn{padding:9px 7px;font-size:12px}.noteTitleMobile{font-size:16px}}
+@media(max-width:560px){.toprow{display:flex;flex-wrap:wrap;gap:6px}.title{order:1;font-size:21px}.toprow>.newbtn{order:2;margin-left:auto;padding:9px 10px;font-size:13px}.mobileTopActions{order:3;flex:0 0 100%;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,.8fr) minmax(0,1fr);gap:5px}.mobileTopActions>button{width:100%}.refreshbtn,.logoutbtn{padding:8px 6px;font-size:12px}.tabs{top:92px}.noteTitleMobile{font-size:16px}}
 </style>`;
   if(!html.includes('id="mobileMenuOpacityFix"'))html=html.replace('</head>',mobileFixes+'\n</head>');
 
   if(!html.includes('class="refreshbtn"')){
     html=html.replace(
       '<div class="title">📝 Notlarım</div><button class="newbtn" onclick="location.href=\'/yeni-not.html\'">＋ Yeni Not</button>',
-      '<div class="title">📝 Notlarım</div><div class="mobileTopActions"><button class="refreshbtn" onclick="location.reload()">⟳ Yenile</button><button class="newbtn" onclick="location.href=\'/yeni-not.html\'">＋ Yeni Not</button></div>'
+      '<div class="title">📝 Notlarım</div><div class="mobileTopActions"><button class="refreshbtn" type="button" onclick="location.reload()">⟳ Yenile</button><button class="logoutbtn" type="button" aria-label="Oturumu kapat" onclick="logoutNotes(this)">↪ Çıkış</button></div><button class="newbtn" type="button" onclick="location.href=\'/yeni-not.html\'">＋ Yeni Not</button>'
     );
   }
 
@@ -118,6 +119,15 @@ async function mobileAgenda(request,env){
 })();
 </script>`;
   if(!html.includes('id="mobileTitleListPatch"'))html=html.replace('</body>',titleListPatch+'\n</body>');
+
+  const logoutScript=`<script id="mobileLogoutScript">
+window.logoutNotes=async function(button){
+  if(button)button.disabled=true;
+  try{await fetch('/api/logout',{method:'POST',credentials:'same-origin',cache:'no-store'})}catch(_){}
+  location.replace('/notlar-v2.html');
+};
+</script>`;
+  if(!html.includes('id="mobileLogoutScript"'))html=html.replace('</body>',logoutScript+'\n</body>');
 
   return noCacheHtml(response,html);
 }
