@@ -1,4 +1,4 @@
-import worker from './production_guard.js';
+import worker from './agenda_title_detail_wrapper.js';
 
 // This route is intentionally temporary. It is removed as soon as the backup
 // download has been validated.
