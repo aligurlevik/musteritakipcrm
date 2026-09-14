@@ -105,3 +105,5 @@ Ardından:
 
 Tarayıcı bildirimi için Görüşmeler ekranındaki **Bildirim İzni** düğmesine basın. CRM açıkken zamanı gelen görüşme hatırlatması Windows bildirimi olarak gösterilir.
 Cloudflare otomatik deploy aktif.
+
+<!-- deploy-trigger: agenda-title-detail-2026-09-14 -->
