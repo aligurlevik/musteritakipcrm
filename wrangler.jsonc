@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/production_guard.js",
+  "main": "src/desktop_agenda_eye_safe.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,4 @@
     }
   ]
 }
-// emergency-stable-entry-2026-09-15
+// desktop-agenda-eye-safe-2026-09-15
