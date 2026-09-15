@@ -3,8 +3,9 @@ import worker from './agenda_popup_top.js';
 const INJECT = String.raw`
 <style id="agendaTitleOnlyStyle">
 .done-note,.agenda-note,.month-day-note,.agenda-week-note,.note-text{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-.mobile-note-view-button{margin:8px 0 0 34px;border:0;border-radius:8px;background:#ffffffcc;color:#1e3a8a;padding:6px 10px;font-size:12px;font-weight:900;box-shadow:0 1px 4px #0001}
-.mobile-note-view-button:active{transform:scale(.98)}
+.note-card .note-main{padding-right:40px}
+.mobile-note-view-button{position:absolute;right:8px;top:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;margin:0;border:0;border-radius:50%;background:#ffffffd9;color:#1e3a8a;padding:0;font-size:18px;line-height:1;box-shadow:0 1px 5px #0002}
+.mobile-note-view-button:active{transform:scale(.94)}
 </style>
 <script id="agendaTitleOnlyScript">
 (function(){
@@ -41,8 +42,9 @@ const INJECT = String.raw`
       var button=document.createElement('button');
       button.type='button';
       button.className='mobile-note-view-button';
-      button.textContent='👁 Gör';
+      button.textContent='👁️';
       button.setAttribute('aria-label','Notun içini gör');
+      button.title='Notun içini gör';
       button.addEventListener('click',function(event){
         event.stopPropagation();
         if(typeof window.openEditNote==='function')window.openEditNote(id);
