@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/mobile_note_eye_safe.js",
+  "main": "src/mobile_day_colors_safe.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,4 @@
     }
   ]
 }
-// mobile-note-eye-safe-2026-09-15
+// mobile-day-colors-safe-2026-09-15
