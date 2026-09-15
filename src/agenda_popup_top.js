@@ -80,11 +80,7 @@ const POPUP_INJECT = String.raw`
     if(id&&typeof window.closeAgendaDetail==='function')window.closeAgendaDetail(id);
   });
 
-  /*
-   * Başlık + açıklama kaydını doğrudan API'ye gönderiyoruz.
-   * Böylece açıklamayı aynı text inputuna geçici olarak yazıp satır sonlarını
-   * kaybetmiyoruz. Veritabanında ilk satır başlık, devamı açıklama olarak kalır.
-   */
+  /* Başlık ve açıklama doğrudan ayrı hazırlanıp tek not kaydına yazılır. */
   var fallbackSave=window.saveAgendaInline;
   window.saveAgendaInline=async function(date,noteId,reminderId){
     var detailInput=document.getElementById(noteId);
@@ -101,14 +97,14 @@ const POPUP_INJECT = String.raw`
       return;
     }
 
-    var note=detail?title+'\\n\\n'+detail:title;
+    var note=detail?title+'\n\n'+detail:title;
     var prefix=reminderId.replace('Reminder','');
     var targetDate=document.getElementById(prefix+'Date')?.value||date;
     var hour=String(document.getElementById(prefix+'Hour')?.value||'').trim();
     var minute=String(document.getElementById(prefix+'Minute')?.value||'').trim();
 
-    if(hour!==''&&(!/^\\d{1,2}$/.test(hour)||Number(hour)>23))return showMsg('Saat 0 ile 23 arasında olmalı.','err');
-    if(minute!==''&&(!/^\\d{1,2}$/.test(minute)||Number(minute)>59))return showMsg('Dakika 0 ile 59 arasında olmalı.','err');
+    if(hour!==''&&(!/^\d{1,2}$/.test(hour)||Number(hour)>23))return showMsg('Saat 0 ile 23 arasında olmalı.','err');
+    if(minute!==''&&(!/^\d{1,2}$/.test(minute)||Number(minute)>59))return showMsg('Dakika 0 ile 59 arasında olmalı.','err');
     if(minute!==''&&hour==='')return showMsg('Dakika yazdıysanız saati de yazmalısınız.','err');
 
     var remindAt=hour!==''?targetDate+'T'+hour.padStart(2,'0')+':'+(minute||'0').padStart(2,'0'):'';
