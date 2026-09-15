@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/agenda_popup_top.js",
+  "main": "src/agenda_title_only_top.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,4 @@
     }
   ]
 }
-// agenda-popup-2026-09-15
+// agenda-title-only-2026-09-15
