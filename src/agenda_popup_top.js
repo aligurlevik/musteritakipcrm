@@ -2,7 +2,26 @@ import worker from './temporary_d1_backup.js';
 
 const POPUP_INJECT = String.raw`
 <style id="agendaPopupStyle">
-/* Ajanda başlığına basınca açıklamayı gerçek pencere gibi göster */
+/* Ajanda dış görünümünde yalnızca başlık öne çıksın. */
+.done-item .completion-badge,
+.done-item .agenda-thumb,
+.done-item-meta > .reminder-badge,
+.agenda-entry .completion-badge,
+.agenda-entry .agenda-thumb,
+.agenda-entry .agenda-reminder{
+  display:none!important;
+}
+.done-item,
+.agenda-entry{
+  min-height:36px!important;
+}
+.done-item .done-note,
+.agenda-entry .agenda-note{
+  font-weight:900!important;
+  line-height:1.25!important;
+}
+
+/* Başlığa basınca açıklamayı gerçek pencere gibi göster. */
 .agenda-inline-detail{
   position:fixed!important;
   left:50%!important;
