@@ -6,11 +6,25 @@ const MOBILE_NOTE_EYE = String.raw`
 #list .body.mobile-note-has-detail{position:relative;padding-right:34px!important}
 #list .mobile-note-eye-safe{position:absolute;right:2px;top:1px;width:28px;height:28px;border:0;border-radius:50%;background:#eaf4ff;color:#1769c2;display:grid;place-items:center;padding:0;font-size:15px;line-height:1;z-index:6;cursor:pointer}
 #list .mobile-note-eye-safe:active{transform:scale(.94)}
+#list .card.mobile-day-color{transition:background-color .15s ease,border-color .15s ease}
 </style>
 <script id="mobileNoteEyeSafeScript">
 (function(){
   if(window.__mobileNoteEyeSafe)return;
   window.__mobileNoteEyeSafe=true;
+
+  var dateById=new Map();
+  var lastLoad=0;
+  var loading=null;
+  var palette=[
+    {bg:'#e8f3ff',border:'#3b82f6'},
+    {bg:'#eafaf1',border:'#22c55e'},
+    {bg:'#fff4df',border:'#f59e0b'},
+    {bg:'#f3eefe',border:'#8b5cf6'},
+    {bg:'#ffecef',border:'#f43f5e'},
+    {bg:'#e8fbfb',border:'#14b8a6'},
+    {bg:'#f5f0e8',border:'#a16207'}
+  ];
 
   function splitNote(value){
     var raw=String(value==null?'':value).replace(/\r\n/g,'\n').trim();
@@ -32,10 +46,59 @@ const MOBILE_NOTE_EYE = String.raw`
     return m?Number(m[1]):0;
   }
 
+  function dateKey(value){
+    var s=String(value||'').trim();
+    var m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m?m[1]+'-'+m[2]+'-'+m[3]:'';
+  }
+
+  function colorForDate(value){
+    var key=dateKey(value),m=key.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(!m)return null;
+    var day=Math.floor(Date.UTC(Number(m[1]),Number(m[2])-1,Number(m[3]))/86400000);
+    var idx=((day%palette.length)+palette.length)%palette.length;
+    return palette[idx];
+  }
+
+  async function loadDates(force){
+    if(loading)return loading;
+    if(!force&&Date.now()-lastLoad<5000)return;
+    loading=(async function(){
+      try{
+        var r=await fetch('/api/notes-v3?scope=all',{headers:{accept:'application/json'}});
+        if(!r.ok)return;
+        var items=await r.json();
+        if(!Array.isArray(items))return;
+        dateById.clear();
+        items.forEach(function(x){
+          var id=Number(x&&x.id);
+          var d=dateKey((x&&x.created_at)||(x&&x.entry_date));
+          if(id&&d)dateById.set(id,d);
+        });
+        lastLoad=Date.now();
+      }catch(_){}
+      finally{loading=null}
+    })();
+    return loading;
+  }
+
+  function paintCard(card,id){
+    if(!id)return;
+    var date=dateById.get(Number(id));
+    var c=colorForDate(date);
+    if(!c)return;
+    card.classList.add('mobile-day-color');
+    card.style.setProperty('background-color',c.bg,'important');
+    card.style.setProperty('border-color',c.border,'important');
+  }
+
   function applyCard(card){
     var text=card.querySelector('.noteText');
     var body=card.querySelector('.body');
     if(!text||!body)return;
+
+    var id=itemId(card);
+    paintCard(card,id);
 
     var full=text.dataset.mobileFullNote;
     if(!full){
@@ -58,7 +121,6 @@ const MOBILE_NOTE_EYE = String.raw`
 
     body.classList.add('mobile-note-has-detail');
     if(eye)return;
-    var id=itemId(card);
     if(!id)return;
 
     eye=document.createElement('button');
@@ -78,12 +140,19 @@ const MOBILE_NOTE_EYE = String.raw`
   function apply(){
     var list=document.getElementById('list');
     if(!list)return;
-    list.querySelectorAll('.card').forEach(applyCard);
+    var unknown=false;
+    list.querySelectorAll('.card').forEach(function(card){
+      var id=itemId(card);
+      if(id&&!dateById.has(id))unknown=true;
+      applyCard(card);
+    });
+    if(unknown)loadDates(false).then(apply);
   }
 
-  function start(){
+  async function start(){
     var list=document.getElementById('list');
     if(!list)return;
+    await loadDates(true);
     apply();
     var queued=false;
     new MutationObserver(function(){
@@ -91,6 +160,9 @@ const MOBILE_NOTE_EYE = String.raw`
       queued=true;
       requestAnimationFrame(function(){queued=false;apply()});
     }).observe(list,{childList:true,subtree:true});
+    document.addEventListener('visibilitychange',function(){
+      if(!document.hidden)loadDates(true).then(apply);
+    });
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
