@@ -20,6 +20,20 @@ const POPUP_INJECT = String.raw`
   font-weight:900!important;
   line-height:1.25!important;
 }
+.agenda-view-button{
+  margin-left:7px!important;
+  padding:3px 8px!important;
+  min-height:25px!important;
+  border:1px solid #93c5fd!important;
+  border-radius:7px!important;
+  background:#eff6ff!important;
+  color:#1d4ed8!important;
+  font-size:11px!important;
+  font-weight:900!important;
+  cursor:pointer!important;
+  white-space:nowrap!important;
+}
+.agenda-view-button:hover{background:#dbeafe!important}
 
 /* Başlığa basınca açıklamayı gerçek pencere gibi göster. */
 .agenda-inline-detail{
@@ -65,6 +79,7 @@ const POPUP_INJECT = String.raw`
 @media(max-width:700px){
   .agenda-inline-detail{width:94vw!important;max-height:88vh!important;padding:17px!important}
   .agenda-inline-detail-text{font-size:15px!important}
+  .agenda-view-button{font-size:10px!important;padding:3px 6px!important}
 }
 </style>
 <script id="agendaPopupScript">
@@ -79,6 +94,34 @@ const POPUP_INJECT = String.raw`
     var id=Number(panel.getAttribute('data-agenda-id'));
     if(id&&typeof window.closeAgendaDetail==='function')window.closeAgendaDetail(id);
   });
+
+  function ensureAgendaViewButtons(){
+    document.querySelectorAll('.done-note.agenda-title-click,.agenda-note.agenda-title-click').forEach(function(titleEl){
+      var id=Number(titleEl.getAttribute('data-agenda-id'));
+      if(!id)return;
+      var parent=titleEl.parentElement;
+      if(!parent||parent.querySelector('.agenda-view-button[data-agenda-id="'+id+'"]'))return;
+      var button=document.createElement('button');
+      button.type='button';
+      button.className='agenda-view-button';
+      button.setAttribute('data-agenda-id',String(id));
+      button.textContent='👁 Gör';
+      button.title='Notun açıklamasını aç';
+      button.addEventListener('click',function(event){
+        event.preventDefault();
+        event.stopPropagation();
+        if(typeof window.toggleAgendaDetail==='function')window.toggleAgendaDetail(id,titleEl);
+      });
+      titleEl.insertAdjacentElement('afterend',button);
+    });
+  }
+
+  var viewButtonObserver=new MutationObserver(function(){ensureAgendaViewButtons()});
+  viewButtonObserver.observe(document.documentElement,{subtree:true,childList:true});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureAgendaViewButtons,{once:true});
+  else ensureAgendaViewButtons();
+  setTimeout(ensureAgendaViewButtons,0);
+  setTimeout(ensureAgendaViewButtons,300);
 
   /* Başlık ve açıklama doğrudan ayrı hazırlanıp tek not kaydına yazılır. */
   var fallbackSave=window.saveAgendaInline;
