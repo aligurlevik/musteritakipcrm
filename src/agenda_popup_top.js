@@ -71,6 +71,7 @@ const POPUP_INJECT = String.raw`
 (function(){
   if(window.__agendaPopupLoaded)return;
   window.__agendaPopupLoaded=true;
+
   document.addEventListener('keydown',function(event){
     if(event.key!=='Escape')return;
     var panel=document.querySelector('.agenda-inline-detail.open');
@@ -78,6 +79,70 @@ const POPUP_INJECT = String.raw`
     var id=Number(panel.getAttribute('data-agenda-id'));
     if(id&&typeof window.closeAgendaDetail==='function')window.closeAgendaDetail(id);
   });
+
+  /*
+   * Başlık + açıklama kaydını doğrudan API'ye gönderiyoruz.
+   * Böylece açıklamayı aynı text inputuna geçici olarak yazıp satır sonlarını
+   * kaybetmiyoruz. Veritabanında ilk satır başlık, devamı açıklama olarak kalır.
+   */
+  var fallbackSave=window.saveAgendaInline;
+  window.saveAgendaInline=async function(date,noteId,reminderId){
+    var detailInput=document.getElementById(noteId);
+    var titleInput=document.getElementById(noteId+'Title');
+    if(!detailInput||!titleInput){
+      return typeof fallbackSave==='function'?fallbackSave.apply(this,arguments):undefined;
+    }
+
+    var title=String(titleInput.value||'').trim();
+    var detail=String(detailInput.value||'').trim();
+    if(!title){
+      if(typeof showMsg==='function')showMsg('Önce başlık yazmalısınız.','err');
+      titleInput.focus();
+      return;
+    }
+
+    var note=detail?title+'\\n\\n'+detail:title;
+    var prefix=reminderId.replace('Reminder','');
+    var targetDate=document.getElementById(prefix+'Date')?.value||date;
+    var hour=String(document.getElementById(prefix+'Hour')?.value||'').trim();
+    var minute=String(document.getElementById(prefix+'Minute')?.value||'').trim();
+
+    if(hour!==''&&(!/^\\d{1,2}$/.test(hour)||Number(hour)>23))return showMsg('Saat 0 ile 23 arasında olmalı.','err');
+    if(minute!==''&&(!/^\\d{1,2}$/.test(minute)||Number(minute)>59))return showMsg('Dakika 0 ile 59 arasında olmalı.','err');
+    if(minute!==''&&hour==='')return showMsg('Dakika yazdıysanız saati de yazmalısınız.','err');
+
+    var remindAt=hour!==''?targetDate+'T'+hour.padStart(2,'0')+':'+(minute||'0').padStart(2,'0'):'';
+    var imageData=(typeof agendaDraftImages!=='undefined'&&agendaDraftImages[prefix])||'';
+    var tempId=-(Date.now()+Math.floor(Math.random()*1000));
+    var optimisticItem={id:tempId,entry_date:targetDate,note:note,remind_at:remindAt,reminder_status:remindAt?'Açık':'',entry_status:'Yapılacak',completed_date:'',image_data:imageData,sort_order:999999};
+
+    if(typeof agendaMonthKey==='function'&&targetDate.slice(0,7)===agendaMonthKey()){
+      agendaEntries.push(optimisticItem);
+      agendaEntries.sort(function(a,b){return a.entry_date.localeCompare(b.entry_date)||Number(a.id)-Number(b.id)});
+      refreshTodayAgendaEntries();
+      renderAgenda();
+      setupAgendaTimeSelectors();
+      await new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(resolve)})});
+    }
+
+    try{
+      var saved=await req('/api/agenda',{method:'POST',body:JSON.stringify({entry_date:targetDate,note:note,remind_at:remindAt,image_data:imageData})});
+      if(typeof agendaDraftImages!=='undefined')delete agendaDraftImages[prefix];
+      var optimisticIndex=agendaEntries.findIndex(function(x){return x.id===tempId});
+      if(optimisticIndex>=0)agendaEntries[optimisticIndex]={...agendaEntries[optimisticIndex],id:saved.id};
+      refreshTodayAgendaEntries();
+      renderAgenda();
+      setupAgendaTimeSelectors();
+      if(typeof showMsg==='function')showMsg('Not eklendi.');
+      if(typeof pollAgendaReminders==='function')pollAgendaReminders().catch(function(){});
+    }catch(e){
+      agendaEntries=agendaEntries.filter(function(x){return x.id!==tempId});
+      refreshTodayAgendaEntries();
+      renderAgenda();
+      setupAgendaTimeSelectors();
+      if(typeof showMsg==='function')showMsg('Not kaydedilemedi: '+e.message,'err');
+    }
+  };
 })();
 </script>`;
 
