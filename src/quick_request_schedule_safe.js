@@ -89,13 +89,21 @@ async function decorateAlarmBadges(){
   try{
     var r=await originalFetch('/api/agenda/active?from='+encodeURIComponent(dateKey()),{headers:{'cache-control':'no-cache'}});if(!r.ok)return;var rows=await r.json(),map={};
     (Array.isArray(rows)?rows:[]).forEach(function(x){if(ids.includes(Number(x.id))&&isQuickNote(x.note))map[Number(x.id)]=x});
-    buttons.forEach(function(b){var id=Number(b.getAttribute('data-qr-done')),x=map[id],card=b.closest('.qr-card');if(!card)return;card.querySelectorAll('[data-qrs-badge]').forEach(function(n){n.remove()});if(!x)return;var text=x.remind_at?'🔔 '+formatAlarm(x.remind_at):'📅 '+String(x.entry_date||'');var badge=document.createElement('span');badge.className='qrs-badge';badge.dataset.qrsBadge=String(id);badge.textContent=text;var meta=card.querySelector('.qr-meta');if(meta)meta.insertAdjacentElement('beforebegin',badge);else card.querySelector('.qr-detail')?.insertAdjacentElement('afterend',badge)})
+    buttons.forEach(function(b){
+      var id=Number(b.getAttribute('data-qr-done')),x=map[id],card=b.closest('.qr-card');if(!card)return;
+      var badge=card.querySelector('[data-qrs-badge]');
+      if(!x){if(badge)badge.remove();return}
+      var text=x.remind_at?'🔔 '+formatAlarm(x.remind_at):'📅 '+String(x.entry_date||'');
+      if(badge){if(badge.textContent!==text)badge.textContent=text;return}
+      badge=document.createElement('span');badge.className='qrs-badge';badge.dataset.qrsBadge=String(id);badge.textContent=text;
+      var meta=card.querySelector('.qr-meta');if(meta)meta.insertAdjacentElement('beforebegin',badge);else card.querySelector('.qr-detail')?.insertAdjacentElement('afterend',badge)
+    })
   }catch(_){}
 }
 
 function apply(){if(ensureSchedule())decorateAlarmBadges()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(apply,100)},{once:true});else setTimeout(apply,100);
-var timer;new MutationObserver(function(){clearTimeout(timer);timer=setTimeout(apply,150)}).observe(document.documentElement,{subtree:true,childList:true});
+var timer;new MutationObserver(function(){clearTimeout(timer);timer=setTimeout(apply,220)}).observe(document.documentElement,{subtree:true,childList:true});
 setInterval(decorateAlarmBadges,30000);
 })();
 </script>`;
