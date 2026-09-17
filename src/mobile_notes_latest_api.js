@@ -24,6 +24,16 @@ const clean=(v,n=12000)=>String(v??'').trim().slice(0,n);
 function color(v,fallback){const s=String(v||'').trim();return /^#[0-9a-fA-F]{6}$/.test(s)?s:fallback}
 function notebookNo(v){return Math.max(1,Math.min(3,Number(v)||1))}
 
+function readImage(value){
+  if(typeof value!=='string')return {error:'Resim verisi geçersiz.',status:400};
+  const data=value.trim();
+  if(!data)return {data:''};
+  if(data.length>900000)return {error:'Resim çok büyük. Daha küçük bir resim seçin.',status:413};
+  const match=data.match(/^data:image\/(?:jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/]+={0,2})$/i);
+  if(!match||match[1].length%4!==0)return {error:'Resim verisi geçersiz.',status:400};
+  return {data};
+}
+
 let schemaPromise;
 async function columns(env,t){const r=await env.DB.prepare(`PRAGMA table_info(${t})`).all();return new Set((r.results||[]).map(x=>x.name))}
 async function ensureCol(env,t,n,d){const c=await columns(env,t);if(!c.has(n))await env.DB.prepare(`ALTER TABLE ${t} ADD COLUMN ${n} ${d}`).run()}
@@ -36,7 +46,7 @@ async function ensureSchema(env){
       completed_date TEXT DEFAULT '',image_data TEXT DEFAULT '',source_type TEXT DEFAULT 'manual',created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )`).run();
     for(const [n,d] of [
-      ['source_type',"TEXT DEFAULT 'manual'"],['title',"TEXT DEFAULT ''"],['note_type',"TEXT DEFAULT 'Genel Not'"],
+      ['source_type',"TEXT DEFAULT 'manual'"],['image_data',"TEXT DEFAULT ''"],['title',"TEXT DEFAULT ''"],['note_type',"TEXT DEFAULT 'Genel Not'"],
       ['is_important','INTEGER DEFAULT 0'],['is_archived','INTEGER DEFAULT 0'],['is_locked','INTEGER DEFAULT 0'],
       ['text_color',"TEXT DEFAULT '#101828'"],['bg_color',"TEXT DEFAULT '#fffdf1'"],['notebook_no','INTEGER DEFAULT 1']
     ])await ensureCol(env,'agenda_entries',n,d);
@@ -68,18 +78,22 @@ async function notesApi(request,env,url){
   if(p==='/api/notes-v3'&&request.method==='POST'){
     const b=await body(request),note=clean(b.note);
     if(!note)return json({error:'Not boş olamaz.'},400);
+    const image=readImage(b.image_data===undefined?'':b.image_data);
+    if(image.error)return json({error:image.error},image.status);
     const d=String(b.entry_date||todayTR()).slice(0,10),rem=clean(b.remind_at,40),tc=color(b.text_color,'#101828'),bc=color(b.bg_color,'#fffdf1'),important=b.is_important?1:0,notebook=notebookNo(b.notebook_no),title=clean(b.title,120);
     const last=await env.DB.prepare("SELECT COALESCE(MAX(sort_order),0) n FROM agenda_entries WHERE COALESCE(source_type,'manual')='manual' AND entry_date=? AND COALESCE(notebook_no,1)=?").bind(d,notebook).first();
     const r=await env.DB.prepare(`INSERT INTO agenda_entries(entry_date,sort_order,note,remind_at,reminder_status,entry_status,completed_date,image_data,source_type,title,note_type,is_important,is_archived,is_locked,text_color,bg_color,notebook_no)
-      VALUES(?,?,?,?,?,'Yapılacak','','','manual',?,'Genel Not',?,0,0,?,?,?)`).bind(d,Number(last?.n||0)+1,note,rem,rem?'Açık':'',title,important,tc,bc,notebook).run();
+      VALUES(?,?,?,?,?,'Yapılacak','',?,'manual',?,'Genel Not',?,0,0,?,?,?)`).bind(d,Number(last?.n||0)+1,note,rem,rem?'Açık':'',image.data,title,important,tc,bc,notebook).run();
     return json({ok:true,id:r.meta.last_row_id},201);
   }
   const item=p.match(/^\/api\/notes-v3\/(\d+)$/);
   if(item&&request.method==='PUT'){
     const id=+item[1],u=await unlocked(env,id);if(u.err)return u.err;
     const b=await body(request),note=b.note===undefined?u.n.note:clean(b.note);if(!note)return json({error:'Not boş olamaz.'},400);
+    const image=b.image_data===undefined?{data:String(u.n.image_data||'')}:readImage(b.image_data);
+    if(image.error)return json({error:image.error},image.status);
     const rem=b.remind_at===undefined?String(u.n.remind_at||''):clean(b.remind_at,40),rs=b.remind_at===undefined?String(u.n.reminder_status||''):(rem?'Açık':''),tc=b.text_color===undefined?color(u.n.text_color,'#101828'):color(b.text_color,'#101828'),bc=b.bg_color===undefined?color(u.n.bg_color,'#fffdf1'):color(b.bg_color,'#fffdf1');
-    await env.DB.prepare('UPDATE agenda_entries SET note=?,remind_at=?,reminder_status=?,text_color=?,bg_color=? WHERE id=?').bind(note,rem,rs,tc,bc,id).run();
+    await env.DB.prepare('UPDATE agenda_entries SET note=?,remind_at=?,reminder_status=?,text_color=?,bg_color=?,image_data=? WHERE id=?').bind(note,rem,rs,tc,bc,image.data,id).run();
     return json({ok:true});
   }
   if(item&&request.method==='DELETE'){

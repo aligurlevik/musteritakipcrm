@@ -28,6 +28,11 @@ export default {
       if(!html.includes('/notes-pages-patch.js')){
         html=html.replace('<script>','<script src="/notes-pages-patch.js?v=20260907-restore"></script>\n<script>');
       }
+      if(!html.includes('/notes-image-patch.js')){
+        html=html.replace('</body>','<script src="/notes-image-patch.js?v=20260917-1"></script>\n</body>');
+      }else{
+        html=html.replace(/\/notes-image-patch\.js\?v=[^"']+/g,'/notes-image-patch.js?v=20260917-1');
+      }
     }
 
     if(notesPage){
