@@ -1,0 +1,79 @@
+import worker from './quick_request_whatsapp_safe.js';
+
+const QUICK_REQUEST_FILES = String.raw`
+<style id="quickRequestFilesCompletedSafeStyle">
+#quickRequestAttachV2{background:#e0f2fe!important;color:#075985!important}
+#quickRequestFilePickedV2{display:none;margin-top:8px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#475569;font-size:12px}
+#quickRequestFilePickedV2.show{display:block}
+#quickRequestCompletedV2{margin-top:22px}
+#quickRequestCompletedV2 h3{margin:0 0 8px;font-size:14px;color:#64748b}
+.qr2-completed-list{display:grid;gap:10px}
+.qr2-card{background:#f8fafc;border:1px solid #cbd5e1;border-left:6px solid #94a3b8;border-radius:12px;padding:12px 14px}
+.qr2-card-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.qr2-title{font-weight:950;color:#475569}.qr2-detail{margin-top:5px;white-space:pre-wrap;line-height:1.4}.qr2-meta{margin-top:7px;font-size:11px;color:#64748b}
+.qr2-undo{border:0;border-radius:8px;background:#dbeafe;color:#1d4ed8;padding:8px 10px;font-weight:900;cursor:pointer;white-space:nowrap}
+.qr2-file{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:6px 9px;border-radius:8px;background:#eff6ff;color:#1d4ed8;text-decoration:none;font-size:12px;font-weight:900;border:1px solid #bfdbfe}
+.qr2-file.pdf{background:#fff1f2;color:#be123c;border-color:#fecdd3}.qr2-empty{padding:16px;text-align:center;border:1px dashed #cbd5e1;border-radius:10px;color:#64748b;background:#fff}
+.qr2-agenda-file{display:inline-flex;align-items:center;gap:4px;margin-left:7px;padding:3px 7px;border-radius:7px;background:#eff6ff;color:#1d4ed8!important;text-decoration:none!important;font-size:11px!important;font-weight:900!important;border:1px solid #bfdbfe}.qr2-agenda-file.pdf{background:#fff1f2;color:#be123c!important;border-color:#fecdd3}
+@media(max-width:720px){.qr2-card-top{flex-direction:column}.qr2-undo{width:100%}}
+</style>
+<script id="quickRequestFilesCompletedSafeScript">
+(function(){
+'use strict';if(window.__quickRequestFilesCompletedSafe)return;window.__quickRequestFilesCompletedSafe=true;
+var selectedFile=null,fileMeta={};
+function pad(n){return String(n).padStart(2,'0')}function today(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function split(note){var raw=String(note||'').replace(/\r\n/g,'\n').trim(),lines=raw.split('\n');return {title:(lines.shift()||'').trim().replace(/^⚡\s+/,''),detail:lines.join('\n').trim()}}
+function isQuick(x){return /^⚡\s+/.test(String(x&&x.note||''))}
+async function api(path,opts){var r=await fetch(path,Object.assign({headers:{'content-type':'application/json','cache-control':'no-cache'}},opts||{})),d={};try{d=await r.json()}catch(_){}if(!r.ok)throw new Error(d.error||'İşlem başarısız');return d}
+function toast(text){var el=document.getElementById('quickRequestToast');if(el){el.textContent=text;el.style.display='block';clearTimeout(window.__qr2Toast);window.__qr2Toast=setTimeout(function(){el.style.display='none'},3000)}else alert(text)}
+function addUi(){
+ var box=document.getElementById('quickRequestBox'),save=document.getElementById('quickRequestSave');if(!box||!save)return false;
+ if(!document.getElementById('quickRequestFileV2')){
+   var input=document.createElement('input');input.id='quickRequestFileV2';input.type='file';input.accept='.pdf,image/jpeg,image/png,image/webp';input.style.display='none';box.appendChild(input);
+   var picked=document.createElement('div');picked.id='quickRequestFilePickedV2';box.insertBefore(picked,box.querySelector('.qr-actions'));
+   var attach=document.createElement('button');attach.type='button';attach.id='quickRequestAttachV2';attach.textContent='📎 Resim / PDF Ekle';attach.onclick=function(){input.click()};
+   var actions=box.querySelector('.qr-actions');actions.insertBefore(attach,document.getElementById('quickRequestClose'));
+   input.onchange=function(){var f=input.files&&input.files[0];if(!f){selectedFile=null;showPicked();return}var ok=['application/pdf','image/jpeg','image/png','image/webp'];if(ok.indexOf(f.type)<0){input.value='';selectedFile=null;showPicked();toast('Sadece PDF, JPG, PNG veya WEBP ekleyebilirsiniz.');return}if(f.size>5*1024*1024){input.value='';selectedFile=null;showPicked();toast('Dosya en fazla 5 MB olabilir.');return}selectedFile=f;showPicked()};
+ }
+ save.onclick=saveWithFile;
+ if(!document.getElementById('quickRequestCompletedV2')){
+   var list=document.getElementById('quickRequestList');if(list){var wrap=document.createElement('div');wrap.id='quickRequestCompletedV2';wrap.innerHTML='<h3>BUGÜN TAMAMLANANLAR</h3><div class="qr2-completed-list"><div class="qr2-empty">Bugün tamamlanan talep yok.</div></div>';list.insertAdjacentElement('afterend',wrap)}
+ }
+ return true;
+}
+function showPicked(){var el=document.getElementById('quickRequestFilePickedV2');if(!el)return;if(!selectedFile){el.classList.remove('show');el.textContent='';return}el.textContent=(selectedFile.type==='application/pdf'?'📄 ':'🖼️ ')+selectedFile.name+' — '+Math.max(1,Math.round(selectedFile.size/1024))+' KB';el.classList.add('show')}
+async function upload(id,file){var fd=new FormData();fd.append('file',file,file.name);var r=await fetch('/api/quick-request-file/'+id,{method:'POST',body:fd}),d={};try{d=await r.json()}catch(_){}if(!r.ok)throw new Error(d.error||'Dosya yüklenemedi.');return d}
+async function saveWithFile(){
+ var customer=String(document.getElementById('quickRequestCustomer')?.value||'').trim(),text=String(document.getElementById('quickRequestText')?.value||'').trim();if(!customer)return toast('Müşteri / firma adını yazın.');if(!text)return toast('Talebi yazın veya WhatsApp’tan yapıştırın.');var file=selectedFile;
+ try{var created=await api('/api/agenda',{method:'POST',body:JSON.stringify({entry_date:today(),note:'⚡ '+customer+'\n'+text,remind_at:''})});if(file)await upload(created.id,file);document.getElementById('quickRequestOverlay')?.classList.remove('open');selectedFile=null;var fi=document.getElementById('quickRequestFileV2');if(fi)fi.value='';showPicked();toast(file?'Talep ve dosya kaydedildi.':'Hızlı talep kaydedildi.');setTimeout(refreshOriginal,100);setTimeout(refreshCompleted,180)}catch(e){toast(e.message)}
+}
+function refreshOriginal(){var menu=document.getElementById('quickRequestMenu');if(menu&&document.getElementById('quickRequests')?.classList.contains('active')){try{menu.click()}catch(_){}}else if(!menu){setTimeout(function(){location.reload()},400)}}
+async function getMeta(ids){ids=[...new Set(ids.map(Number).filter(Boolean))];if(!ids.length)return {};try{var rows=await api('/api/quick-request-files?ids='+encodeURIComponent(ids.join(','))),out={};(Array.isArray(rows)?rows:[]).forEach(function(x){out[Number(x.agenda_id)]=x});return out}catch(_){return {}}}
+function fileLink(id){var f=fileMeta[Number(id)];if(!f)return '';var pdf=f.mime_type==='application/pdf';return '<a class="qr2-file '+(pdf?'pdf':'')+'" href="/api/quick-request-file/'+Number(id)+'" target="_blank" rel="noopener">'+(pdf?'📄 PDF':'🖼️ Resim')+' — '+esc(f.file_name)+'</a>'}
+async function refreshCompleted(){
+ var wrap=document.getElementById('quickRequestCompletedV2');if(!wrap)return;try{var rows=await api('/api/agenda/completed?date='+encodeURIComponent(today())),items=(Array.isArray(rows)?rows:[]).filter(isQuick);var meta=await getMeta(items.map(function(x){return x.id}));Object.assign(fileMeta,meta);var list=wrap.querySelector('.qr2-completed-list');if(!items.length){list.innerHTML='<div class="qr2-empty">Bugün tamamlanan talep yok.</div>';return}list.innerHTML=items.map(function(x){var p=split(x.note);return '<div class="qr2-card"><div class="qr2-card-top"><div><div class="qr2-title">⚡ '+esc(p.title)+'</div><div class="qr2-detail">'+esc(p.detail)+'</div>'+fileLink(x.id)+'<div class="qr2-meta">✓ Bugün tamamlandı</div></div><button type="button" class="qr2-undo" data-qr2-undo="'+Number(x.id)+'">↩ Geri Al</button></div></div>'}).join('');list.querySelectorAll('[data-qr2-undo]').forEach(function(b){b.onclick=function(){undo(Number(b.getAttribute('data-qr2-undo')))}})}catch(_){} }
+async function undo(id){try{await api('/api/agenda/'+id+'/task-undo',{method:'POST',body:'{}'});toast('Talep tekrar bekleyenlere alındı.');refreshOriginal();setTimeout(refreshCompleted,150)}catch(e){toast(e.message)}}
+async function decorateWaitingFiles(){var list=document.getElementById('quickRequestList');if(!list)return;var buttons=[...list.querySelectorAll('[data-qr-done]')],ids=buttons.map(function(b){return Number(b.getAttribute('data-qr-done'))});if(!ids.length)return;var meta=await getMeta(ids);Object.assign(fileMeta,meta);buttons.forEach(function(b){var id=Number(b.getAttribute('data-qr-done')),f=fileMeta[id],card=b.closest('.qr-card');if(!f||!card||card.querySelector('[data-qr2-file="'+id+'"]'))return;var a=document.createElement('a');a.dataset.qr2File=String(id);a.className='qr2-file '+(f.mime_type==='application/pdf'?'pdf':'');a.href='/api/quick-request-file/'+id;a.target='_blank';a.rel='noopener';a.textContent=(f.mime_type==='application/pdf'?'📄 PDF':'🖼️ Resim')+' — '+f.file_name;a.onclick=function(e){e.stopPropagation()};var detail=card.querySelector('.qr-detail');if(detail)detail.insertAdjacentElement('afterend',a)})}
+async function decorateAgendaFiles(){var all=[];try{if(typeof agendaEntries!=='undefined'&&Array.isArray(agendaEntries))all=all.concat(agendaEntries)}catch(_){}try{if(typeof todayAgendaEntries!=='undefined'&&Array.isArray(todayAgendaEntries))all=all.concat(todayAgendaEntries)}catch(_){}var q=all.filter(isQuick),ids=q.map(function(x){return x.id});if(!ids.length)return;var meta=await getMeta(ids);Object.assign(fileMeta,meta);q.forEach(function(x){var f=fileMeta[Number(x.id)];if(!f)return;['agendaTodayText-','agendaDayText-'].forEach(function(prefix){var el=document.getElementById(prefix+x.id);if(!el||document.querySelector('[data-qr2-agenda="'+x.id+'"]'))return;var a=document.createElement('a');a.dataset.qr2Agenda=String(x.id);a.className='qr2-agenda-file '+(f.mime_type==='application/pdf'?'pdf':'');a.href='/api/quick-request-file/'+x.id;a.target='_blank';a.rel='noopener';a.textContent=f.mime_type==='application/pdf'?'📄 PDF':'🖼️ Resim';a.onclick=function(e){e.stopPropagation()};el.insertAdjacentElement('afterend',a)})})}
+function apply(){if(addUi()){refreshCompleted();decorateWaitingFiles();decorateAgendaFiles()}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(apply,80)},{once:true});else setTimeout(apply,80);
+var timer;new MutationObserver(function(){clearTimeout(timer);timer=setTimeout(function(){addUi();refreshCompleted();decorateWaitingFiles();decorateAgendaFiles()},120)}).observe(document.documentElement,{subtree:true,childList:true});setInterval(function(){refreshCompleted();decorateWaitingFiles()},30000);
+})();
+</script>`;
+
+function rebuild(response,html){const headers=new Headers(response.headers);headers.delete('content-length');headers.delete('content-encoding');headers.delete('etag');headers.set('cache-control','no-cache, no-store, must-revalidate');headers.set('pragma','no-cache');headers.set('expires','0');return new Response(html,{status:response.status,statusText:response.statusText,headers})}
+function apiJson(data,status=200){return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}
+async function isAdmin(request,env,ctx){try{const url=new URL(request.url);url.pathname='/api/session';url.search='';const r=await worker.fetch(new Request(url.toString(),{method:'GET',headers:request.headers}),env,ctx);if(!r.ok)return false;const d=await r.json();return d&&d.role==='admin'}catch(_){return false}}
+async function ensureFileTable(env){await env.DB.prepare(`CREATE TABLE IF NOT EXISTS quick_request_files (agenda_id INTEGER PRIMARY KEY,file_name TEXT NOT NULL,mime_type TEXT NOT NULL,file_data BLOB NOT NULL,created_at TEXT DEFAULT CURRENT_TIMESTAMP)`).run()}
+function safeName(name){return String(name||'dosya').replace(/[\r\n"\\]/g,'_').slice(0,180)||'dosya'}
+async function fileApi(request,env,ctx,url){
+ if(!await isAdmin(request,env,ctx))return apiJson({error:'Yetkisiz'},401);await ensureFileTable(env);
+ if(url.pathname==='/api/quick-request-files'&&request.method==='GET'){const ids=String(url.searchParams.get('ids')||'').split(',').map(Number).filter(x=>Number.isInteger(x)&&x>0).slice(0,150);if(!ids.length)return apiJson([]);const qs=ids.map(()=>'?').join(',');const rows=await env.DB.prepare(`SELECT agenda_id,file_name,mime_type,created_at FROM quick_request_files WHERE agenda_id IN (${qs})`).bind(...ids).all();return apiJson(rows.results||[])}
+ const m=url.pathname.match(/^\/api\/quick-request-file\/(\d+)$/);if(!m)return null;const id=Number(m[1]);
+ if(request.method==='POST'){const agenda=await env.DB.prepare("SELECT id,note FROM agenda_entries WHERE id=? AND COALESCE(source_type,'manual')='manual'").bind(id).first();if(!agenda||!/^⚡\s+/.test(String(agenda.note||'')))return apiJson({error:'Hızlı talep bulunamadı.'},404);let form;try{form=await request.formData()}catch(_){return apiJson({error:'Dosya okunamadı.'},400)}const file=form.get('file');if(!(file instanceof File))return apiJson({error:'Dosya seçilmedi.'},400);const allowed=new Set(['application/pdf','image/jpeg','image/png','image/webp']);if(!allowed.has(file.type))return apiJson({error:'Sadece PDF, JPG, PNG veya WEBP kabul edilir.'},400);if(file.size<=0||file.size>5*1024*1024)return apiJson({error:'Dosya en fazla 5 MB olabilir.'},400);const data=await file.arrayBuffer(),name=safeName(file.name);await env.DB.prepare(`INSERT INTO quick_request_files(agenda_id,file_name,mime_type,file_data,created_at) VALUES(?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(agenda_id) DO UPDATE SET file_name=excluded.file_name,mime_type=excluded.mime_type,file_data=excluded.file_data,created_at=CURRENT_TIMESTAMP`).bind(id,name,file.type,data).run();return apiJson({ok:true,agenda_id:id,file_name:name,mime_type:file.type},201)}
+ if(request.method==='GET'){const row=await env.DB.prepare('SELECT file_name,mime_type,file_data FROM quick_request_files WHERE agenda_id=?').bind(id).first();if(!row)return apiJson({error:'Dosya bulunamadı.'},404);const name=safeName(row.file_name),disp=(String(row.mime_type)==='application/pdf'||String(row.mime_type).startsWith('image/'))?'inline':'attachment';return new Response(row.file_data,{headers:{'content-type':row.mime_type||'application/octet-stream','content-disposition':`${disp}; filename*=UTF-8''${encodeURIComponent(name)}`,'cache-control':'private, no-store','x-content-type-options':'nosniff'}})}
+ return apiJson({error:'Yöntem desteklenmiyor.'},405)
+}
+
+export default{async fetch(request,env,ctx){const url=new URL(request.url);if(url.pathname==='/api/quick-request-files'||/^\/api\/quick-request-file\/\d+$/.test(url.pathname)){const r=await fileApi(request,env,ctx,url);if(r)return r}const response=await worker.fetch(request,env,ctx),backup=response.clone();try{const type=response.headers.get('content-type')||'';if(request.method!=='GET'||!type.includes('text/html'))return response;const html=await response.text();if(html.includes('quickRequestFilesCompletedSafeScript'))return rebuild(response,html);const desktop=html.includes('CRM Müşteri Takip')&&html.includes('class="menu"'),mobile=html.includes('id="list"')&&html.includes('Notlarım');if(!desktop&&!mobile)return rebuild(response,html);const next=html.includes('</body>')?html.replace('</body>',QUICK_REQUEST_FILES+'\n</body>'):html+QUICK_REQUEST_FILES;return rebuild(response,next)}catch(error){console.error('Quick request file/completed patch failed',error);return backup}}};
