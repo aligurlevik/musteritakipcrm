@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/quick_request_edit_safe.js",
+  "main": "src/quick_request_page_clean_safe.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -16,4 +16,4 @@
     }
   ]
 }
-// quick-request-edit-safe-2026-09-17
+// quick-request-page-clean-edit-inline-2026-09-17
