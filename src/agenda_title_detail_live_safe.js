@@ -193,7 +193,7 @@ const AGENDA_TITLE_DETAIL_LIVE = String.raw`
     var titleId=noteId+'Title';
     if(document.getElementById(titleId))return;
     var holder=document.createElement('div');holder.className='agenda-title-entry';
-    holder.innerHTML='<label>BAŞLIK</label><input id="'+titleId+'" type="text" autocomplete="off" autocapitalize="sentences" placeholder="Örn: TÜFEKÇİ">';
+    holder.innerHTML='<label>BAŞLIK</label><input id="'+titleId+'" type="text" autocomplete="off" autocapitalize="sentences">';
     var row=detail.parentElement;
     if(row&&row.parentElement===wrap)wrap.insertBefore(holder,row);else wrap.insertBefore(holder,wrap.firstChild);
     var title=document.getElementById(titleId);
