@@ -60,7 +60,7 @@ async function mobileAgenda(request,env){
     );
   }
 
-  const titleListPatch=`<script id="mobileTitleListPatch">
+  const titleListPatch=String.raw`<script id="mobileTitleListPatch">
 (function(){
   let busy=false;
   const nativeFetch=window.fetch.bind(window);

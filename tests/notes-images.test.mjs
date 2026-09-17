@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {DatabaseSync} from 'node:sqlite';
+import {Script} from 'node:vm';
 import test from 'node:test';
 
 if(!globalThis.crypto)globalThis.crypto=webcrypto;
@@ -104,6 +105,9 @@ test('the current mobile home and note routes load the photo controls once',asyn
     assert.equal(response.status,200);
     const html=await response.text();
     assert.equal((html.match(/src="\/notes-image-patch\.js\?v=20260917-1"/g)||[]).length,1,path);
+    for(const script of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)){
+      assert.doesNotThrow(()=>new Script(script[1],{filename:path}),path);
+    }
   }
   const response=await request('/notes-image-patch.js?v=20260917-1');
   assert.equal(response.status,200);
