@@ -65,20 +65,19 @@ async function mobileAgenda(request,env){
   let busy=false;
   const nativeFetch=window.fetch.bind(window);
   function escText(v){return String(v==null?'':v)}
-  function sortItems(arr){return [...arr].sort((a,b)=>{const ad=a.entry_status==='Yapıldı'?1:0,bd=b.entry_status==='Yapıldı'?1:0;if(ad!==bd)return ad-bd;const ai=Number(a.is_important||0),bi=Number(b.is_important||0);if(ai!==bi)return bi-ai;return Number(b.id)-Number(a.id)})}
   async function getItems(){
     const archive=document.getElementById('tab-archive')?.classList.contains('on');
     const r=await nativeFetch('/api/notes-v3?scope='+(archive?'archive':'all'),{cache:'no-store'});
     if(!r.ok)return[];
-    return sortItems(await r.json());
+    const rows=await r.json();return Array.isArray(rows)?rows:[];
   }
   async function applyTitles(){
     if(busy)return;busy=true;
     try{
-      const items=await getItems();
+      const items=new Map((await getItems()).map(item=>[Number(item.id),item]));
       const cards=[...document.querySelectorAll('#list .card')];
-      cards.forEach((card,i)=>{
-        const item=items[i];if(!item)return;
+      cards.forEach(card=>{
+        const item=items.get(Number(card.dataset.noteId));if(!item)return;
         const title=escText(item.title).trim();
         const body=card.querySelector('.body');if(!body)return;
         const old=body.querySelector('.noteTitleMobile');if(old)old.remove();
