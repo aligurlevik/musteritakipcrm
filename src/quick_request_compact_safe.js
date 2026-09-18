@@ -2,7 +2,7 @@ import worker from './quick_request_schedule_safe.js';
 
 const QUICK_REQUEST_COMPACT = String.raw`
 <style id="quickRequestCompactSafeStyle">
-/* Hızlı Talepler: 10+ kayıt ekranda rahat görünsün */
+/* NOT DEFTERI: 10+ kayıt ekranda rahat görünsün */
 #quickRequestList{gap:6px!important}
 #quickRequestList .qr-card{padding:7px 10px!important;min-height:58px!important;border-radius:10px!important}
 #quickRequestList .qr-card-top{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:10px!important;align-items:center!important}
@@ -46,13 +46,13 @@ const QUICK_REQUEST_COMPACT = String.raw`
 
   function toast(text){var el=document.getElementById('quickRequestToast');if(el){el.textContent=text;el.style.display='block';clearTimeout(window.__qrcToast);window.__qrcToast=setTimeout(function(){el.style.display='none'},2600)}else alert(text)}
   async function deleteQuick(id,card){
-    if(!confirm('Bu hızlı talep tamamen silinsin mi?'))return;
+    if(!confirm('Bu not tamamen silinsin mi?'))return;
     try{
       var r=await fetch('/api/agenda/'+id,{method:'DELETE',headers:{'cache-control':'no-cache'}}),d={};try{d=await r.json()}catch(_){}
-      if(!r.ok)throw new Error(d.error||'Talep silinemedi.');
-      card?.remove();toast('Hızlı talep silindi.');
+      if(!r.ok)throw new Error(d.error||'Not silinemedi.');
+      card?.remove();toast('Not silindi.');
       var menu=document.getElementById('quickRequestMenu');if(menu)setTimeout(function(){try{menu.click()}catch(_){}},80);
-    }catch(e){toast(e.message||'Talep silinemedi.')}
+    }catch(e){toast(e.message||'Not silinemedi.')}
   }
 
   function makeDelete(id,card){
