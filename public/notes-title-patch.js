@@ -2,6 +2,10 @@
   const path=location.pathname;
   const previousFetch=window.fetch.bind(window);
   const pad=n=>String(n).padStart(2,'0');
+  function bindAlarmPart(input,max){
+    input.addEventListener('input',()=>{input.value=String(input.value).replace(/\D/g,'').slice(0,2)});
+    input.addEventListener('blur',()=>{if(/^\d{1,2}$/.test(input.value)&&Number(input.value)<=max)input.value=pad(Number(input.value))});
+  }
 
   function fallbackTitle(note){
     const first=String(note||'').split(/\r?\n/).map(x=>x.trim()).find(Boolean)||'Başlıksız Not';
@@ -90,7 +94,7 @@
     const hidden=document.getElementById('editAlarmTime'),hour=document.getElementById('editAlarmHour'),minute=document.getElementById('editAlarmMinute');
     if(!hidden||!hour||!minute)return;
     const m=String(hidden.value||'').match(/^(\d{1,2}):(\d{2})/);
-    if(m){hour.value=String(Number(m[1]));minute.value=String(Number(m[2]))}else{hour.value='';minute.value=''}
+    if(m){hour.value=pad(Number(m[1]));minute.value=pad(Number(m[2]))}else{hour.value='';minute.value=''}
   }
   function syncAlarmToHidden(){
     const hidden=document.getElementById('editAlarmTime'),hour=document.getElementById('editAlarmHour'),minute=document.getElementById('editAlarmMinute');
@@ -99,8 +103,9 @@
     if(!hv&&!mv){hidden.value='';return true}
     if(!hv||!mv){alert('Alarm için saat ve dakikayı birlikte yazın.');(hv?minute:hour).focus();return false}
     const h=Number(hv),m=Number(mv);
-    if(!Number.isInteger(h)||h<0||h>23){alert('Saat 0 ile 23 arasında olmalı.');hour.focus();return false}
-    if(!Number.isInteger(m)||m<0||m>59){alert('Dakika 0 ile 59 arasında olmalı.');minute.focus();return false}
+    if(!/^\d{1,2}$/.test(hv)||h>23){alert('Saat iki rakamla, 00 ile 23 arasında olmalı.');hour.focus();return false}
+    if(!/^\d{1,2}$/.test(mv)||m>59){alert('Dakika iki rakamla, 00 ile 59 arasında olmalı.');minute.focus();return false}
+    hour.value=pad(h);minute.value=pad(m);
     hidden.value=pad(h)+':'+pad(m);
     return true;
   }
@@ -108,8 +113,8 @@
     const hidden=document.getElementById('editAlarmTime');if(!hidden||document.getElementById('editAlarmHour'))return;
     const grid=hidden.closest('.alarmGrid');if(!grid)return;
     hidden.style.display='none';hidden.setAttribute('aria-hidden','true');hidden.tabIndex=-1;
-    const hour=document.createElement('input');hour.id='editAlarmHour';hour.type='number';hour.inputMode='numeric';hour.min='0';hour.max='23';hour.placeholder='Saat';hour.setAttribute('aria-label','Saat');
-    const minute=document.createElement('input');minute.id='editAlarmMinute';minute.type='number';minute.inputMode='numeric';minute.min='0';minute.max='59';minute.placeholder='Dakika';minute.setAttribute('aria-label','Dakika');
+    const hour=document.createElement('input');hour.id='editAlarmHour';hour.type='text';hour.inputMode='numeric';hour.maxLength=2;hour.pattern='(?:[01][0-9]|2[0-3]|[0-9])';hour.autocomplete='off';hour.placeholder='Saat';hour.setAttribute('aria-label','Saat (00–23)');bindAlarmPart(hour,23);
+    const minute=document.createElement('input');minute.id='editAlarmMinute';minute.type='text';minute.inputMode='numeric';minute.maxLength=2;minute.pattern='(?:[0-5][0-9]|[0-9])';minute.autocomplete='off';minute.placeholder='Dakika';minute.setAttribute('aria-label','Dakika (00–59)');bindAlarmPart(minute,59);
     hidden.insertAdjacentElement('afterend',hour);hour.insertAdjacentElement('afterend',minute);grid.classList.add('editAlarmSplit');
   }
 

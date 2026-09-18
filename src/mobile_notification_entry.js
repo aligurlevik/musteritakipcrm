@@ -23,6 +23,7 @@ export default {
     if((!notesPage&&!newNotePage&&!planPage)||!response.ok||!type.includes('text/html'))return response;
 
     let html=await response.text();
+    html=html.replace(/\/notes-title-patch\.js(?:\?v=[^"']+)?/g,'/notes-title-patch.js?v=20260918-2');
 
     if(!html.includes('/phone-reminders.js')){
       html=html.replace('</head>','<link rel="manifest" href="/agenda.webmanifest"><link rel="apple-touch-icon" href="/agenda-icon-192.png"><script src="/phone-reminders.js?v=20260918-1"></script>\n</head>');
