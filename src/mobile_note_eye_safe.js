@@ -85,7 +85,7 @@ const MOBILE_NOTE_EYE = String.raw`
   function paintCard(card,id){
     if(!id)return;
     var date=card.dataset.noteDay||dateById.get(Number(id));
-    var c=window.crmNoteDays?window.crmNoteDays.colorForDate(date):colorForDate(date);
+    var c=window.crmNoteDays?window.crmNoteDays.colorForDate(date,card.classList.contains('done')):colorForDate(date);
     if(!c)return;
     card.classList.add('mobile-day-color');
     card.style.setProperty('background-color',c.bg,'important');

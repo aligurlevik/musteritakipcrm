@@ -60,7 +60,7 @@ const MOBILE_DAY_COLORS = String.raw`
       if(!id)return;
       var date=card.dataset.noteDay||dateById.get(id)||'';
       if(!date){unknown=true;return}
-      var c=window.crmNoteDays?window.crmNoteDays.colorForDate(date):colorForDate(date);
+      var c=window.crmNoteDays?window.crmNoteDays.colorForDate(date,card.classList.contains('done')):colorForDate(date);
       card.classList.add('mobile-day-colored');
       card.style.backgroundColor=c.bg;
       card.style.borderLeftColor=c.border;

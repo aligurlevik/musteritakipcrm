@@ -26,6 +26,7 @@
 <style>
 .noteDayHeading{margin:9px 0 2px;padding:9px 11px;border:1px solid;border-left-width:6px;border-radius:9px;font-size:16px;font-weight:950;line-height:1.4;color:#102f4d}
 .card[data-note-day]{border-left-width:6px}
+.card[data-note-day].done{opacity:1}
 </style>
 <script id="noteDayGroupsScript">
 (function(){
@@ -59,11 +60,11 @@
       return important||Number(b.id)-Number(a.id);
     });
   }
-  function colorForDate(day){
-    if(!dateKey(day))return {bg:'#edf2f7',border:'#94a3b8'};
+  function colorForDate(day,done=false){
+    if(!dateKey(day))return {bg:done?'#dce5ee':'#edf2f7',border:done?'#71869b':'#94a3b8'};
     const serial=Math.floor(new Date(day+'T12:00:00Z').getTime()/86400000);
     const hue=Math.round(((serial*137.508%360+360)%360)*100)/100;
-    return {bg:'hsl('+hue+', 75%, 94%)',border:'hsl('+hue+', 65%, 43%)'};
+    return {bg:'hsl('+hue+', 75%, '+(done?88:94)+'%)',border:'hsl('+hue+', 65%, '+(done?37:43)+'%)'};
   }
   function dayLabel(day,now=new Date()){
     if(!dateKey(day))return 'Tarihsiz notlar';
@@ -98,7 +99,7 @@ window.setScope=function(scope){state.scope=scope;$('tab-all').classList.toggle(
 window.render=function(){
   const days=window.crmNoteDays,now=new Date(),arr=days.sort(state.items,now);let previousDay=null;
   $('list').innerHTML=arr.length?arr.map(x=>{
-    const day=days.noteDay(x),colors=days.colorForDate(day),heading=day!==previousDay?'<h2 class="noteDayHeading" style="background:'+colors.bg+';border-color:'+colors.border+'">'+esc(days.dayLabel(day,now))+'</h2>':'';previousDay=day;
+    const day=days.noteDay(x),colors=days.colorForDate(day,x.entry_status==='Yapıldı'),dayColors=days.colorForDate(day),heading=day!==previousDay?'<h2 class="noteDayHeading" style="background:'+dayColors.bg+';border-color:'+dayColors.border+'">'+esc(days.dayLabel(day,now))+'</h2>':'';previousDay=day;
     const done=x.entry_status==='Yapıldı',locked=Number(x.is_locked||0)===1,arch=Number(x.is_archived||0)===1,important=Number(x.is_important||0)===1,note=String(x.note||''),longNote=note.length>180||note.split('\n').length>3,tc=x.text_color||'#101828',writtenAt=state.scope==='archive'?noteWrittenLabel(x.created_at||x.entry_date):'',hasMeta=!!x.remind_at||Number(x.has_voice||0)||locked||!!writtenAt;
     return heading+'<article class="card '+(done?'done ':'')+(important&&!done?'important ':'')+(locked?'locked':'')+'" data-note-id="'+esc(x.id)+'" data-note-day="'+day+'" style="background:'+colors.bg+';border-color:'+colors.border+'">'+(important?'<span class="importantMark" title="Önemli">★</span>':'')+'<div class="row"><input class="check" type="checkbox" '+(done?'checked':'')+' onchange="event.stopPropagation();setDone('+x.id+',this.checked)"><div class="body" onclick="openEditor('+x.id+')"><div class="noteText" style="color:'+esc(tc)+'">'+esc(note)+'</div>'+(longNote?'<span class="moreHint">Devamını aç</span>':'')+(hasMeta?'<div class="meta">'+(x.remind_at?'<span class="alarm">🔔 '+esc(alarmLabel(x.remind_at))+'</span>':'')+(Number(x.has_voice||0)?'<button class="voice" onclick="event.stopPropagation();playVoice('+x.id+',this)">▶ Ses</button>':'')+(locked?'<span class="badge lockBadge">🔒 Kilitli</span>':'')+(writtenAt?'<span class="archiveDate">🗓 Yazıldı: '+esc(writtenAt)+'</span>':'')+'</div>':'')+'</div><details class="menu" onclick="event.stopPropagation()"><summary>⋮</summary><div class="menuBox"><button class="mImportant" onclick="toggleImportant('+x.id+','+important+')">'+(important?'✓ ⭐ Önemli':'☆ Önemli')+'</button><button class="mDelete" onclick="deleteNote('+x.id+')">🗑 Sil</button><button class="mArchive" onclick="archiveNote('+x.id+','+arch+')">'+(arch?'↩ Geri Çek':'📦 Arşive Gönder')+'</button><button class="mMail" onclick="mailNote('+x.id+')">✉ Mail At</button><button class="mLock" onclick="toggleLock('+x.id+','+locked+')">'+(locked?'🔓 Kilidi Aç':'🔒 Kilitle')+'</button><button class="mReminder" onclick="addReminder('+x.id+')">🔔 Hatırlatıcı Ekle</button></div></details></div></article>';
   }).join(''):'<div class="empty">📝<br><b>Burada not yok.</b></div>';

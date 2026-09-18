@@ -39,7 +39,7 @@ async function mobileAgenda(request,env){
   let html=await response.text();
   const mobileFixes=`<style id="mobileMenuOpacityFix">
 .card.done{opacity:1!important}
-.card.done .body{opacity:.68}
+.card.done .body{opacity:.85}
 .card.done .menu,.card.done .menuBox,.card.done .menuBox *{opacity:1!important}
 .menu[open]{z-index:150!important}
 .menu[open] .menuBox{z-index:200!important;background:#fff!important;opacity:1!important}
