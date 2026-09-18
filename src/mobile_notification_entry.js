@@ -24,6 +24,10 @@ export default {
 
     let html=await response.text();
 
+    if(!html.includes('/phone-reminders.js')){
+      html=html.replace('</head>','<link rel="manifest" href="/agenda.webmanifest"><link rel="apple-touch-icon" href="/agenda-icon-192.png"><script src="/phone-reminders.js?v=20260918-1"></script>\n</head>');
+    }
+
     if(notesPage||newNotePage){
       if(!html.includes('/notes-pages-patch.js')){
         html=html.replace('<script>','<script src="/notes-pages-patch.js?v=20260907-restore"></script>\n<script>');
@@ -35,11 +39,11 @@ export default {
       }
     }
 
-    if(notesPage){
-      if(!html.includes('/mobile-notification-permission.js')){
-        html=html.replace('</body>','<script src="/mobile-notification-permission.js?v=20260907-3"></script>\n</body>');
+    if(notesPage||planPage||newNotePage){
+      if(!html.includes('/mobile-notification-permission.js')&&!html.includes('/phone-notification-controls.js')){
+        html=html.replace('</body>','<script src="/phone-notification-controls.js?v=20260918-1"></script>\n</body>');
       }else{
-        html=html.replace(/\/mobile-notification-permission\.js\?v=[^"']+/g,'/mobile-notification-permission.js?v=20260907-3');
+        html=html.replace(/\/(?:mobile-notification-permission|phone-notification-controls)\.js(?:\?v=[^"']+)?/g,'/phone-notification-controls.js?v=20260918-1');
       }
     }
 

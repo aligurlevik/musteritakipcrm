@@ -1,13 +1,14 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/quick_request_page_clean_edit_v2.js",
+  "main": "src/phone_reminders_entry.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
     "run_worker_first": true
   },
+  "triggers": {"crons": ["* * * * *"]},
   "d1_databases": [
     {
       "binding": "DB",

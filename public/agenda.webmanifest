@@ -1,0 +1,14 @@
+{
+  "id": "/notlar-v2.html",
+  "name": "AG Ajanda",
+  "short_name": "Ajanda",
+  "start_url": "/notlar-v2.html",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#ffda34",
+  "background_color": "#eef4fa",
+  "icons": [
+    {"src": "/agenda-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/agenda-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}
+  ]
+}
