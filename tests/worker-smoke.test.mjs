@@ -67,7 +67,7 @@ test('Not başlığı yalnızca telefon ekranında büyür',async()=>{
   const {response,body}=await textResponse('https://crm.test/notlar-v2.html',{ua:androidUa,mobileHint:'?1'});
   assert.equal(response.status,200);
   assert.match(body,/\.noteTitleMobile\{font-size:17px;font-weight:950;line-height:24px/);
-  assert.match(body,/@media\(max-width:560px\)[\s\S]*?\.noteTitleMobile\{font-size:18px;line-height:26px\}/);
+  assert.match(body,/@media\(max-width:560px\)[\s\S]*?\.noteTitleMobile\{font-size:calc\(18px \+ 1pt\);line-height:calc\(26px \+ 1pt\);color:#081f35;border-bottom-color:#6686a3\}/);
   assert.match(body,/ALI GURLEVIK/);
   assert.match(body,/NOT DEFTERİ/);
   assert.match(body,/class="fingerprintLogin"/);
