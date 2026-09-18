@@ -55,8 +55,8 @@ async function mobileAgenda(request,env){
 
   if(!html.includes('class="refreshbtn"')){
     html=html.replace(
-      '<div class="title">📝 Notlarım</div><button class="newbtn" onclick="location.href=\'/yeni-not.html\'">＋ Yeni Not</button>',
-      '<div class="title">📝 Notlarım</div><div class="mobileTopActions"><button class="refreshbtn" type="button" onclick="location.reload()">⟳ Yenile</button><button class="logoutbtn" type="button" aria-label="Oturumu kapat" onclick="logoutNotes(this)">↪ Çıkış</button></div><button class="newbtn" type="button" onclick="location.href=\'/yeni-not.html\'">＋ Yeni Not</button>'
+      '<button class="newbtn" onclick="location.href=\'/yeni-not.html\'">＋ Yeni Not</button>',
+      '<div class="mobileTopActions"><button class="refreshbtn" type="button" onclick="location.reload()">⟳ Yenile</button><button class="logoutbtn" type="button" aria-label="Oturumu kapat" onclick="logoutNotes(this)">↪ Çıkış</button></div><button class="newbtn" type="button" onclick="location.href=\'/yeni-not.html\'">＋ Yeni Not</button>'
     );
   }
 
