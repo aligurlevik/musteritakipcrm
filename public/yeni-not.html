@@ -11,14 +11,14 @@
 </style>
 <style>
 .notesBrandTitle{display:flex;align-items:center;justify-content:center;gap:8px;line-height:1.2}
-.notesBrandLogo{display:block;width:32px;height:32px;flex:0 0 32px;object-fit:contain;border-radius:8px}
+.notesBrandLogo{display:block;width:40px;height:40px;flex:0 0 40px;object-fit:contain;border-radius:8px}
 .notesLoginTitle{display:flex;align-items:center;gap:10px}
-.notesLoginTitle .notesBrandLogo{width:44px;height:44px;flex-basis:44px;border-radius:11px}
+.notesLoginTitle .notesBrandLogo{width:54px;height:54px;flex-basis:54px;border-radius:11px}
 </style>
 </head>
 <body>
 <div class="app">
-<header class="top"><div class="toprow"><button class="back" onclick="goBack()">← Geri</button><div class="title notesBrandTitle"><img class="notesBrandLogo" src="/notes-logo-ag-v1.webp" width="32" height="32" alt="AG"><span>Yeni Not</span></div><div style="width:68px"></div></div></header>
+<header class="top"><div class="toprow"><button class="back" onclick="goBack()">← Geri</button><div class="title notesBrandTitle"><img class="notesBrandLogo" src="/notes-logo-ag-v1.webp" width="40" height="40" alt="AG"><span>Yeni Not</span></div><div style="width:68px"></div></div></header>
 <main class="form">
   <div class="fontbar"><button onclick="changeFont(-2)">A−</button><div id="fontSizeLabel" class="fontsize">18 px</div><button onclick="changeFont(2)">A＋</button></div>
   <div class="colorbar"><label class="colorItem">Yazı Rengi <input id="textColor" type="color" value="#101828" oninput="applyColors()"></label><label class="colorItem">Zemin Rengi <input id="bgColor" type="color" value="#fffdf1" oninput="applyColors()"></label><button class="resetColor" onclick="resetColors()">Varsayılan</button></div>
@@ -29,7 +29,7 @@
 </main>
 <div class="saveBar"><button id="saveBtn" class="saveBtn" onclick="saveNote()">Kaydet</button><button class="cancelBtn" onclick="goBack()">Vazgeç ve Notlarıma Dön</button></div>
 </div>
-<div id="login" class="login"><div class="loginbox"><div class="loginhead notesLoginTitle"><img class="notesBrandLogo" src="/notes-logo-ag-v1.webp" width="44" height="44" alt="AG"><span>Notlarım</span></div><div class="loginbody"><div id="pwSlot"></div><button onclick="login()">Giriş Yap</button><div id="loginErr" class="err"></div></div></div></div>
+<div id="login" class="login"><div class="loginbox"><div class="loginhead notesLoginTitle"><img class="notesBrandLogo" src="/notes-logo-ag-v1.webp" width="54" height="54" alt="AG"><span>Notlarım</span></div><div class="loginbody"><div id="pwSlot"></div><button onclick="login()">Giriş Yap</button><div id="loginErr" class="err"></div></div></div></div>
 <div id="msg" class="msg"></div>
 <script>
 (function(){

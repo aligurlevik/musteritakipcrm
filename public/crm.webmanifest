@@ -1,11 +1,11 @@
 {
-  "id": "/notlar-v2.html",
-  "name": "AG Ajanda",
-  "short_name": "Ajanda",
-  "start_url": "/notlar-v2.html",
+  "id": "/",
+  "name": "CRM Müşteri Takip",
+  "short_name": "CRM",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "theme_color": "#ffda34",
+  "theme_color": "#152536",
   "background_color": "#eef4fa",
   "icons": [
     {"src": "/agenda-icon-192.png?v=20260918-2", "sizes": "192x192", "type": "image/png", "purpose": "any"},
