@@ -9,7 +9,7 @@
 <style>
 :root{
   --yellow:#ffd338;--ink:#202124;--muted:#5f6368;--blue:#1a73e8;--line:#dadce0;
-  --hour-h:64px;--time-w:58px;--week-col:118px
+  --hour-h:52px;--time-w:58px;--week-col:118px
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;font-family:Roboto,"Segoe UI",Arial,sans-serif;background:#f1f3f4;color:var(--ink)}
@@ -48,7 +48,7 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}
 .timeGrid{display:grid;grid-template-columns:var(--time-w) minmax(0,1fr);position:relative}
 .hourLabels{position:relative;border-right:1px solid var(--line);background:#fff}.hourLabel{height:var(--hour-h);padding:0 6px;text-align:right;font-size:10px;color:var(--muted);transform:translateY(-6px)}
 .dayLanes{display:grid;grid-template-columns:repeat(var(--columns),minmax(var(--col-min),1fr));position:relative}
-.dayLane{position:relative;height:1536px;border-right:1px solid var(--line);cursor:crosshair;background-color:#fff;background-image:linear-gradient(to bottom,transparent calc(var(--hour-h) / 2 - 1px),#f1f3f4 calc(var(--hour-h) / 2 - 1px),#f1f3f4 calc(var(--hour-h) / 2),transparent calc(var(--hour-h) / 2)),linear-gradient(to bottom,#dadce0 1px,transparent 1px);background-size:100% var(--hour-h),100% var(--hour-h)}
+.dayLane{position:relative;height:1248px;border-right:1px solid var(--line);cursor:crosshair;background-color:#fff;background-image:linear-gradient(to bottom,transparent calc(var(--hour-h) / 2 - 1px),#f1f3f4 calc(var(--hour-h) / 2 - 1px),#f1f3f4 calc(var(--hour-h) / 2),transparent calc(var(--hour-h) / 2)),linear-gradient(to bottom,#dadce0 1px,transparent 1px);background-size:100% var(--hour-h),100% var(--hour-h)}
 .dayLane:last-child{border-right:0}.dayLane.todayLane{background-color:#fcfdff}
 .calendarEvent{position:absolute;left:3px;right:3px;z-index:8;min-height:38px;border:0;border-radius:5px;padding:4px 6px;text-align:left;font-size:11px;line-height:1.2;cursor:pointer;box-shadow:0 1px 2px #0002;overflow:hidden}
 .calendarEvent:hover,.monthEvent:hover,.allDayEvent:hover{filter:brightness(.97);box-shadow:0 2px 7px #0003}.eventTime{display:block;font-size:10px;font-weight:700;opacity:.85}.eventTitle{display:block;font-weight:700;overflow:hidden;text-overflow:ellipsis}.eventBook{font-size:9px;opacity:.75}.done{text-decoration:line-through;opacity:.55}
@@ -74,11 +74,11 @@ button,input,select,textarea{font:inherit}button{touch-action:manipulation}
 .toast{position:fixed;left:50%;bottom:24px;z-index:250;display:none;max-width:min(520px,calc(100% - 24px));transform:translateX(-50%);border-radius:8px;background:#323232;color:#fff;padding:11px 16px;font-size:14px;font-weight:600;box-shadow:0 6px 22px #0004}.toast.show{display:block}
 
 @media(max-width:760px){
-  :root{--hour-h:58px;--time-w:48px;--week-col:92px}.app{box-shadow:none}.top{padding:7px}.title{font-size:20px}.titleIcon{width:34px;height:34px;font-size:19px}
+  :root{--hour-h:40px;--time-w:48px;--week-col:92px}.app{box-shadow:none}.top{padding:7px}.title{font-size:20px}.titleIcon{width:34px;height:34px;font-size:19px}
   .actions{gap:4px}.actions a,.actions button{min-height:34px;padding:7px 8px;font-size:11px}
   .toolbar{grid-template-columns:auto auto auto 1fr;padding:7px;gap:5px}.todayBtn{padding:6px 10px}.arrowBtn{width:35px;min-height:36px}.range{grid-column:1/-1;grid-row:2;margin:2px 0 0;text-align:center;font-size:17px}.viewSwitch{grid-column:4;grid-row:1}.viewBtn{min-width:0;padding:6px 8px;font-size:12px}
   .legend{min-height:37px;padding:5px 7px;gap:5px}.legendTitle{display:none}.chip{padding:4px 7px;font-size:10px}.calendarShell{height:calc(100vh - 181px);min-height:390px}
-  .timeView[data-view="day"]{--col-min:calc(100vw - var(--time-w));min-width:100%}.timeView[data-view="week"]{--col-min:92px;min-width:692px}.dayLane{height:1392px}.dayHead{min-height:58px;padding:5px 2px}.dayNumber{width:34px;height:34px;font-size:18px}.allDayLabel{font-size:9px;padding:7px 3px}.allDayEvent{font-size:10px;padding:3px}.calendarEvent{padding:3px 4px;font-size:10px}.eventTime{font-size:9px}.eventBook{display:none}
+  .timeView[data-view="day"]{--col-min:calc(100vw - var(--time-w));min-width:100%}.timeView[data-view="week"]{--col-min:92px;min-width:692px}.dayLane{height:960px}.dayHead{min-height:58px;padding:5px 2px}.dayNumber{width:34px;height:34px;font-size:18px}.allDayLabel{font-size:9px;padding:7px 3px}.allDayEvent{font-size:10px;padding:3px}.calendarEvent{min-height:30px;padding:2px 4px;font-size:10px}.eventTime{font-size:9px}.eventBook{display:none}
   .monthView{min-width:100%}.monthGrid{grid-template-rows:repeat(6,minmax(78px,1fr))}.monthCell{padding:2px}.monthDayButton{width:25px;height:25px;margin-bottom:1px;font-size:11px}.monthEvent{gap:2px;margin:1px 0;padding:2px 3px;font-size:9px}.monthEventTime,.monthEvent .eventBook{display:none}.moreEvents{font-size:9px;padding:1px 2px}
   .modal{align-items:flex-end;padding:0}.sheet{max-height:94vh;border-radius:18px 18px 0 0;padding:16px}.sheet h2{font-size:19px}.field input,.field select,.field textarea{font-size:16px}
 }
