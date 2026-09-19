@@ -33,6 +33,7 @@ test('phone permission and subscription must both succeed before the app reports
   const b=browser();assert.equal(b.reminders.status.connected,false);assert.equal(b.calls.length,0);
   await b.reminders.enable();assert.equal(b.reminders.status.connected,true);assert.equal(b.reminders.status.deviceId,'test-device');
   assert.deepEqual(b.calls.map(x=>x.path),['/api/push/config','/api/push/subscribe']);
+  await b.reminders.test();assert.equal(b.oscillators.length,3);assert.equal(b.calls.at(-1).path,'/api/push/test');
   await b.reminders.disable();assert.equal(b.reminders.status.connected,false);assert.equal(b.storage.get('crm_notifications_enabled'),'0');assert.equal(b.calls.at(-1).path,'/api/push/unsubscribe');
   const denied=browser({allowed:'denied'});await assert.rejects(denied.reminders.enable(),/bildirim iznini açın/);assert.equal(denied.reminders.status.connected,false);assert.equal(denied.calls.length,0);
 });

@@ -74,7 +74,7 @@
   }
   function time(value){const s=String(value||'').trim();return Date.parse(s.replace(' ','T')+(/(?:Z|[+-]\d{2}:?\d{2})$/.test(s)?'':'+03:00'))}
   async function enable(){unlockAudio();if(!supported())throw new Error('Bu tarayıcı telefon bildirimlerini desteklemiyor.');const permission=Notification.permission==='granted'?'granted':await Notification.requestPermission();if(permission!=='granted'){changed();throw new Error(permission==='denied'?'Telefon ayarlarından bu site için bildirim iznini açın.':'Bildirim izni verilmedi.')}localStorage.setItem(PREF,'1');if(!await connect())throw new Error(status.error||'Telefon bildirimi kurulamadı.')}
-  async function test(){unlockAudio();if(!status.connected&&!await connect())throw new Error(status.error||'Önce bildirimleri açın.');return api('/api/push/test',{deviceId:status.deviceId})}
+  async function test(){unlockAudio();try{if(audio?.state==='suspended')await audio.resume()}catch(_){}tones();if(!status.connected&&!await connect())throw new Error(status.error||'Önce bildirimleri açın.');return api('/api/push/test',{deviceId:status.deviceId})}
   window.crmReminders={status,enabled,supported,connect,enable,disable,fire,present,dismiss,time,test,unlockAudio};
   window.fetch=async function(input,init){let path='';try{path=new URL(typeof input==='string'?input:input.url,location.href).pathname}catch(_){}if(path==='/api/logout')try{await disable()}catch(_){}const response=await nativeFetch(input,init);if(path==='/api/login'&&response.ok)setTimeout(()=>{connect();openLinkedReminder()},0);return response};
   if('serviceWorker'in navigator)navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='CRM_REMINDER'&&enabled())present(event.data.reminder)});

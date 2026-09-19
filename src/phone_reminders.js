@@ -61,7 +61,10 @@ export function reminderPayload(note){
 export async function sendPush(device,data,vapid,request=fetch){
   const subscription=await validSubscription({endpoint:device.endpoint,keys:{p256dh:device.p256dh,auth:device.auth}});
   const payload=await buildPushPayload({data,options:{ttl:3600,urgency:'high'}},subscription,vapid);
-  return request(device.endpoint,{...payload,redirect:'error',signal:AbortSignal.timeout(10000)});
+  // Cloudflare Workers/Web Push örneğindeki FetchInit'i değiştirmeden gönder.
+  // Bazı Android push servisleri eklenen redirect/signal seçeneklerinde isteği
+  // daha servise ulaşmadan reddedebiliyor.
+  return request(device.endpoint,payload);
 }
 async function deviceFor(env,id,origin){return env.DB.prepare('SELECT * FROM crm_push_devices WHERE id=? AND origin=? AND enabled=1').bind(String(id||''),origin).first()}
 

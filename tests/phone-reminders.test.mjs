@@ -109,7 +109,7 @@ test('the actual web push payload uses modern encryption, decrypts to the remind
   const f=await fixture(),sub=await subscription,device=f.db.prepare('SELECT * FROM crm_push_devices').get(),config=f.db.prepare('SELECT * FROM crm_push_config').get();
   const data={title:'Sesli alarm',body:'Telefon ekranında yazı',tag:'agenda-test'};
   await sendPush(device,data,{publicKey:config.public_key,privateKey:config.private_key,subject:config.subject},async(endpoint,options)=>{
-    assert.equal(endpoint,sub.endpoint);assert.equal(options.headers['content-encoding'],'aes128gcm');assert.equal(options.headers.urgency,'high');assert.equal(options.redirect,'error');
+    assert.equal(endpoint,sub.endpoint);assert.equal(options.headers['content-encoding'],'aes128gcm');assert.equal(options.headers.urgency,'high');assert.equal(options.method,'post');assert.equal(options.redirect,undefined);assert.equal(options.signal,undefined);
     const auth=options.headers.authorization;assert.match(auth,/^vapid t=.+,\s*k=/);
     const token=auth.match(/t=([^, ]+)/)[1],parts=token.split('.'),claims=JSON.parse(Buffer.from(parts[1],'base64url'));
     assert.equal(claims.aud,'https://fcm.googleapis.com');assert.equal(claims.sub,'https://crm.test');
