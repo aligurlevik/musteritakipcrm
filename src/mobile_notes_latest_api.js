@@ -23,6 +23,7 @@ function todayTR(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Ista
 const clean=(v,n=12000)=>String(v??'').trim().slice(0,n);
 function color(v,fallback){const s=String(v||'').trim();return /^#[0-9a-fA-F]{6}$/.test(s)?s:fallback}
 function notebookNo(v){return Math.max(1,Math.min(3,Number(v)||1))}
+function noteType(v){const s=String(v||'Genel Not');return ['Genel Not','Hatırlatıcı','Görev','Doğum Günü'].includes(s)?s:'Genel Not'}
 
 function readImage(value){
   if(typeof value!=='string')return {error:'Resim verisi geçersiz.',status:400};
@@ -80,10 +81,10 @@ async function notesApi(request,env,url){
     if(!note)return json({error:'Not boş olamaz.'},400);
     const image=readImage(b.image_data===undefined?'':b.image_data);
     if(image.error)return json({error:image.error},image.status);
-    const d=String(b.entry_date||todayTR()).slice(0,10),rem=clean(b.remind_at,40),tc=color(b.text_color,'#101828'),bc=color(b.bg_color,'#fffdf1'),important=b.is_important?1:0,notebook=notebookNo(b.notebook_no),title=clean(b.title,120);
+    const d=String(b.entry_date||todayTR()).slice(0,10),rem=clean(b.remind_at,40),tc=color(b.text_color,'#101828'),bc=color(b.bg_color,'#fffdf1'),important=b.is_important?1:0,notebook=notebookNo(b.notebook_no),title=clean(b.title,120),type=noteType(b.note_type);
     const last=await env.DB.prepare("SELECT COALESCE(MAX(sort_order),0) n FROM agenda_entries WHERE COALESCE(source_type,'manual')='manual' AND entry_date=? AND COALESCE(notebook_no,1)=?").bind(d,notebook).first();
     const r=await env.DB.prepare(`INSERT INTO agenda_entries(entry_date,sort_order,note,remind_at,reminder_status,entry_status,completed_date,image_data,source_type,title,note_type,is_important,is_archived,is_locked,text_color,bg_color,notebook_no)
-      VALUES(?,?,?,?,?,'Yapılacak','',?,'manual',?,'Genel Not',?,0,0,?,?,?)`).bind(d,Number(last?.n||0)+1,note,rem,rem?'Açık':'',image.data,title,important,tc,bc,notebook).run();
+      VALUES(?,?,?,?,?,'Yapılacak','',?,'manual',?,?,?,0,0,?,?,?)`).bind(d,Number(last?.n||0)+1,note,rem,rem?'Açık':'',image.data,title,type,important,tc,bc,notebook).run();
     return json({ok:true,id:r.meta.last_row_id},201);
   }
   const item=p.match(/^\/api\/notes-v3\/(\d+)$/);
@@ -93,7 +94,8 @@ async function notesApi(request,env,url){
     const image=b.image_data===undefined?{data:String(u.n.image_data||'')}:readImage(b.image_data);
     if(image.error)return json({error:image.error},image.status);
     const rem=b.remind_at===undefined?String(u.n.remind_at||''):clean(b.remind_at,40),rs=b.remind_at===undefined?String(u.n.reminder_status||''):(rem?'Açık':''),tc=b.text_color===undefined?color(u.n.text_color,'#101828'):color(b.text_color,'#101828'),bc=b.bg_color===undefined?color(u.n.bg_color,'#fffdf1'):color(b.bg_color,'#fffdf1');
-    await env.DB.prepare('UPDATE agenda_entries SET note=?,remind_at=?,reminder_status=?,text_color=?,bg_color=?,image_data=? WHERE id=?').bind(note,rem,rs,tc,bc,image.data,id).run();
+    const title=b.title===undefined?String(u.n.title||''):clean(b.title,120),date=b.entry_date===undefined?String(u.n.entry_date||todayTR()).slice(0,10):String(b.entry_date||todayTR()).slice(0,10),type=b.note_type===undefined?noteType(u.n.note_type):noteType(b.note_type);
+    await env.DB.prepare('UPDATE agenda_entries SET note=?,title=?,entry_date=?,note_type=?,remind_at=?,reminder_status=?,text_color=?,bg_color=?,image_data=? WHERE id=?').bind(note,title,date,type,rem,rs,tc,bc,image.data,id).run();
     return json({ok:true});
   }
   if(item&&request.method==='DELETE'){

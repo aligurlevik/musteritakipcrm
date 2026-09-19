@@ -144,5 +144,13 @@ test('deployed entry serves the service worker correctly and loads phone scripts
   for(const path of ['/','/notlar-v2.html','/planlama.html']){
     const response=await worker.fetch(new Request('https://crm.test'+path,{headers:{'user-agent':'Mozilla/5.0 (Linux; Android 14) Mobile'}}),f.env,{}),html=await response.text();
     assert.equal(response.status,200);assert.equal((html.match(/src="\/phone-reminders\.js/g)||[]).length,1);assert.equal((html.match(/src="\/phone-notification-controls\.js/g)||[]).length,1);assert.ok(html.indexOf('/phone-reminders.js')<html.indexOf('function checkAlarm'));assert.ok(!html.includes('src="/mobile-notification-permission.js'));
+    if(path==='/planlama.html'){
+      assert.match(html,/data-planner-version="google-calendar-v1"/);
+      assert.match(html,/data-view="day"/);
+      assert.match(html,/data-view="week"/);
+      assert.match(html,/data-view="month"/);
+      assert.ok(!html.includes('src="/planlama-daily-patch.js'));
+      assert.ok(!html.includes('src="/planlama-monthly-patch.js'));
+    }
   }
 });
