@@ -45,11 +45,11 @@
   function stopSound(){clearInterval(soundTimer);clearTimeout(soundStop);soundTimer=null;soundStop=null;try{navigator.vibrate?.(0)}catch(_){}}
   function tones(){
     if(document.hidden||!audio||audio.state!=='running')return;
-    try{for(let i=0;i<3;i++){
-      const oscillator=audio.createOscillator(),gain=audio.createGain(),start=audio.currentTime+i*.38;
-      oscillator.connect(gain);gain.connect(audio.destination);oscillator.frequency.value=i===1?1040:880;
-      gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(.12,start+.02);gain.gain.setValueAtTime(.12,start+.20);gain.gain.linearRampToValueAtTime(0,start+.26);
-      oscillator.start(start);oscillator.stop(start+.28);oscillator.onended=()=>{oscillator.disconnect();gain.disconnect()};
+    try{for(let i=0;i<6;i++){
+      const oscillator=audio.createOscillator(),gain=audio.createGain(),start=audio.currentTime+i*.28;
+      oscillator.type='square';oscillator.connect(gain);gain.connect(audio.destination);oscillator.frequency.value=i%2===0?920:680;
+      gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(.11,start+.015);gain.gain.setValueAtTime(.11,start+.17);gain.gain.linearRampToValueAtTime(0,start+.22);
+      oscillator.start(start);oscillator.stop(start+.24);oscillator.onended=()=>{oscillator.disconnect();gain.disconnect()};
     }}catch(_){}
   }
   function startSound(){stopSound();unlockAudio();tones();soundTimer=setInterval(tones,3000);soundStop=setTimeout(stopSound,60000);try{navigator.vibrate?.([250,100,250])}catch(_){}}
