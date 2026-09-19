@@ -80,6 +80,12 @@ test('Not başlığı yalnızca telefon ekranında büyür',async()=>{
   assert.match(body,/Yazıldı:/);
 });
 
+test('Not düzenleme açılırken sağdaki işlem menüsü kapanır',async()=>{
+  const {response,body}=await textResponse('https://crm.test/notlar-v2.html',{ua:androidUa,mobileHint:'?1'});
+  assert.equal(response.status,200);
+  assert.match(body,/window\.openEditor=function\(id,reminderOnly\)\{document\.querySelectorAll\('\.menu\[open\]'\)\.forEach\(menu=>menu\.removeAttribute\('open'\)\)/);
+});
+
 test('mobile=1 masaüstü tarayıcıda da güvenli mobil yolu kullanır',async()=>{
   const {response,body}=await textResponse('https://crm.test/?mobile=1');
   assert.equal(response.status,200);
