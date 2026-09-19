@@ -149,6 +149,9 @@ test('deployed entry serves the service worker correctly and loads phone scripts
       assert.match(html,/data-view="day"/);
       assert.match(html,/data-view="week"/);
       assert.match(html,/data-view="month"/);
+      assert.match(html,/function noteDetail\(item\)/);
+      assert.match(html,/class="monthEventNote"/);
+      assert.match(html,/class="eventNote"/);
       assert.ok(!html.includes('src="/planlama-daily-patch.js'));
       assert.ok(!html.includes('src="/planlama-monthly-patch.js'));
     }
