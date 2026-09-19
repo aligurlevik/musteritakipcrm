@@ -138,12 +138,14 @@ test('service worker shows visible, audible notifications and notification click
   self.clients.matchAll=async()=>[];listeners.notificationclick({notification:{data:{url:'https://other.test/'},close(){}},waitUntil(p){promise=p}});await promise;assert.equal(opened[0],'https://crm.test/notlar-v2.html');
 });
 
-test('deployed entry serves the service worker correctly and loads phone scripts once on notes and planner',async()=>{
+test('deployed entry serves phone assets and loads note palettes once on note pages',async()=>{
   const f=await fixture();
   const sw=await worker.fetch(new Request('https://crm.test/agenda-sw.js'),f.env,{});assert.equal(sw.status,200);assert.equal(sw.headers.get('service-worker-allowed'),'/');assert.match(sw.headers.get('content-type'),/javascript/);
-  for(const path of ['/','/notlar-v2.html','/planlama.html']){
+  const palette=await worker.fetch(new Request('https://crm.test/note-color-palette.js'),f.env,{});assert.equal(palette.status,200);assert.match(palette.headers.get('cache-control'),/no-cache/);assert.match(await palette.text(),/Açık zemin renkleri/);
+  for(const path of ['/','/notlar-v2.html','/yeni-not.html','/planlama.html']){
     const response=await worker.fetch(new Request('https://crm.test'+path,{headers:{'user-agent':'Mozilla/5.0 (Linux; Android 14) Mobile'}}),f.env,{}),html=await response.text();
-    assert.equal(response.status,200);assert.equal((html.match(/src="\/phone-reminders\.js/g)||[]).length,1);assert.equal((html.match(/src="\/phone-notification-controls\.js/g)||[]).length,1);assert.ok(html.indexOf('/phone-reminders.js')<html.indexOf('function checkAlarm'));assert.ok(!html.includes('src="/mobile-notification-permission.js'));
+    assert.equal(response.status,200);assert.equal((html.match(/src="\/phone-reminders\.js/g)||[]).length,1);assert.equal((html.match(/src="\/phone-notification-controls\.js/g)||[]).length,1);if(html.includes('function checkAlarm'))assert.ok(html.indexOf('/phone-reminders.js')<html.indexOf('function checkAlarm'));assert.ok(!html.includes('src="/mobile-notification-permission.js'));
+    assert.equal((html.match(/src="\/note-color-palette\.js/g)||[]).length,path==='/planlama.html'?0:1);
     if(path==='/planlama.html'){
       assert.match(html,/data-planner-version="google-calendar-v1"/);
       assert.match(html,/data-view="day"/);

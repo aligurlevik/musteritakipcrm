@@ -38,6 +38,11 @@ export default {
       }else{
         html=html.replace(/\/notes-image-patch\.js\?v=[^"']+/g,'/notes-image-patch.js?v=20260917-1');
       }
+      if(!html.includes('/note-color-palette.js')){
+        html=html.replace('</body>','<script src="/note-color-palette.js?v=20260919-1"></script>\n</body>');
+      }else{
+        html=html.replace(/\/note-color-palette\.js(?:\?v=[^"']+)?/g,'/note-color-palette.js?v=20260919-1');
+      }
     }
 
     if(notesPage||planPage||newNotePage){
