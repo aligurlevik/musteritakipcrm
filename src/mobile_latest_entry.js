@@ -46,8 +46,10 @@ async function mobileAgenda(request,env){
 .mobileTopActions{display:flex;align-items:center;justify-content:flex-end;gap:5px;flex:1 1 auto}
 .refreshbtn{border:0;border-radius:10px;padding:9px 9px;background:#fff;color:#123f68;font-size:13px;font-weight:950;white-space:nowrap;box-shadow:0 1px 4px #0002}
 .logoutbtn{border:2px solid #c62828;border-radius:10px;padding:7px 10px;background:#fff4f2;color:#9b1c1c;font-size:13px;font-weight:950;white-space:nowrap;box-shadow:0 1px 4px #0002}
-.noteTitleMobile{font-size:17px;font-weight:950;line-height:24px;color:#102f4d;padding:3px 4px 5px;border-bottom:2px solid #9db8d0;white-space:normal;word-break:break-word}
+.card.hasMobileTitle .body{background-image:none!important}
+.noteTitleMobile{font-size:17px;font-weight:950;line-height:24px;color:#102f4d;padding:3px 4px 5px;border-bottom:4px solid #6686a3;white-space:normal;word-break:break-word}
 .card.hasMobileTitle .noteText{display:none!important}
+.card.hasMobileTitle .noteText{background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--noteLine) - 2px),#5d86ad calc(var(--noteLine) - 1px),#5d86ad var(--noteLine))}
 #editTitleMobile{width:100%;border:2px solid #8db0cf;border-radius:9px;padding:9px 10px;font-size:17px;font-weight:900;color:#102f4d;background:#fff}
 @media(max-width:560px){.toprow{display:flex;flex-wrap:wrap;gap:6px}.title{order:1;font-size:21px}.toprow>.newbtn{order:2;margin-left:auto;padding:9px 10px;font-size:13px}.mobileTopActions{order:3;flex:0 0 100%;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,.8fr) minmax(0,1fr);gap:5px}.mobileTopActions>button{width:100%}.refreshbtn,.logoutbtn{padding:8px 6px;font-size:12px}.tabs{top:92px}.noteTitleMobile{font-size:calc(18px + 1pt);line-height:calc(26px + 1pt);color:#081f35;border-bottom-color:#6686a3}}
 </style>`;
