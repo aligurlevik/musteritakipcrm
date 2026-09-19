@@ -152,6 +152,10 @@ test('deployed entry serves the service worker correctly and loads phone scripts
       assert.match(html,/function noteDetail\(item\)/);
       assert.match(html,/class="monthEventNote"/);
       assert.match(html,/class="eventNote"/);
+      assert.match(html,/data-filter="note"/);
+      assert.match(html,/data-filter="reminder"/);
+      assert.match(html,/state\.filter==='all'\|\|typeFilter\(item\.note_type\)===state\.filter/);
+      assert.match(html,/state\.filter=state\.filter===button\.dataset\.filter\?'all':button\.dataset\.filter/);
       assert.ok(!html.includes('src="/planlama-daily-patch.js'));
       assert.ok(!html.includes('src="/planlama-monthly-patch.js'));
     }
