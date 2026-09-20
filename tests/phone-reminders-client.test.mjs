@@ -40,7 +40,7 @@ test('phone permission and subscription must both succeed before the app reports
 
 test('visible reminder text and alarm sound happen together, duplicate alarms are suppressed, and dismissal advances the queue',async()=>{
   const b=browser();await b.reminders.enable();
-  const note={id:1,title:'Müşteri',note:'İşler çok acil',remind_at:'2030-09-20T12:00',notebook_no:2};
+  const note={id:1,title:'Müşteri',note:'İşler çok acil',remind_at:'2030-09-20T12:00',notebook_no:1};
   await b.reminders.fire(note);
   assert.equal(b.nodes.get('crmAlarmTitle').textContent,'Müşteri');assert.equal(b.nodes.get('crmAlarmBody').textContent,'İşler çok acil');
   assert.equal(b.oscillators.length,6);assert.ok(b.oscillators.every(o=>typeof o.started==='number'));assert.equal(b.notifications.length,1);assert.equal(b.notifications[0].options.silent,true);
@@ -56,4 +56,14 @@ test('hidden pages leave notification delivery to the server and suspended audio
   await b.reminders.fire({id:1,note:'Gizli sekme',remind_at:'2030-09-20T12:00'});assert.equal(b.notifications.length,0);assert.equal(b.oscillators.length,0);
   b.document.hidden=false;
   await b.reminders.fire({id:2,note:'Sesli telefon uyarısı',remind_at:'2030-09-20T12:00'});assert.equal(b.notifications[0].options.silent,false);
+});
+
+
+test('private reminders never reveal the title or content in system notifications',async()=>{
+  const b=browser();await b.reminders.enable();
+  await b.reminders.fire({id:3,title:'Gizli başlık',note:'Gizli içerik',notebook_no:3,remind_at:'2030-09-20T12:00'});
+  assert.equal(b.notifications[0].title,'🔒 Özel not hatırlatıcısı');
+  assert.equal(b.notifications[0].options.body,'İçeriği görmek için Not 3 özel şifresini girin.');
+  assert.ok(!JSON.stringify(b.notifications).includes('Gizli'));
+  b.reminders.clearPrivate();assert.equal(b.nodes.get('crmAlarmBody').textContent,'');assert.equal(b.timers.size,0);
 });

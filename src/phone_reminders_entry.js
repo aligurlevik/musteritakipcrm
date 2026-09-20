@@ -1,4 +1,4 @@
-import worker from './quick_request_page_clean_edit_v2.js';
+import worker from './private_notebook_guard.js';
 import {pushApi,deliverDueReminders} from './phone_reminders.js';
 import {applyCrmBranding} from './crm_branding.js';
 

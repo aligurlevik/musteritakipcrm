@@ -56,6 +56,7 @@ export function reminderTime(value){
 export function reminderPayload(note){
   const title=String(note.title||'').trim(),text=String(note.note||'').trim();
   const notebook=Math.max(1,Math.min(3,Number(note.notebook_no)||1));
+  if(notebook>1)return {title:'🔒 Özel not hatırlatıcısı',body:'İçeriği görmek için Not '+notebook+' özel şifresini girin.',tag:'agenda-'+note.id+'-'+note.remind_at,id:Number(note.id),remind_at:note.remind_at,url:'/notlar-v2.html?page='+notebook+'&reminder='+note.id};
   return {title:(title||text.split('\n')[0]||'Ajanda hatırlatması').slice(0,120),body:(text||title).slice(0,650),tag:'agenda-'+note.id+'-'+note.remind_at,id:Number(note.id),remind_at:note.remind_at,url:'/notlar-v2.html?page='+notebook+'&reminder='+note.id};
 }
 export async function sendPush(device,data,vapid,request=fetch){

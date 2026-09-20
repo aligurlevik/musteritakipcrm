@@ -81,6 +81,7 @@ test('closed-app scheduling includes all notebooks, ignores completion/archive, 
   const sent=[],send=async(device,data)=>{sent.push({device,data});return new Response('',{status:201})};
   assert.equal((await deliverDueReminders(f.env,{now,send})).sent,3);
   assert.deepEqual(sent.map(x=>x.data.id),[1,2,3]);assert.equal(sent[2].data.url,'/notlar-v2.html?page=3&reminder=3');assert.equal(sent[0].data.title,'Başlık 1');assert.equal(sent[0].data.body,'Ekranda görülecek uyarı 1');
+  assert.equal(sent[2].data.title,'🔒 Özel not hatırlatıcısı');assert.equal(sent[2].data.body,'İçeriği görmek için Not 3 özel şifresini girin.');assert.ok(!sent[2].data.body.includes('Ekranda görülecek uyarı 3'));
   assert.equal((await deliverDueReminders(f.env,{now:now+10000,send})).sent,0);
   f.db.prepare('UPDATE agenda_entries SET remind_at=? WHERE id=1').run('2030-09-20T12:01');
   assert.equal((await deliverDueReminders(f.env,{now:now+60000,send})).sent,2);
