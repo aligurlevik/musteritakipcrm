@@ -36,7 +36,13 @@
       .notePaletteNativeInput{position:absolute!important;width:1px!important;height:1px!important;margin:0!important;padding:0!important;opacity:0!important;pointer-events:none!important}
       .colorItem.notePaletteColorItem{position:relative;cursor:default!important}
       .notePalettePreview{width:42px;height:34px;display:inline-block;flex:0 0 auto;border:2px solid #72869a;border-radius:9px;background:var(--note-preview,#fff);box-shadow:inset 0 0 0 3px rgba(255,255,255,.72)}
-      .noteColorPalette{margin:12px 0 4px;padding:13px 14px 14px;border:2px solid #c8d8e6;border-radius:18px;background:#f8fbff;box-shadow:0 4px 12px rgba(25,62,88,.07)}
+      .colorbar.notePaletteSourceBar{display:none!important}
+      .noteColorPaletteLauncher{position:relative;display:flex;justify-content:flex-start;margin:4px 0 8px;z-index:22}
+      .noteColorPaletteToggle{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px;padding:8px 11px;border:1px solid #b7c7d4;border-radius:10px;background:#fff;color:#173f63;font:inherit;font-size:13px;font-weight:900;box-shadow:0 2px 7px rgba(25,62,88,.08);cursor:pointer;-webkit-tap-highlight-color:transparent}
+      .noteColorPaletteToggle:active{transform:scale(.97)}
+      .noteColorPaletteToggle.isOpen{border-color:#5c92ad;background:#eef7fb}
+      .noteColorPalette{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:80;width:min(520px,calc(100vw - 24px));max-height:min(66vh,520px);overflow:auto;margin:0;padding:13px 14px 14px;border:2px solid #c8d8e6;border-radius:18px;background:#f8fbff;box-shadow:0 12px 30px rgba(25,62,88,.2)}
+      .noteColorPalette.isOpen{display:block}
       .noteColorPaletteSection+.noteColorPaletteSection{margin-top:13px;padding-top:12px;border-top:1px solid #d9e4ed}
       .noteColorPaletteTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px;color:#183b56;font-size:16px;font-weight:900}
       .noteColorPaletteHint{color:#60788d;font-size:12px;font-weight:800}
@@ -132,12 +138,32 @@
     if(!colorbar||colorbar.nextElementSibling?.dataset.notePalette==='true')return false;
     prepareInput(textInput);
     prepareInput(backgroundInput);
+    colorbar.classList.add('notePaletteSourceBar');
+    const launcher=document.createElement('div');
+    launcher.className='noteColorPaletteLauncher';
+    const toggle=document.createElement('button');
+    toggle.type='button';
+    toggle.className='noteColorPaletteToggle';
+    toggle.textContent='🎨 Renkler';
+    toggle.setAttribute('aria-expanded','false');
     const panel=document.createElement('div');
     panel.className='noteColorPalette';
     panel.dataset.notePalette='true';
     panel.appendChild(createSection(config,'Yazı renkleri','Koyu ve okunaklı',config.textId,TEXT_COLORS));
     panel.appendChild(createSection(config,'Açık zemin renkleri','Pastel seçenekler',config.backgroundId,BACKGROUND_COLORS));
-    colorbar.insertAdjacentElement('afterend',panel);
+    function setOpen(open){
+      panel.classList.toggle('isOpen',open);
+      toggle.classList.toggle('isOpen',open);
+      toggle.setAttribute('aria-expanded',open?'true':'false');
+      toggle.textContent=open?'✕ Renkleri Kapat':'🎨 Renkler';
+    }
+    toggle.addEventListener('click',()=>setOpen(!panel.classList.contains('isOpen')));
+    launcher.append(toggle,panel);
+    colorbar.insertAdjacentElement('afterend',launcher);
+    document.addEventListener('pointerdown',event=>{
+      if(panel.classList.contains('isOpen')&&!launcher.contains(event.target))setOpen(false);
+    });
+    document.addEventListener('keydown',event=>{if(event.key==='Escape')setOpen(false)});
     config.panel=panel;
     textInput.addEventListener('input',()=>sync(config));
     backgroundInput.addEventListener('input',()=>sync(config));
