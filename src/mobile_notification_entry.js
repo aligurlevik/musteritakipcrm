@@ -26,7 +26,7 @@ export default {
     html=html.replace(/\/notes-title-patch\.js(?:\?v=[^"']+)?/g,'/notes-title-patch.js?v=20260918-2');
 
     if(!html.includes('/phone-reminders.js')){
-      html=html.replace('</head>','<link rel="manifest" href="/agenda.webmanifest"><link rel="apple-touch-icon" href="/agenda-icon-192.png"><script src="/phone-reminders.js?v=20260919-3"></script>\n</head>');
+      html=html.replace('</head>','<link rel="manifest" href="/agenda.webmanifest"><link rel="apple-touch-icon" href="/agenda-icon-192.png"><script src="/phone-reminders.js?v=20260921-2"></script>\n</head>');
     }
 
     if(notesPage||newNotePage){
