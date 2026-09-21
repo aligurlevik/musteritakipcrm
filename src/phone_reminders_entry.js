@@ -13,7 +13,7 @@ async function injectPhoneReminderUi(response,request){
     html=html.replace(/<script\b[^>]*src=["']\/phone-notification-controls\.js[^"']*["'][^>]*><\/script>/gi,'');
     const scripts=`<script src="/phone-reminders.js?v=${reminderUiVersion}"></script>
 <script src="/phone-notification-controls.js?v=${reminderUiVersion}"></script>`;
-    html=html.replace(/<\/body>/i,scripts+'\n</body>');
+    html=html.replace(/<\/head>/i,scripts+'\n</head>');
   }
   const headers=new Headers(response.headers);
   for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
