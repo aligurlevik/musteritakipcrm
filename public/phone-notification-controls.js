@@ -11,10 +11,10 @@
     else if(!reminders.supported()){btn.textContent='🔔 Bildirim';text='Telefon bildirimi için güncel Chrome veya Safari kullanın.'}
     else if(Notification.permission==='denied'){btn.textContent='❌ Bildirim İzni Kapalı';text='❌ TELEFON AYARLARINDAN BİLDİRİM İZNİNİ AÇIN';mode='bad'}
     else if(reminders.status.busy){btn.textContent='⏳ Bağlanıyor';text='⏳ TELEFON BİLDİRİMLERİ KURULUYOR'}
-    else if(reminders.enabled()&&reminders.status.connected){btn.textContent='✅ Bildirim Açık';text='✅ TELEFON BİLDİRİMLERİ AÇIK — KAPATMAK İÇİN BAS';mode='ok'}
+    else if(reminders.enabled()&&reminders.status.connected){btn.textContent='✅ Bildirim Açık';text='✅ KİLİT EKRANI UYARILARI AÇIK — TELEFON KAPALIYKEN DE BİLDİRİM GELİR';mode='ok'}
     else if(reminders.status.error){btn.textContent='🔔 Bildirimi Aç';text=reminders.status.error}
     else if(!reminders.enabled()){btn.textContent='🔕 Bildirim Kapalı';text='🔕 TELEFON BİLDİRİMLERİ KAPALI — AÇMAK İÇİN BAS';mode='bad'}
-    else{btn.textContent='🔔 Bildirimi Aç';text='🔔 EKRANDA UYARI VE SES İÇİN BİLDİRİMLERİ AÇIN'}
+    else{btn.textContent='🔔 Bildirimi Aç';text='🔔 ÖNEMLİ: KİLİT EKRANINDA UYARI ALMAK İÇİN BİLDİRİMLERİ AÇIN'}
     status.textContent=text;status.dataset.mode=mode;status.disabled=btn.disabled;test.hidden=!(reminders.enabled()&&reminders.status.connected);test.disabled=working;
   }
   async function toggle(){if(working)return;if(isiOS()&&!standalone()){flash('Safari → Paylaş → Ana Ekrana Ekle yapın. Sonra ajandayı ana ekrandaki simgeden açın.');return}working=true;update();try{if(reminders.enabled()&&reminders.status.connected){await reminders.disable();flash('🔕 Telefon bildirimleri kapatıldı.')}else{await reminders.enable();flash('✅ Telefon bildirimleri açıldı. Yazılı uyarıyla birlikte ses için telefonun bildirim sesini açık tutun.')}}catch(error){flash(error.message)}finally{working=false;update()}}
