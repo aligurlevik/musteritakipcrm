@@ -2,25 +2,6 @@ import worker from './private_notebook_guard.js';
 import {pushApi,deliverDueReminders} from './phone_reminders.js';
 import {applyCrmBranding} from './crm_branding.js';
 
-const reminderUiVersion='20260921-1';
-
-async function injectPhoneReminderUi(response,request){
-  if(request.method!=='GET'||!response.ok||!(response.headers.get('content-type')||'').includes('text/html'))return response;
-  let html=await response.text();
-  const isNotesPage=html.includes('<title>Notlarım</title>')||html.includes('id="alarmPopup"')||html.includes('notesBrandTitle');
-  if(isNotesPage){
-    html=html.replace(/<script\b[^>]*src=["']\/phone-reminders\.js[^"']*["'][^>]*><\/script>/gi,'');
-    html=html.replace(/<script\b[^>]*src=["']\/phone-notification-controls\.js[^"']*["'][^>]*><\/script>/gi,'');
-    const scripts=`<script src="/phone-reminders.js?v=${reminderUiVersion}"></script>
-<script src="/phone-notification-controls.js?v=${reminderUiVersion}"></script>`;
-    html=html.replace(/<\/head>/i,scripts+'\n</head>');
-  }
-  const headers=new Headers(response.headers);
-  for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
-  headers.set('cache-control','no-cache, no-store, must-revalidate');
-  return new Response(html,{status:response.status,statusText:response.statusText,headers});
-}
-
 export default{
   async fetch(request,env,ctx){
     const path=new URL(request.url).pathname;
@@ -34,8 +15,7 @@ export default{
       if(path.endsWith('.webmanifest'))headers.set('content-type','application/manifest+json');
       return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
     }
-    const response=await worker.fetch(request,env,ctx);
-    return injectPhoneReminderUi(await applyCrmBranding(response,request),request);
+    return applyCrmBranding(await worker.fetch(request,env,ctx),request);
   },
   async scheduled(controller,env){await deliverDueReminders(env,{now:controller.scheduledTime||Date.now()})}
 };
