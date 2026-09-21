@@ -76,6 +76,7 @@
   async function enable(){unlockAudio();if(!supported())throw new Error('Bu tarayıcı telefon bildirimlerini desteklemiyor.');const permission=Notification.permission==='granted'?'granted':await Notification.requestPermission();if(permission!=='granted'){changed();throw new Error(permission==='denied'?'Telefon ayarlarından bu site için bildirim iznini açın.':'Bildirim izni verilmedi.')}localStorage.setItem(PREF,'1');if(!await connect())throw new Error(status.error||'Telefon bildirimi kurulamadı.')}
   async function test(){
     unlockAudio();try{if(audio?.state==='suspended')await audio.resume()}catch(_){}
+    tones();
     const android=/Android/i.test(navigator.userAgent||'');
     if(android){
       try{
