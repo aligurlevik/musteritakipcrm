@@ -75,20 +75,38 @@
   function time(value){const s=String(value||'').trim();return Date.parse(s.replace(' ','T')+(/(?:Z|[+-]\d{2}:?\d{2})$/.test(s)?'':'+03:00'))}
   async function enable(){unlockAudio();if(!supported())throw new Error('Bu tarayıcı telefon bildirimlerini desteklemiyor.');const permission=Notification.permission==='granted'?'granted':await Notification.requestPermission();if(permission!=='granted'){changed();throw new Error(permission==='denied'?'Telefon ayarlarından bu site için bildirim iznini açın.':'Bildirim izni verilmedi.')}localStorage.setItem(PREF,'1');if(!await connect())throw new Error(status.error||'Telefon bildirimi kurulamadı.')}
   async function test(){
-    unlockAudio();try{if(audio?.state==='suspended')await audio.resume()}catch(_){}tones();
-    if(!status.connected&&!await connect())throw new Error(status.error||'Önce bildirimleri açın.');
-    try{return await api('/api/push/test',{deviceId:status.deviceId})}
-    catch(firstError){
+    unlockAudio();try{if(audio?.state==='suspended')await audio.resume()}catch(_){}
+    const android=/Android/i.test(navigator.userAgent||'');
+    if(android){
       try{
         const reg=registration||await navigator.serviceWorker?.getRegistration('/');
-        const sub=await reg?.pushManager?.getSubscription();
-        if(sub){
-          try{await api('/api/push/unsubscribe',{endpoint:sub.endpoint})}catch(_){}
-          try{await sub.unsubscribe()}catch(_){}
+        const oldSub=await reg?.pushManager?.getSubscription();
+        if(oldSub){
+          try{await api('/api/push/unsubscribe',{endpoint:oldSub.endpoint})}catch(_){}
+          try{await oldSub.unsubscribe()}catch(_){}
         }
+        registration=null;status.connected=false;status.deviceId='';changed();
+      }catch(_){}
+    }
+    if(!status.connected&&!await connect())throw new Error(status.error||'Önce bildirimleri açın.');
+    const reg=registration||await navigator.serviceWorker?.getRegistration('/');
+    try{
+      await reg?.showNotification('🔔 1/2 Android bildirim testi',{
+        body:'Bu bildirim görünüyorsa telefonun yerel bildirim izni çalışıyor.',
+        tag:'agenda-local-test-'+Date.now(),icon:'/agenda-icon-192.png',badge:'/notes-logo-ag-v1.png',
+        silent:false,vibrate:[400,120,400],requireInteraction:true,renotify:true,
+        data:{url:'/notlar-v2.html'}
+      });
+    }catch(_){}
+    try{
+      const result=await api('/api/push/test',{deviceId:status.deviceId});
+      return {...result,localTest:true,android};
+    }catch(firstError){
+      try{
         status.connected=false;status.deviceId='';changed();
         if(!await connect())throw new Error(status.error||'Telefon bildirim bağlantısı yenilenemedi.');
-        return await api('/api/push/test',{deviceId:status.deviceId});
+        const result=await api('/api/push/test',{deviceId:status.deviceId});
+        return {...result,localTest:true,android,reconnected:true};
       }catch(_){throw firstError}
     }
   }
