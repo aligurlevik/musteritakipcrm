@@ -74,7 +74,24 @@
   }
   function time(value){const s=String(value||'').trim();return Date.parse(s.replace(' ','T')+(/(?:Z|[+-]\d{2}:?\d{2})$/.test(s)?'':'+03:00'))}
   async function enable(){unlockAudio();if(!supported())throw new Error('Bu tarayıcı telefon bildirimlerini desteklemiyor.');const permission=Notification.permission==='granted'?'granted':await Notification.requestPermission();if(permission!=='granted'){changed();throw new Error(permission==='denied'?'Telefon ayarlarından bu site için bildirim iznini açın.':'Bildirim izni verilmedi.')}localStorage.setItem(PREF,'1');if(!await connect())throw new Error(status.error||'Telefon bildirimi kurulamadı.')}
-  async function test(){unlockAudio();try{if(audio?.state==='suspended')await audio.resume()}catch(_){}tones();if(!status.connected&&!await connect())throw new Error(status.error||'Önce bildirimleri açın.');return api('/api/push/test',{deviceId:status.deviceId})}
+  async function test(){
+    unlockAudio();try{if(audio?.state==='suspended')await audio.resume()}catch(_){}tones();
+    if(!status.connected&&!await connect())throw new Error(status.error||'Önce bildirimleri açın.');
+    try{return await api('/api/push/test',{deviceId:status.deviceId})}
+    catch(firstError){
+      try{
+        const reg=registration||await navigator.serviceWorker?.getRegistration('/');
+        const sub=await reg?.pushManager?.getSubscription();
+        if(sub){
+          try{await api('/api/push/unsubscribe',{endpoint:sub.endpoint})}catch(_){}
+          try{await sub.unsubscribe()}catch(_){}
+        }
+        status.connected=false;status.deviceId='';changed();
+        if(!await connect())throw new Error(status.error||'Telefon bildirim bağlantısı yenilenemedi.');
+        return await api('/api/push/test',{deviceId:status.deviceId});
+      }catch(_){throw firstError}
+    }
+  }
   function clearPrivate(){queue.length=0;current=null;stopSound();document.getElementById('crmPhoneAlarm')?.classList.remove('show');const title=document.getElementById('crmAlarmTitle'),body=document.getElementById('crmAlarmBody');if(title)title.textContent='';if(body)body.textContent=''}
   window.crmReminders={clearPrivate,status,enabled,supported,connect,enable,disable,fire,present,dismiss,time,test,unlockAudio};
   window.fetch=async function(input,init){let path='';try{path=new URL(typeof input==='string'?input:input.url,location.href).pathname}catch(_){}if(path==='/api/logout')try{await disable()}catch(_){}const response=await nativeFetch(input,init);if(path==='/api/login'&&response.ok)setTimeout(()=>{connect();openLinkedReminder()},0);return response};
