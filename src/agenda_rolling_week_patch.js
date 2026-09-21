@@ -37,7 +37,7 @@ const WEEKLY_AGENDA_PATCH = `
     for(let i=0;i<7;i++){const d=new Date(start);d.setDate(start.getDate()+i);days.push(d)}
     const end=days[6];
     const cards=days.map((d,i)=>{
-      const dateKey=key(d),items=weekItems(dateKey),preview=items.slice(0,2).map(x=>'<span class="agenda-week-note">• '+escWeek(String(x.title||'').trim()||String(x.note||'').split(/\r?\n/)[0]||'Not')+'</span>').join('');
+      const dateKey=key(d),items=weekItems(dateKey),preview=items.slice(0,2).map(x=>'<span class="agenda-week-note">• '+escWeek(String(x.title||'').trim()||String(x.note||'').split(/\\r?\\n/)[0]||'Not')+'</span>').join('');
       return '<button type="button" class="agenda-week-day '+(i===0?'today':'')+'" data-agenda-week-date="'+dateKey+'" title="'+d.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'})+'">'+
         '<span class="agenda-week-name">'+(i===0?'BUGÜN · ':'')+d.toLocaleDateString('tr-TR',{weekday:'short'}).toLocaleUpperCase('tr-TR')+'</span>'+
         '<span class="agenda-week-date">'+d.toLocaleDateString('tr-TR',{day:'numeric',month:'short'})+'</span>'+
