@@ -126,7 +126,7 @@ export async function deliverDueReminders(env,{now=Date.now(),send=sendPush}={})
     const time=reminderTime(note.remind_at);
     if(!Number.isFinite(time)||time>now||now-time>86400000)continue;
     for(const device of devices){
-      if(!device.enabled)continue;
+      if(!device.enabled||time<device.enabled_since-15*60*1000)continue;
       const claim=await env.DB.prepare(`INSERT INTO crm_push_deliveries(device_id,agenda_id,remind_at,claimed_until) VALUES(?,?,?,?)
         ON CONFLICT(device_id,agenda_id,remind_at) DO UPDATE SET claimed_until=excluded.claimed_until
         WHERE crm_push_deliveries.delivered_at=0 AND crm_push_deliveries.claimed_until<=? RETURNING device_id`).bind(device.id,note.id,note.remind_at,now+120000,now).first();
