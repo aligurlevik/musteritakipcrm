@@ -4,10 +4,18 @@ self.addEventListener('push',event=>{
   event.waitUntil((async()=>{
     let data={};try{data=event.data?.json()||{}}catch{data.body=event.data?.text()||''}
     const message={...data,title:String(data.title||'Ajanda hatırlatması'),body:String(data.body||'Hatırlatma zamanı geldi.')};
-    await self.registration.showNotification(message.title,{
-      body:message.body,tag:message.tag||'agenda-reminder',icon:'/agenda-icon-192.png',badge:'/notes-logo-ag-v1.png',
-      silent:false,vibrate:[250,120,250,120,500],requireInteraction:true,renotify:false,
-      data:{url:message.url||'/notlar-v2.html'}
+    await self.registration.showNotification('⏰ '+message.title,{
+      body:message.body,
+      tag:message.tag||'agenda-reminder',
+      icon:'/agenda-icon-192.png',
+      badge:'/notes-logo-ag-v1.png',
+      silent:false,
+      vibrate:[500,180,500,180,500,180,900],
+      requireInteraction:true,
+      renotify:true,
+      timestamp:Date.now(),
+      data:{url:message.url||'/notlar-v2.html'},
+      actions:[{action:'open',title:'Ajandayı Aç'}]
     });
     const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     for(const client of windows)client.postMessage({type:'CRM_REMINDER',reminder:message});
