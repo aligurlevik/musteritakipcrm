@@ -621,7 +621,8 @@ async function saveMeeting(){try{const id=Number($('m_id').value||0);const paylo
 async function saveReminderOnly(){try{const id=Number($('r_meeting_id').value||0),date=$('r_remind_date').value,time=$('r_remind_time').value;if(!date||!time)return showMsg('Tarih ve saat seçin.','err');const remindAt=date+'T'+time;await req('/api/meetings/'+id+'/reminder',{method:'PUT',body:JSON.stringify({remind_at:remindAt,remind_note:$('r_remind_note').value.trim()})});closeM('reminderEditModal');showMsg('Hatırlatma kaydedildi.');await loadMeetings();await pollMeetingReminders()}catch(e){showMsg(e.message,'err')}}
 async function deleteMeeting(id){if(!confirm('Bu görüşme silinsin mi? Müşteri silinmeyecek.'))return;try{await req('/api/meetings/'+id,{method:'DELETE'});showMsg('Görüşme silindi.');loadAll()}catch(e){showMsg(e.message,'err')}}
 
-function playReminderSound(){try{const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;if(!reminderAudioContext)reminderAudioContext=new AudioCtx();if(reminderAudioContext.state==='suspended')reminderAudioContext.resume();const start=reminderAudioContext.currentTime;for(let i=0;i<12;i++){const delay=i*.3,oscillator=reminderAudioContext.createOscillator(),gain=reminderAudioContext.createGain();oscillator.type='square';oscillator.frequency.setValueAtTime(i%2?740:980,start+delay);gain.gain.setValueAtTime(.0001,start+delay);gain.gain.exponentialRampToValueAtTime(.34,start+delay+.025);gain.gain.setValueAtTime(.34,start+delay+.18);gain.gain.exponentialRampToValueAtTime(.0001,start+delay+.26);oscillator.connect(gain);gain.connect(reminderAudioContext.destination);oscillator.start(start+delay);oscillator.stop(start+delay+.27)}}catch(e){console.error('Hatırlatma sesi çalınamadı',e)}}
+function unlockReminderAudio(){try{const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;if(!reminderAudioContext)reminderAudioContext=new AudioCtx();if(reminderAudioContext.state==='suspended')reminderAudioContext.resume().catch(()=>{})}catch(_){}}
+function playReminderSound(){try{unlockReminderAudio();if(!reminderAudioContext||reminderAudioContext.state!=='running')return;const start=reminderAudioContext.currentTime;for(let i=0;i<18;i++){const delay=i*.3,oscillator=reminderAudioContext.createOscillator(),gain=reminderAudioContext.createGain();oscillator.type='square';oscillator.frequency.setValueAtTime(i%2?740:980,start+delay);gain.gain.setValueAtTime(.0001,start+delay);gain.gain.exponentialRampToValueAtTime(.34,start+delay+.025);gain.gain.setValueAtTime(.34,start+delay+.18);gain.gain.exponentialRampToValueAtTime(.0001,start+delay+.26);oscillator.connect(gain);gain.connect(reminderAudioContext.destination);oscillator.start(start+delay);oscillator.stop(start+delay+.27)}}catch(e){console.error('Hatırlatma sesi çalınamadı',e)}}
 function bringCrmToFront(){try{window.focus()}catch{}clearInterval(reminderTitleTimer);let on=false;reminderTitleTimer=setInterval(()=>{document.title=(on=!on)?'🔔 UYARI ZAMANI GELDİ!':normalPageTitle},700)}
 function stopReminderAttention(){clearInterval(reminderTitleTimer);reminderTitleTimer=null;document.title=normalPageTitle}
 function showDesktopReminder(title,body,tag){if(!('Notification'in window)||Notification.permission!=='granted')return;const notice=new Notification(title,{body,tag,requireInteraction:true,renotify:true});notice.onclick=()=>{window.focus();notice.close()}}
@@ -632,6 +633,18 @@ async function snoozeReminder(){if(!activeReminder)return;try{const later=localD
 
 function showAgendaReminder(x){activeAgendaReminder=x;$('agendaReminderDate').textContent=new Date(x.remind_at).toLocaleString('tr-TR');$('agendaReminderNote').textContent=x.note;openM('agendaReminderPopup');bringCrmToFront();playReminderSound();showDesktopReminder('🔔 CRM Ajanda Uyarısı',x.note,`crm-agenda-${x.id}`)}
 async function pollAgendaReminders(){try{const items=await req('/api/agenda/reminders');const now=localDateTimeValue();const due=items.filter(x=>x.remind_at&&x.reminder_status==='Açık'&&x.remind_at<=now).sort((a,b)=>a.remind_at.localeCompare(b.remind_at));if(!activeAgendaReminder&&due.length)showAgendaReminder(due[0])}catch(e){if(e.message!=='Oturum süresi doldu.')console.error(e)}}
+const locallyShownAgendaAlarms=new Set();
+function checkLocalAgendaAlarms(){
+  if(activeAgendaReminder)return;
+  const now=Date.now();
+  const due=[...agendaEntries].filter(x=>{
+    if(!x?.remind_at||x.reminder_status==='Tamamlandı'||x.entry_status==='Yapıldı')return false;
+    const when=new Date(String(x.remind_at).replace(' ','T')).getTime();
+    return Number.isFinite(when)&&when<=now&&now-when<86400000&&!locallyShownAgendaAlarms.has(String(x.id)+'|'+String(x.remind_at));
+  }).sort((a,b)=>String(a.remind_at).localeCompare(String(b.remind_at)));
+  if(!due.length)return;
+  const x=due[0];locallyShownAgendaAlarms.add(String(x.id)+'|'+String(x.remind_at));showAgendaReminder(x);
+}
 async function completeAgendaReminder(){if(!activeAgendaReminder)return;try{await req('/api/agenda/'+activeAgendaReminder.id+'/complete',{method:'POST'});activeAgendaReminder=null;stopReminderAttention();closeM('agendaReminderPopup');showMsg('Ajanda hatırlatması tamamlandı.');await loadAgenda();await pollAgendaReminders()}catch(e){showMsg(e.message,'err')}}
 async function snoozeAgendaReminder(){if(!activeAgendaReminder)return;try{const later=localDateTimeValue(new Date(Date.now()+60*60*1000));await req('/api/agenda/'+activeAgendaReminder.id+'/snooze',{method:'POST',body:JSON.stringify({remind_at:later})});activeAgendaReminder=null;stopReminderAttention();closeM('agendaReminderPopup');showMsg('Ajanda hatırlatması 1 saat ertelendi.');await loadAgenda()}catch(e){showMsg(e.message,'err')}}
 
@@ -740,7 +753,8 @@ if($('g_date')&&!$('g_date').value)$('g_date').value=localDateKey();
 ensureGraphicAlarmControls();
 setInterval(checkGraphicDeadlineWarnings,30000);
 let graphicCiroDay=localDateKey();setInterval(()=>{const currentDay=localDateKey();if(currentDay!==graphicCiroDay){graphicCiroDay=currentDay;loadGraphicJobs().catch(()=>{})}},60000);
-let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole==='admin'){pollMeetingReminders();pollAgendaReminders();checkAutomaticEndOfDayReport()}});setInterval(checkAutomaticEndOfDayReport,60000); setInterval(()=>{if(currentAccessRole!=='admin')return;loadMeetings().catch(()=>{});pollMeetingReminders();pollAgendaReminders();const newDay=localDateKey();if(newDay!==activeCalendarDay){activeCalendarDay=newDay;agendaDate=new Date();agendaView='month';loadAgenda().catch(()=>{})}},15000);
+document.addEventListener('pointerdown',unlockReminderAudio,{passive:true});document.addEventListener('keydown',unlockReminderAudio);
+let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole==='admin'){pollMeetingReminders();pollAgendaReminders();checkLocalAgendaAlarms();checkAutomaticEndOfDayReport()}});setInterval(checkAutomaticEndOfDayReport,60000);setInterval(()=>{if(currentAccessRole==='admin')checkLocalAgendaAlarms()},5000); setInterval(()=>{if(currentAccessRole!=='admin')return;loadMeetings().catch(()=>{});pollMeetingReminders();pollAgendaReminders();const newDay=localDateKey();if(newDay!==activeCalendarDay){activeCalendarDay=newDay;agendaDate=new Date();agendaView='month';loadAgenda().catch(()=>{})}},15000);
 </script><!-- deployment-refresh: 2026-08-28-multi-participants -->
 <!-- deployment-refresh: tracking-two-hour-warning -->
 </body></html>
