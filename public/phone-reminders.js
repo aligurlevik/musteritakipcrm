@@ -91,23 +91,28 @@
     }
     if(!status.connected&&!await connect())throw new Error(status.error||'Önce bildirimleri açın.');
     const reg=registration||await navigator.serviceWorker?.getRegistration('/');
+    let localTest=false,localCount=0,localError='';
     try{
-      await reg?.showNotification('🔔 1/2 Android bildirim testi',{
+      if(!reg)throw new Error('Service Worker bulunamadı.');
+      const localTag='agenda-local-test-'+Date.now();
+      await reg.showNotification('🔔 1/2 Android bildirim testi',{
         body:'Bu bildirim görünüyorsa telefonun yerel bildirim izni çalışıyor.',
-        tag:'agenda-local-test-'+Date.now(),icon:'/agenda-icon-192.png',badge:'/notes-logo-ag-v1.png',
+        tag:localTag,icon:'/agenda-icon-192.png',badge:'/notes-logo-ag-v1.png',
         silent:false,vibrate:[400,120,400],requireInteraction:true,renotify:true,
         data:{url:'/notlar-v2.html'}
       });
-    }catch(_){}
+      localTest=true;
+      try{localCount=(await reg.getNotifications({tag:localTag})).length}catch(_){}
+    }catch(error){localError=error?.message||String(error)}
     try{
       const result=await api('/api/push/test',{deviceId:status.deviceId});
-      return {...result,localTest:true,android};
+      return {...result,localTest,localCount,localError,permission:Notification.permission,android};
     }catch(firstError){
       try{
         status.connected=false;status.deviceId='';changed();
         if(!await connect())throw new Error(status.error||'Telefon bildirim bağlantısı yenilenemedi.');
         const result=await api('/api/push/test',{deviceId:status.deviceId});
-        return {...result,localTest:true,android,reconnected:true};
+        return {...result,localTest,localCount,localError,permission:Notification.permission,android,reconnected:true};
       }catch(_){throw firstError}
     }
   }
