@@ -41,6 +41,17 @@ const AGENDA_TITLE_DETAIL_LIVE = String.raw`
     var detail=lines.join('\n').replace(/^\s+/,'').trim();
     return {title:title||detail,detail:title?detail:''};
   }
+  function partsForItem(item){
+    var saved=String(item&&item.title||'').trim();
+    var raw=String(item&&item.note||'').replace(/\r\n/g,'\n').trim();
+    if(saved){
+      var detail=raw;
+      var lines=raw.split('\n');
+      if((lines[0]||'').trim()===saved)detail=lines.slice(1).join('\n').replace(/^\s+/,'').trim();
+      return {title:saved,detail:detail};
+    }
+    return splitNote(raw);
+  }
   function combineNote(title,detail){
     title=String(title||'').trim();
     detail=String(detail||'').trim();
@@ -103,7 +114,7 @@ const AGENDA_TITLE_DETAIL_LIVE = String.raw`
   function fillOverlay(id){
     var item=findItem(id);if(!item)return false;
     activeId=Number(id);
-    var parts=splitNote(item.note);
+    var parts=partsForItem(item);
     document.getElementById('agendaTitleDetailLiveHeading').textContent=parts.title||'Not';
     var text=document.getElementById('agendaTitleDetailLiveText');
     text.textContent=parts.detail||'Bu başlık için henüz ayrıntı yazılmamış.';
@@ -158,7 +169,7 @@ const AGENDA_TITLE_DETAIL_LIVE = String.raw`
   function decorateAgendaTitles(){
     document.querySelectorAll('#agenda .done-note[id],#agenda .agenda-note[id]').forEach(function(el){
       var id=idFromElement(el),item=id&&findItem(id);if(!item)return;
-      var parts=splitNote(item.note),title=parts.title||'Başlıksız';
+      var parts=partsForItem(item),title=parts.title||'Başlıksız';
       if(el.textContent!==title)el.textContent=title;
       el.classList.add('agenda-title-live');
       el.title=parts.detail?'Ayrıntıları aç':'Notu aç';
