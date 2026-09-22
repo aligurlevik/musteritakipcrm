@@ -162,5 +162,9 @@ test('deployed entry serves phone assets and loads note palettes once on note pa
       assert.ok(!html.includes('src="/planlama-daily-patch.js'));
       assert.ok(!html.includes('src="/planlama-monthly-patch.js'));
     }
+  const desktop=await worker.fetch(new Request('https://crm.test/',{headers:{'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}}),f.env,{});
+  const desktopHtml=await desktop.text();
+  assert.equal((desktopHtml.match(/src="\/phone-reminders\.js/g)||[]).length,1);
+  assert.equal((desktopHtml.match(/src="\/phone-notification-controls\.js/g)||[]).length,1);
   }
 });
