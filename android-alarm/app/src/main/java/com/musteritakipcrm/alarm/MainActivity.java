@@ -76,6 +76,16 @@ public class MainActivity extends Activity {
         });
         root.addView(battery,new LinearLayout.LayoutParams(-1,-2));
 
+        Button stop=new Button(this);
+        stop.setText("🛑 ALARM SESİNİ DURDUR");
+        stop.setTextSize(20);
+        stop.setOnClickListener(v->{
+            Intent i=new Intent(this,AlarmRingingService.class).setAction("STOP");
+            if(Build.VERSION.SDK_INT>=26)startForegroundService(i);else startService(i);
+            toast("Alarm durduruldu.");
+        });
+        root.addView(stop,new LinearLayout.LayoutParams(-1,-2));
+
         Button test=new Button(this);
         test.setText("10 SANİYE SONRAYA TEST ALARMI");
         test.setOnClickListener(v->AlarmScheduler.scheduleLocalTest(this,System.currentTimeMillis()+10000));
