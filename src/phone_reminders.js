@@ -144,6 +144,10 @@ export async function pushHealth(env,{now=Date.now()}={}){
   const config=await env.DB.prepare('SELECT COUNT(*) n FROM crm_push_config WHERE id=1').first();
   const recent=(await env.DB.prepare(`SELECT id,remind_at,reminder_status,entry_status,COALESCE(source_type,'manual') source_type,COALESCE(is_archived,0) is_archived,COALESCE(notebook_no,1) notebook_no
     FROM agenda_entries WHERE COALESCE(remind_at,'')<>'' ORDER BY id DESC LIMIT 8`).all()).results||[];
+  const deliveryStates=(await env.DB.prepare(`SELECT agenda_id,remind_at,confirmed,attempts,delivered_at,claimed_until
+    FROM crm_push_deliveries WHERE agenda_id IN (SELECT id FROM agenda_entries WHERE COALESCE(remind_at,'')<>'' ORDER BY id DESC LIMIT 8)
+    ORDER BY agenda_id DESC,device_id`).all()).results||[];
+  const deviceStates=(await env.DB.prepare('SELECT enabled_since,last_seen FROM crm_push_devices WHERE enabled=1 ORDER BY enabled_since').all()).results||[];
   const due=recent.filter(note=>{
     const time=reminderTime(note.remind_at);
     return Number.isFinite(time)&&time<=now&&now-time<=86400000&&String(note.entry_status||'')!=='Yapıldı'&&Number(note.is_archived||0)===0&&String(note.source_type||'manual')==='manual'&&String(note.reminder_status||'')!=='Tamamlandı';
@@ -163,7 +167,9 @@ export async function pushHealth(env,{now=Date.now()}={}){
     enabledDevices:Number(devices?.n||0),
     configured:Number(config?.n||0)>0,
     dueNow:due.length,
-    recentReminders:recent
+    recentReminders:recent,
+    deliveryStates,
+    deviceStates
   };
 }
 
