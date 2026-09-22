@@ -1,10 +1,13 @@
 import worker from './private_notebook_guard.js';
-import {pushApi,deliverDueReminders} from './phone_reminders.js';
+import {pushApi,pushHealth,deliverDueReminders} from './phone_reminders.js';
 import {applyCrmBranding} from './crm_branding.js';
 
 export default{
   async fetch(request,env,ctx){
     const path=new URL(request.url).pathname;
+    if(path==='/api/push/health'&&request.method==='GET'){
+      try{return new Response(JSON.stringify(await pushHealth(env)),{status:200,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}catch(error){return new Response(JSON.stringify({ok:false,error:String(error?.message||error)}),{status:500,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}
+    }
     if(path.startsWith('/api/push/')){
       try{return await pushApi(request,env)}catch(error){console.error('Phone reminder API failed',error?.name);return new Response(JSON.stringify({error:'Telefon bildirimi kurulamadı. Tekrar deneyin.'}),{status:500,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}
     }
