@@ -13,14 +13,24 @@ async function admin(request,env){
   const expected=value+'.'+Array.from(new Uint8Array(sig),x=>x.toString(16).padStart(2,'0')).join('');
   return (request.headers.get('cookie')||'').match(/(?:^|;\s*)crm_session=([^;]+)/)?.[1]===expected;
 }
+async function tableColumns(env,table){
+  const result=await env.DB.prepare(`PRAGMA table_info(${table})`).all();
+  return new Set((result.results||[]).map(row=>row.name));
+}
+async function ensureColumn(env,table,name,definition){
+  const columns=await tableColumns(env,table);
+  if(!columns.has(name))await env.DB.prepare(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`).run();
+}
 export async function ensurePushSchema(env){
   if(!schemas.has(env.DB))schemas.set(env.DB,(async()=>{
     for(const sql of [
       `CREATE TABLE IF NOT EXISTS crm_push_config(id INTEGER PRIMARY KEY CHECK(id=1),public_key TEXT NOT NULL,private_key TEXT NOT NULL,subject TEXT NOT NULL)`,
       `CREATE TABLE IF NOT EXISTS crm_push_devices(id TEXT PRIMARY KEY,endpoint TEXT NOT NULL UNIQUE,p256dh TEXT NOT NULL,auth TEXT NOT NULL,origin TEXT NOT NULL,enabled INTEGER NOT NULL DEFAULT 1,enabled_since INTEGER NOT NULL,last_seen INTEGER NOT NULL)`,
-      `CREATE TABLE IF NOT EXISTS crm_push_deliveries(device_id TEXT NOT NULL,agenda_id INTEGER NOT NULL,remind_at TEXT NOT NULL,delivered_at INTEGER NOT NULL DEFAULT 0,claimed_until INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(device_id,agenda_id,remind_at))`,
+      `CREATE TABLE IF NOT EXISTS crm_push_deliveries(device_id TEXT NOT NULL,agenda_id INTEGER NOT NULL,remind_at TEXT NOT NULL,delivered_at INTEGER NOT NULL DEFAULT 0,claimed_until INTEGER NOT NULL DEFAULT 0,confirmed INTEGER NOT NULL DEFAULT 0,attempts INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(device_id,agenda_id,remind_at))`,
       `CREATE TABLE IF NOT EXISTS crm_push_runtime(id INTEGER PRIMARY KEY CHECK(id=1),last_started_at INTEGER NOT NULL DEFAULT 0,last_finished_at INTEGER NOT NULL DEFAULT 0,last_sent INTEGER NOT NULL DEFAULT 0,last_devices INTEGER NOT NULL DEFAULT 0,last_due INTEGER NOT NULL DEFAULT 0,last_error TEXT NOT NULL DEFAULT '')`
     ])await env.DB.prepare(sql).run();
+    await ensureColumn(env,'crm_push_deliveries','confirmed','INTEGER NOT NULL DEFAULT 0');
+    await ensureColumn(env,'crm_push_deliveries','attempts','INTEGER NOT NULL DEFAULT 0');
   })().catch(error=>{schemas.delete(env.DB);throw error}));
   return schemas.get(env.DB);
 }
@@ -72,9 +82,26 @@ async function deviceFor(env,id,origin){return env.DB.prepare('SELECT * FROM crm
 
 export async function pushApi(request,env,{send=sendPush,now=Date.now()}={}){
   const url=new URL(request.url),origin=url.origin;
+  await ensurePushSchema(env);
+
+  // Service Worker acknowledgement: the random device id is only delivered
+  // inside the encrypted Web Push payload. This endpoint lets a closed app
+  // confirm that the push event really reached the device.
+  if(url.pathname==='/api/push/received'&&request.method==='POST'){
+    if(request.headers.get('origin')&&request.headers.get('origin')!==origin)return json({error:'Yetkisiz'},403);
+    let body={};try{body=await request.json()}catch{return json({error:'Bildirim onayı geçersiz.'},400)}
+    const device=await env.DB.prepare('SELECT id FROM crm_push_devices WHERE id=? AND enabled=1').bind(String(body.deviceId||'')).first();
+    const note=await env.DB.prepare('SELECT id,remind_at FROM agenda_entries WHERE id=?').bind(Number(body.id)||0).first();
+    const time=reminderTime(note?.remind_at);
+    if(!device||!note||note.remind_at!==body.remind_at||!Number.isFinite(time)||time>now||now-time>86400000)return json({error:'Hatırlatma bulunamadı.'},400);
+    await env.DB.prepare(`INSERT INTO crm_push_deliveries(device_id,agenda_id,remind_at,delivered_at,claimed_until,confirmed,attempts) VALUES(?,?,?,?,0,1,1)
+      ON CONFLICT(device_id,agenda_id,remind_at) DO UPDATE SET delivered_at=excluded.delivered_at,claimed_until=0,confirmed=1`)
+      .bind(device.id,note.id,note.remind_at,now).run();
+    return json({ok:true});
+  }
+
   if(!await admin(request,env))return json({error:'Yetkisiz'},401);
   if(request.headers.get('origin')&&request.headers.get('origin')!==origin)return json({error:'Yetkisiz'},403);
-  await ensurePushSchema(env);
   if(url.pathname==='/api/push/config'&&request.method==='GET')return json({publicKey:(await vapidKeys(env,origin)).publicKey});
   if(request.method!=='POST')return json({error:'Geçersiz işlem.'},405);
   if(Number(request.headers.get('content-length')||0)>12000)return json({error:'Bildirim verisi çok büyük.'},413);
@@ -95,7 +122,7 @@ export async function pushApi(request,env,{send=sendPush,now=Date.now()}={}){
   const device=await deviceFor(env,body.deviceId,origin);
   if(!device)return json({error:'Önce telefon bildirimlerini açın.'},404);
   if(url.pathname==='/api/push/test'){
-    const result=await send(device,{title:'🔔 Ajanda alarmı denemesi',body:'Yazılı uyarı ve bildirim sesi birlikte çalışır. Telefonun bildirim sesinin açık olduğundan emin olun.',tag:'agenda-test-'+crypto.randomUUID(),url:'/notlar-v2.html'},await vapidKeys(env,origin));
+    const result=await send(device,{title:'🔔 Ajanda alarmı denemesi',body:'Sunucudan gelen gerçek push testidir.',tag:'agenda-test-'+crypto.randomUUID(),url:'/notlar-v2.html'},await vapidKeys(env,origin));
     if(!result.ok)return json({error:'Deneme bildirimi gönderilemedi. Bildirimleri yeniden açın.'},502);
     return json({ok:true});
   }
@@ -103,8 +130,8 @@ export async function pushApi(request,env,{send=sendPush,now=Date.now()}={}){
     const note=await env.DB.prepare('SELECT id,remind_at FROM agenda_entries WHERE id=?').bind(Number(body.id)||0).first();
     const time=reminderTime(note?.remind_at);
     if(!note||note.remind_at!==body.remind_at||!Number.isFinite(time)||time>now||now-time>86400000)return json({error:'Hatırlatma bulunamadı.'},400);
-    await env.DB.prepare(`INSERT INTO crm_push_deliveries(device_id,agenda_id,remind_at,delivered_at) VALUES(?,?,?,?)
-      ON CONFLICT(device_id,agenda_id,remind_at) DO UPDATE SET delivered_at=excluded.delivered_at,claimed_until=0`).bind(device.id,note.id,note.remind_at,now).run();
+    await env.DB.prepare(`INSERT INTO crm_push_deliveries(device_id,agenda_id,remind_at,delivered_at,claimed_until,confirmed,attempts) VALUES(?,?,?,?,0,1,1)
+      ON CONFLICT(device_id,agenda_id,remind_at) DO UPDATE SET delivered_at=excluded.delivered_at,claimed_until=0,confirmed=1`).bind(device.id,note.id,note.remind_at,now).run();
     return json({ok:true});
   }
   return json({error:'Bulunamadı'},404);
@@ -169,14 +196,17 @@ export async function deliverDueReminders(env,{now=Date.now(),send=sendPush}={})
     for(const {note,time} of due){
       for(const device of devices){
         if(!device.enabled||time<device.enabled_since-15*60*1000)continue;
-        const claim=await env.DB.prepare(`INSERT INTO crm_push_deliveries(device_id,agenda_id,remind_at,claimed_until) VALUES(?,?,?,?)
-          ON CONFLICT(device_id,agenda_id,remind_at) DO UPDATE SET claimed_until=excluded.claimed_until
-          WHERE crm_push_deliveries.delivered_at=0 AND crm_push_deliveries.claimed_until<=? RETURNING device_id`).bind(device.id,note.id,note.remind_at,now+120000,now).first();
+        const claim=await env.DB.prepare(`INSERT INTO crm_push_deliveries(device_id,agenda_id,remind_at,claimed_until,confirmed,attempts) VALUES(?,?,?,?,0,1)
+          ON CONFLICT(device_id,agenda_id,remind_at) DO UPDATE SET claimed_until=excluded.claimed_until,attempts=crm_push_deliveries.attempts+1
+          WHERE COALESCE(crm_push_deliveries.confirmed,0)=0 AND crm_push_deliveries.claimed_until<=? RETURNING device_id`).bind(device.id,note.id,note.remind_at,now+120000,now).first();
         if(!claim)continue;
         try{
-          const result=await send(device,reminderPayload(note),vapid);
+          const data={...reminderPayload(note),deviceId:device.id};
+          const result=await send(device,data,vapid);
           if(result.ok){
-            await env.DB.prepare('UPDATE crm_push_deliveries SET delivered_at=?,claimed_until=0 WHERE device_id=? AND agenda_id=? AND remind_at=?').bind(now,device.id,note.id,note.remind_at).run();
+            // Acceptance by FCM/Apple/Windows is not proof that the device
+            // displayed the notification. Keep it unconfirmed and retry
+            // after the claim window unless the Service Worker acknowledges it.
             sent++;
           }else{
             if(result.status===404||result.status===410){device.enabled=0;await env.DB.prepare('UPDATE crm_push_devices SET enabled=0 WHERE id=?').bind(device.id).run()}
