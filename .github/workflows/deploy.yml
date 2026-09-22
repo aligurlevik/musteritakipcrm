@@ -40,6 +40,5 @@ jobs:
 
       - name: Reminder diagnostics
         run: |
-          sleep 135
           curl --fail --silent --show-error --retry 5 --retry-delay 2 https://musteri-takip-crm.musteritakipcrm.workers.dev/api/push/health
           echo
