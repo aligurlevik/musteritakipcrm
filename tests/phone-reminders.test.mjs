@@ -6,7 +6,7 @@ import {Script} from 'node:vm';
 import test from 'node:test';
 
 if(!globalThis.crypto)globalThis.crypto=webcrypto;
-const {ensurePushSchema,pushApi,deliverDueReminders,reminderTime,sendPush}=await import('../src/phone_reminders.js');
+const {ensurePushSchema,pushApi,deliverDueReminders,reminderTime,sendPush,sendWakePush}=await import('../src/phone_reminders.js');
 const {default:worker}=await import('../src/phone_reminders_entry.js');
 const now=Date.parse('2030-09-20T09:00:30Z'),secret='push-test-session';
 const b64=bytes=>Buffer.from(bytes).toString('base64url');
@@ -104,6 +104,23 @@ test('foreground acknowledgement suppresses this phone only and turning notifica
   const devices=[];await deliverDueReminders(f.env,{now,send:async device=>{devices.push(device.id);return new Response('',{status:201})}});assert.deepEqual(devices,[second.deviceId]);
   await f.request('/api/push/unsubscribe',{endpoint:sub.endpoint+'-second'});f.note(2);f.db.prepare('UPDATE crm_push_devices SET enabled=0').run();
   assert.equal((await deliverDueReminders(f.env,{now,send:async()=>{throw new Error('disabled devices must not send')}})).sent,0);
+});
+
+test('background wake push carries no encrypted payload and signs valid VAPID',async()=>{
+  const f=await fixture(),sub=await subscription,device=f.db.prepare('SELECT * FROM crm_push_devices').get(),config=f.db.prepare('SELECT * FROM crm_push_config').get();
+  await sendWakePush(device,{}, {publicKey:config.public_key,privateKey:config.private_key,subject:config.subject}, async(endpoint,options)=>{
+    assert.equal(endpoint,sub.endpoint);
+    assert.equal(options.method,'POST');
+    assert.equal(options.body,undefined);
+    assert.equal(options.headers.ttl,'3600');
+    assert.equal(options.headers.urgency,'high');
+    assert.equal(options.headers['content-encoding'],undefined);
+    assert.match(options.headers.authorization,/^vapid t=.+, k=/);
+    const token=options.headers.authorization.match(/t=([^, ]+)/)[1],parts=token.split('.'),claims=JSON.parse(Buffer.from(parts[1],'base64url'));
+    assert.equal(claims.aud,'https://fcm.googleapis.com');
+    assert.equal(claims.sub,'https://crm.test');
+    return new Response('',{status:201});
+  });
 });
 
 test('the actual web push payload uses modern encryption, decrypts to the reminder, and signs valid VAPID',async()=>{
