@@ -1,10 +1,14 @@
 import worker from './private_notebook_guard.js';
 import {pushApi,pushHealth,deliverDueReminders} from './phone_reminders.js';
 import {applyCrmBranding} from './crm_branding.js';
+import {nativeAlarmApi} from './native_alarm_api.js';
 
 export default{
   async fetch(request,env,ctx){
     const path=new URL(request.url).pathname;
+    if(path.startsWith('/api/native-alarm/')){
+      try{return await nativeAlarmApi(request,env)}catch(error){console.error('Native alarm API failed',error?.name);return new Response(JSON.stringify({error:'Yerel alarm servisi kullanılamıyor.'}),{status:500,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}
+    }
     if(path==='/api/push/health'&&request.method==='GET'){
       try{return new Response(JSON.stringify(await pushHealth(env)),{status:200,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}catch(error){return new Response(JSON.stringify({ok:false,error:String(error?.message||error)}),{status:500,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}
     }
