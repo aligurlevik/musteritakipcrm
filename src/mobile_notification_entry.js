@@ -18,9 +18,16 @@ export default {
     const newNotePage=isGet&&['/yeni-not','/yeni-not/','/yeni-not.html'].includes(url.pathname)
       &&(isMobileRequest(request)||url.searchParams.get('mobile')==='1'||url.pathname!=='/');
     const planPage=isGet&&['/planlama','/planlama/','/planlama.html'].includes(url.pathname);
+    const notificationPage=isGet&&[
+      '/','/index.html',
+      '/mobil-ajanda','/mobil-ajanda.html',
+      '/notlar-v2','/notlar-v2/','/notlar-v2.html',
+      '/yeni-not','/yeni-not/','/yeni-not.html',
+      '/planlama','/planlama/','/planlama.html'
+    ].includes(url.pathname);
 
     const type=response.headers.get('content-type')||'';
-    if((!notesPage&&!newNotePage&&!planPage)||!response.ok||!type.includes('text/html'))return response;
+    if(!notificationPage||!response.ok||!type.includes('text/html'))return response;
 
     let html=await response.text();
     html=html.replace(/\/notes-title-patch\.js(?:\?v=[^"']+)?/g,'/notes-title-patch.js?v=20260918-2');
@@ -45,7 +52,7 @@ export default {
       }
     }
 
-    if(notesPage||planPage||newNotePage){
+    if(notificationPage){
       if(!html.includes('/mobile-notification-permission.js')&&!html.includes('/phone-notification-controls.js')){
         html=html.replace('</body>','<script src="/phone-notification-controls.js?v=20260918-1"></script>\n</body>');
       }else{
