@@ -111,7 +111,7 @@ export async function pushApi(request,env,{send=sendPush,now=Date.now()}={}){
     const cutoff=new Date(now-86400000).toISOString().slice(0,10),lastDay=new Date(now+86400000).toISOString().slice(0,10);
     const rows=(await env.DB.prepare(`SELECT id,title,note,remind_at,notebook_no FROM agenda_entries
       WHERE COALESCE(source_type,'manual')='manual' AND COALESCE(is_archived,0)=0 AND COALESCE(entry_status,'')<>'Yapıldı'
-      AND COALESCE(reminder_status,'')<>'Tamamlandı' AND substr(remind_at,1,10)>=? AND substr(remind_at,1,10)<=?
+      AND substr(remind_at,1,10)>=? AND substr(remind_at,1,10)<=?
       ORDER BY remind_at,id`).bind(cutoff,lastDay).all()).results||[];
     const reminders=[];
     for(const note of rows){
@@ -193,7 +193,7 @@ export async function pushHealth(env,{now=Date.now()}={}){
   const deviceStates=rawDevices.map(d=>({id:String(d.id).slice(0,8),endpointHost:(()=>{try{return new URL(String(d.endpoint)).hostname}catch{return ''}})(),enabled_since:d.enabled_since,last_seen:d.last_seen}));
   const due=recent.filter(note=>{
     const time=reminderTime(note.remind_at);
-    return Number.isFinite(time)&&time<=now&&now-time<=86400000&&String(note.entry_status||'')!=='Yapıldı'&&Number(note.is_archived||0)===0&&String(note.source_type||'manual')==='manual'&&String(note.reminder_status||'')!=='Tamamlandı';
+    return Number.isFinite(time)&&time<=now&&now-time<=86400000&&String(note.entry_status||'')!=='Yapıldı'&&Number(note.is_archived||0)===0&&String(note.source_type||'manual')==='manual';
   });
   const lastFinished=Number(runtime?.last_finished_at||0);
   return {
