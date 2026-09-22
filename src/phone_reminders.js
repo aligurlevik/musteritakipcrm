@@ -18,7 +18,8 @@ export async function ensurePushSchema(env){
     for(const sql of [
       `CREATE TABLE IF NOT EXISTS crm_push_config(id INTEGER PRIMARY KEY CHECK(id=1),public_key TEXT NOT NULL,private_key TEXT NOT NULL,subject TEXT NOT NULL)`,
       `CREATE TABLE IF NOT EXISTS crm_push_devices(id TEXT PRIMARY KEY,endpoint TEXT NOT NULL UNIQUE,p256dh TEXT NOT NULL,auth TEXT NOT NULL,origin TEXT NOT NULL,enabled INTEGER NOT NULL DEFAULT 1,enabled_since INTEGER NOT NULL,last_seen INTEGER NOT NULL)`,
-      `CREATE TABLE IF NOT EXISTS crm_push_deliveries(device_id TEXT NOT NULL,agenda_id INTEGER NOT NULL,remind_at TEXT NOT NULL,delivered_at INTEGER NOT NULL DEFAULT 0,claimed_until INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(device_id,agenda_id,remind_at))`
+      `CREATE TABLE IF NOT EXISTS crm_push_deliveries(device_id TEXT NOT NULL,agenda_id INTEGER NOT NULL,remind_at TEXT NOT NULL,delivered_at INTEGER NOT NULL DEFAULT 0,claimed_until INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(device_id,agenda_id,remind_at))`,
+      `CREATE TABLE IF NOT EXISTS crm_push_runtime(id INTEGER PRIMARY KEY CHECK(id=1),last_started_at INTEGER NOT NULL DEFAULT 0,last_finished_at INTEGER NOT NULL DEFAULT 0,last_sent INTEGER NOT NULL DEFAULT 0,last_devices INTEGER NOT NULL DEFAULT 0,last_due INTEGER NOT NULL DEFAULT 0,last_error TEXT NOT NULL DEFAULT '')`
     ])await env.DB.prepare(sql).run();
   })().catch(error=>{schemas.delete(env.DB);throw error}));
   return schemas.get(env.DB);
@@ -109,44 +110,84 @@ export async function pushApi(request,env,{send=sendPush,now=Date.now()}={}){
   return json({error:'Bulunamadı'},404);
 }
 
+export async function pushHealth(env,{now=Date.now()}={}){
+  await ensurePushSchema(env);
+  const runtime=await env.DB.prepare('SELECT * FROM crm_push_runtime WHERE id=1').first();
+  const devices=await env.DB.prepare('SELECT COUNT(*) n FROM crm_push_devices WHERE enabled=1').first();
+  const config=await env.DB.prepare('SELECT COUNT(*) n FROM crm_push_config WHERE id=1').first();
+  const lastFinished=Number(runtime?.last_finished_at||0);
+  return {
+    ok:true,
+    cronHealthy:Boolean(lastFinished&&now-lastFinished<180000),
+    cronAgeSeconds:lastFinished?Math.max(0,Math.round((now-lastFinished)/1000)):null,
+    lastStartedAt:Number(runtime?.last_started_at||0),
+    lastFinishedAt:lastFinished,
+    lastSent:Number(runtime?.last_sent||0),
+    lastDevices:Number(runtime?.last_devices||0),
+    lastDue:Number(runtime?.last_due||0),
+    lastError:String(runtime?.last_error||''),
+    enabledDevices:Number(devices?.n||0),
+    configured:Number(config?.n||0)>0
+  };
+}
+
 export async function deliverDueReminders(env,{now=Date.now(),send=sendPush}={}){
   await ensurePushSchema(env);
-  const devices=(await env.DB.prepare('SELECT * FROM crm_push_devices WHERE enabled=1').all()).results||[];
-  if(!devices.length)return {sent:0};
-  const config=await env.DB.prepare('SELECT * FROM crm_push_config WHERE id=1').first();
-  if(!config)return {sent:0};
-  const vapid={publicKey:config.public_key,privateKey:config.private_key,subject:config.subject};
-  const cutoff=new Date(now-86400000).toISOString().slice(0,10),lastDay=new Date(now+86400000).toISOString().slice(0,10);
-  const notes=(await env.DB.prepare(`SELECT id,title,note,remind_at,notebook_no FROM agenda_entries
-    WHERE COALESCE(source_type,'manual')='manual' AND COALESCE(is_archived,0)=0 AND COALESCE(entry_status,'')<>'Yapıldı'
-    AND COALESCE(reminder_status,'')<>'Tamamlandı' AND substr(remind_at,1,10)>=? AND substr(remind_at,1,10)<=?
-    ORDER BY remind_at,id`).bind(cutoff,lastDay).all()).results||[];
-  let sent=0;
-  for(const note of notes){
-    const time=reminderTime(note.remind_at);
-    if(!Number.isFinite(time)||time>now||now-time>86400000)continue;
-    for(const device of devices){
-      if(!device.enabled||time<device.enabled_since-15*60*1000)continue;
-      const claim=await env.DB.prepare(`INSERT INTO crm_push_deliveries(device_id,agenda_id,remind_at,claimed_until) VALUES(?,?,?,?)
-        ON CONFLICT(device_id,agenda_id,remind_at) DO UPDATE SET claimed_until=excluded.claimed_until
-        WHERE crm_push_deliveries.delivered_at=0 AND crm_push_deliveries.claimed_until<=? RETURNING device_id`).bind(device.id,note.id,note.remind_at,now+120000,now).first();
-      if(!claim)continue;
-      try{
-        const result=await send(device,reminderPayload(note),vapid);
-        if(result.ok){
-          await env.DB.prepare('UPDATE crm_push_deliveries SET delivered_at=?,claimed_until=0 WHERE device_id=? AND agenda_id=? AND remind_at=?').bind(now,device.id,note.id,note.remind_at).run();
-          sent++;
-        }else{
-          if(result.status===404||result.status===410){device.enabled=0;await env.DB.prepare('UPDATE crm_push_devices SET enabled=0 WHERE id=?').bind(device.id).run()}
+  await env.DB.prepare(`INSERT INTO crm_push_runtime(id,last_started_at,last_error) VALUES(1,?,'')
+    ON CONFLICT(id) DO UPDATE SET last_started_at=excluded.last_started_at,last_error=''`).bind(now).run();
+  let sent=0,deviceCount=0,dueCount=0;
+  try{
+    const devices=(await env.DB.prepare('SELECT * FROM crm_push_devices WHERE enabled=1').all()).results||[];
+    deviceCount=devices.length;
+    const config=await env.DB.prepare('SELECT * FROM crm_push_config WHERE id=1').first();
+    if(!devices.length||!config){
+      await env.DB.prepare('UPDATE crm_push_runtime SET last_finished_at=?,last_sent=0,last_devices=?,last_due=0,last_error=? WHERE id=1')
+        .bind(now,deviceCount,!config?'VAPID yapılandırması yok':'').run();
+      return {sent:0};
+    }
+    const vapid={publicKey:config.public_key,privateKey:config.private_key,subject:config.subject};
+    const cutoff=new Date(now-86400000).toISOString().slice(0,10),lastDay=new Date(now+86400000).toISOString().slice(0,10);
+    const notes=(await env.DB.prepare(`SELECT id,title,note,remind_at,notebook_no FROM agenda_entries
+      WHERE COALESCE(source_type,'manual')='manual' AND COALESCE(is_archived,0)=0 AND COALESCE(entry_status,'')<>'Yapıldı'
+      AND COALESCE(reminder_status,'')<>'Tamamlandı' AND substr(remind_at,1,10)>=? AND substr(remind_at,1,10)<=?
+      ORDER BY remind_at,id`).bind(cutoff,lastDay).all()).results||[];
+    const due=[];
+    for(const note of notes){
+      const time=reminderTime(note.remind_at);
+      if(Number.isFinite(time)&&time<=now&&now-time<=86400000)due.push({note,time});
+    }
+    dueCount=due.length;
+    for(const {note,time} of due){
+      for(const device of devices){
+        if(!device.enabled||time<device.enabled_since-15*60*1000)continue;
+        const claim=await env.DB.prepare(`INSERT INTO crm_push_deliveries(device_id,agenda_id,remind_at,claimed_until) VALUES(?,?,?,?)
+          ON CONFLICT(device_id,agenda_id,remind_at) DO UPDATE SET claimed_until=excluded.claimed_until
+          WHERE crm_push_deliveries.delivered_at=0 AND crm_push_deliveries.claimed_until<=? RETURNING device_id`).bind(device.id,note.id,note.remind_at,now+120000,now).first();
+        if(!claim)continue;
+        try{
+          const result=await send(device,reminderPayload(note),vapid);
+          if(result.ok){
+            await env.DB.prepare('UPDATE crm_push_deliveries SET delivered_at=?,claimed_until=0 WHERE device_id=? AND agenda_id=? AND remind_at=?').bind(now,device.id,note.id,note.remind_at).run();
+            sent++;
+          }else{
+            if(result.status===404||result.status===410){device.enabled=0;await env.DB.prepare('UPDATE crm_push_devices SET enabled=0 WHERE id=?').bind(device.id).run()}
+            await env.DB.prepare('UPDATE crm_push_deliveries SET claimed_until=0 WHERE device_id=? AND agenda_id=? AND remind_at=?').bind(device.id,note.id,note.remind_at).run();
+            console.warn('Ajanda push service status',result.status);
+          }
+        }catch(error){
           await env.DB.prepare('UPDATE crm_push_deliveries SET claimed_until=0 WHERE device_id=? AND agenda_id=? AND remind_at=?').bind(device.id,note.id,note.remind_at).run();
-          console.warn('Ajanda push service status',result.status);
+          console.warn('Ajanda push delivery will retry',error?.name||'Error');
         }
-      }catch{
-        await env.DB.prepare('UPDATE crm_push_deliveries SET claimed_until=0 WHERE device_id=? AND agenda_id=? AND remind_at=?').bind(device.id,note.id,note.remind_at).run();
-        console.warn('Ajanda push delivery will retry');
       }
     }
+    await env.DB.prepare('DELETE FROM crm_push_deliveries WHERE delivered_at>0 AND delivered_at<?').bind(now-604800000).run();
+    await env.DB.prepare('UPDATE crm_push_runtime SET last_finished_at=?,last_sent=?,last_devices=?,last_due=?,last_error=? WHERE id=1')
+      .bind(now,sent,deviceCount,dueCount,'').run();
+    return {sent};
+  }catch(error){
+    const message=String(error?.message||error||'Bilinmeyen cron hatası').slice(0,500);
+    await env.DB.prepare('UPDATE crm_push_runtime SET last_finished_at=?,last_sent=?,last_devices=?,last_due=?,last_error=? WHERE id=1')
+      .bind(now,sent,deviceCount,dueCount,message).run().catch(()=>{});
+    throw error;
   }
-  await env.DB.prepare('DELETE FROM crm_push_deliveries WHERE delivered_at>0 AND delivered_at<?').bind(now-604800000).run();
-  return {sent};
 }
