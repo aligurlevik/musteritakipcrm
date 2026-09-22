@@ -31,6 +31,8 @@ export async function ensurePushSchema(env){
     ])await env.DB.prepare(sql).run();
     await ensureColumn(env,'crm_push_deliveries','confirmed','INTEGER NOT NULL DEFAULT 0');
     await ensureColumn(env,'crm_push_deliveries','attempts','INTEGER NOT NULL DEFAULT 0');
+    await ensureColumn(env,'crm_push_deliveries','last_status','INTEGER NOT NULL DEFAULT 0');
+    await ensureColumn(env,'crm_push_deliveries','last_error',"TEXT NOT NULL DEFAULT ''");
   })().catch(error=>{schemas.delete(env.DB);throw error}));
   return schemas.get(env.DB);
 }
@@ -144,10 +146,11 @@ export async function pushHealth(env,{now=Date.now()}={}){
   const config=await env.DB.prepare('SELECT COUNT(*) n FROM crm_push_config WHERE id=1').first();
   const recent=(await env.DB.prepare(`SELECT id,remind_at,reminder_status,entry_status,COALESCE(source_type,'manual') source_type,COALESCE(is_archived,0) is_archived,COALESCE(notebook_no,1) notebook_no
     FROM agenda_entries WHERE COALESCE(remind_at,'')<>'' ORDER BY id DESC LIMIT 8`).all()).results||[];
-  const deliveryStates=(await env.DB.prepare(`SELECT agenda_id,remind_at,confirmed,attempts,delivered_at,claimed_until
+  const deliveryStates=(await env.DB.prepare(`SELECT agenda_id,remind_at,confirmed,attempts,delivered_at,claimed_until,last_status,last_error
     FROM crm_push_deliveries WHERE agenda_id IN (SELECT id FROM agenda_entries WHERE COALESCE(remind_at,'')<>'' ORDER BY id DESC LIMIT 8)
     ORDER BY agenda_id DESC,device_id`).all()).results||[];
-  const deviceStates=(await env.DB.prepare('SELECT enabled_since,last_seen FROM crm_push_devices WHERE enabled=1 ORDER BY enabled_since').all()).results||[];
+  const rawDevices=(await env.DB.prepare('SELECT id,endpoint,enabled_since,last_seen FROM crm_push_devices WHERE enabled=1 ORDER BY enabled_since').all()).results||[];
+  const deviceStates=rawDevices.map(d=>({id:String(d.id).slice(0,8),endpointHost:(()=>{try{return new URL(String(d.endpoint)).hostname}catch{return ''}})(),enabled_since:d.enabled_since,last_seen:d.last_seen}));
   const due=recent.filter(note=>{
     const time=reminderTime(note.remind_at);
     return Number.isFinite(time)&&time<=now&&now-time<=86400000&&String(note.entry_status||'')!=='Yapıldı'&&Number(note.is_archived||0)===0&&String(note.source_type||'manual')==='manual'&&String(note.reminder_status||'')!=='Tamamlandı';
@@ -210,17 +213,23 @@ export async function deliverDueReminders(env,{now=Date.now(),send=sendPush}={})
           const data={...reminderPayload(note),deviceId:device.id};
           const result=await send(device,data,vapid);
           if(result.ok){
+            await env.DB.prepare("UPDATE crm_push_deliveries SET last_status=?,last_error='' WHERE device_id=? AND agenda_id=? AND remind_at=?")
+              .bind(result.status,device.id,note.id,note.remind_at).run();
             // Acceptance by FCM/Apple/Windows is not proof that the device
             // displayed the notification. Keep it unconfirmed and retry
             // after the claim window unless the Service Worker acknowledges it.
             sent++;
           }else{
+            await env.DB.prepare("UPDATE crm_push_deliveries SET last_status=?,last_error=? WHERE device_id=? AND agenda_id=? AND remind_at=?")
+              .bind(result.status,'push service '+result.status,device.id,note.id,note.remind_at).run();
             if(result.status===404||result.status===410){device.enabled=0;await env.DB.prepare('UPDATE crm_push_devices SET enabled=0 WHERE id=?').bind(device.id).run()}
             await env.DB.prepare('UPDATE crm_push_deliveries SET claimed_until=0 WHERE device_id=? AND agenda_id=? AND remind_at=?').bind(device.id,note.id,note.remind_at).run();
             console.warn('Ajanda push service status',result.status);
           }
         }catch(error){
-          await env.DB.prepare('UPDATE crm_push_deliveries SET claimed_until=0 WHERE device_id=? AND agenda_id=? AND remind_at=?').bind(device.id,note.id,note.remind_at).run();
+          const message=String(error?.message||error?.name||'Push error').slice(0,240);
+          await env.DB.prepare("UPDATE crm_push_deliveries SET claimed_until=0,last_status=0,last_error=? WHERE device_id=? AND agenda_id=? AND remind_at=?")
+            .bind(message,device.id,note.id,note.remind_at).run();
           console.warn('Ajanda push delivery will retry',error?.name||'Error');
         }
       }
