@@ -9,19 +9,9 @@ async function showReminder(message){
     requireInteraction:true,
     renotify:true,
     timestamp:Date.now(),
-    data:{url:message.url||'/notlar-v2.html'},
+    data:{url:message.url||'/notlar-v2.html',deviceId:message.deviceId||'',id:Number(message.id)||0,remind_at:message.remind_at||''},
     actions:[{action:'open',title:'Ajandayı Aç'}]
   });
-  if(message.deviceId&&message.id&&message.remind_at){
-    try{
-      await fetch('/api/push/received',{
-        method:'POST',
-        credentials:'same-origin',
-        headers:{'content-type':'application/json'},
-        body:JSON.stringify({deviceId:message.deviceId,id:message.id,remind_at:message.remind_at})
-      });
-    }catch(_){}
-  }
   const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
   for(const client of windows)client.postMessage({type:'CRM_REMINDER',reminder:message});
 }
@@ -56,9 +46,22 @@ self.addEventListener('push',event=>{
     for(const message of messages)await showReminder(message);
   })());
 });
+async function acknowledgeNotification(notification){
+  const data=notification?.data||{};
+  if(!data.deviceId||!data.id||!data.remind_at)return;
+  try{
+    await fetch('/api/push/received',{
+      method:'POST',
+      credentials:'same-origin',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({deviceId:data.deviceId,id:data.id,remind_at:data.remind_at})
+    });
+  }catch(_){}
+}
 self.addEventListener('notificationclick',event=>{
   event.notification.close();
   event.waitUntil((async()=>{
+    await acknowledgeNotification(event.notification);
     const target=new URL(event.notification.data?.url||'/notlar-v2.html',self.location.origin);
     if(target.origin!==self.location.origin)target.href=self.location.origin+'/notlar-v2.html';
     const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
@@ -69,4 +72,7 @@ self.addEventListener('notificationclick',event=>{
     }
     await self.clients.openWindow(target.href);
   })());
+});
+self.addEventListener('notificationclose',event=>{
+  event.waitUntil(acknowledgeNotification(event.notification));
 });
