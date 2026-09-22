@@ -17,6 +17,16 @@ self.addEventListener('push',event=>{
       data:{url:message.url||'/notlar-v2.html'},
       actions:[{action:'open',title:'Ajandayı Aç'}]
     });
+    if(message.deviceId&&message.id&&message.remind_at){
+      try{
+        await fetch('/api/push/received',{
+          method:'POST',
+          credentials:'same-origin',
+          headers:{'content-type':'application/json'},
+          body:JSON.stringify({deviceId:message.deviceId,id:message.id,remind_at:message.remind_at})
+        });
+      }catch(_){}
+    }
     const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     for(const client of windows)client.postMessage({type:'CRM_REMINDER',reminder:message});
   })());
