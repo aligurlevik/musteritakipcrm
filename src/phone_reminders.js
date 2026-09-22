@@ -80,11 +80,51 @@ export async function sendPush(device,data,vapid,request=fetch){
   // daha servise ulaşmadan reddedebiliyor.
   return request(device.endpoint,payload);
 }
+
+async function vapidWakeHeaders(subscription,vapid,clock=Date.now()){
+  const endpoint=new URL(subscription.endpoint),pub=decode(vapid.publicKey);
+  if(pub.length!==65||pub[0]!==4)throw new Error('Geçersiz VAPID public key.');
+  const x=b64(pub.slice(1,33)),y=b64(pub.slice(33,65));
+  const key=await crypto.subtle.importKey('jwk',{kty:'EC',crv:'P-256',x,y,d:vapid.privateKey,ext:true,key_ops:['sign']},{name:'ECDSA',namedCurve:'P-256'},false,['sign']);
+  const head=b64(encoder.encode(JSON.stringify({typ:'JWT',alg:'ES256'})));
+  const body=b64(encoder.encode(JSON.stringify({aud:endpoint.origin,exp:Math.floor(clock/1000)+43200,sub:vapid.subject})));
+  const signing=head+'.'+body;
+  const sig=b64(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},key,encoder.encode(signing)));
+  return {authorization:'vapid t='+signing+'.'+sig+', k='+vapid.publicKey,ttl:'3600',urgency:'high'};
+}
+export async function sendWakePush(device,_data,vapid,request=fetch){
+  const subscription=await validSubscription({endpoint:device.endpoint,keys:{p256dh:device.p256dh,auth:device.auth}});
+  return request(device.endpoint,{method:'POST',headers:await vapidWakeHeaders(subscription,vapid)});
+}
 async function deviceFor(env,id,origin){return env.DB.prepare('SELECT * FROM crm_push_devices WHERE id=? AND origin=? AND enabled=1').bind(String(id||''),origin).first()}
 
 export async function pushApi(request,env,{send=sendPush,now=Date.now()}={}){
   const url=new URL(request.url),origin=url.origin;
   await ensurePushSchema(env);
+
+  if(url.pathname==='/api/push/pull'&&request.method==='POST'){
+    if(request.headers.get('origin')&&request.headers.get('origin')!==origin)return json({error:'Yetkisiz'},403);
+    let body={};try{body=await request.json()}catch{return json({error:'Bildirim isteği geçersiz.'},400)}
+    const endpoint=String(body.endpoint||'');
+    const device=await env.DB.prepare('SELECT * FROM crm_push_devices WHERE endpoint=? AND enabled=1').bind(endpoint).first();
+    if(!device)return json({error:'Bildirim cihazı bulunamadı.'},404);
+    const cutoff=new Date(now-86400000).toISOString().slice(0,10),lastDay=new Date(now+86400000).toISOString().slice(0,10);
+    const rows=(await env.DB.prepare(`SELECT id,title,note,remind_at,notebook_no FROM agenda_entries
+      WHERE COALESCE(source_type,'manual')='manual' AND COALESCE(is_archived,0)=0 AND COALESCE(entry_status,'')<>'Yapıldı'
+      AND COALESCE(reminder_status,'')<>'Tamamlandı' AND substr(remind_at,1,10)>=? AND substr(remind_at,1,10)<=?
+      ORDER BY remind_at,id`).bind(cutoff,lastDay).all()).results||[];
+    const reminders=[];
+    for(const note of rows){
+      const time=reminderTime(note.remind_at);
+      if(!Number.isFinite(time)||time>now||now-time>86400000||time<Number(device.enabled_since||0)-15*60*1000)continue;
+      const state=await env.DB.prepare('SELECT confirmed FROM crm_push_deliveries WHERE device_id=? AND agenda_id=? AND remind_at=?').bind(device.id,note.id,note.remind_at).first();
+      if(Number(state?.confirmed||0)===1)continue;
+      reminders.push({...reminderPayload(note),deviceId:device.id});
+      if(reminders.length>=10)break;
+    }
+    await env.DB.prepare('UPDATE crm_push_devices SET last_seen=? WHERE id=?').bind(now,device.id).run();
+    return json({ok:true,reminders});
+  }
 
   // Service Worker acknowledgement: the random device id is only delivered
   // inside the encrypted Web Push payload. This endpoint lets a closed app
@@ -176,7 +216,7 @@ export async function pushHealth(env,{now=Date.now()}={}){
   };
 }
 
-export async function deliverDueReminders(env,{now=Date.now(),send=sendPush}={}){
+export async function deliverDueReminders(env,{now=Date.now(),send=sendWakePush}={}){
   await ensurePushSchema(env);
   await env.DB.prepare(`INSERT INTO crm_push_runtime(id,last_started_at,last_error) VALUES(1,?,'')
     ON CONFLICT(id) DO UPDATE SET last_started_at=excluded.last_started_at,last_error=''`).bind(now).run();
