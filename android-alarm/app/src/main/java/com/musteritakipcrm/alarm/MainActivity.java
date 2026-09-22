@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
 import android.net.Uri;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -22,7 +24,9 @@ import org.json.JSONObject;
 
 public class MainActivity extends Activity {
     private static final String PREF="crm_alarm";
+    private static final int REQ_RINGTONE=41;
     private TextView status;
+    private TextView soundStatus;
     private EditText code;
 
     @Override public void onCreate(Bundle state){
@@ -76,6 +80,18 @@ public class MainActivity extends Activity {
         });
         root.addView(battery,new LinearLayout.LayoutParams(-1,-2));
 
+        Button sound=new Button(this);
+        sound.setText("🔊 ALARM SESİNİ SEÇ");
+        sound.setTextSize(18);
+        sound.setOnClickListener(v->openSoundPicker());
+        root.addView(sound,new LinearLayout.LayoutParams(-1,-2));
+
+        soundStatus=new TextView(this);
+        soundStatus.setTextSize(15);
+        soundStatus.setPadding(0,6,0,10);
+        root.addView(soundStatus,new LinearLayout.LayoutParams(-1,-2));
+        refreshSoundName();
+
         Button stop=new Button(this);
         stop.setText("🛑 ALARM SESİNİ DURDUR");
         stop.setTextSize(20);
@@ -128,6 +144,43 @@ public class MainActivity extends Activity {
                 runOnUiThread(()->status.setText("⚠️ Bağlantı kontrolü: "+e.getMessage()));
             }
         }).start();
+    }
+
+    private void openSoundPicker(){
+        Uri saved=null;
+        String raw=prefs().getString("alarm_uri","");
+        if(!raw.isEmpty())try{saved=Uri.parse(raw);}catch(Exception ignored){}
+        Intent picker=new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
+        picker.putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE,RingtoneManager.TYPE_ALARM);
+        picker.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT,true);
+        picker.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT,false);
+        picker.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
+                saved!=null?saved:RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM));
+        startActivityForResult(picker,REQ_RINGTONE);
+    }
+
+    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        super.onActivityResult(requestCode,resultCode,data);
+        if(requestCode!=REQ_RINGTONE||resultCode!=RESULT_OK||data==null)return;
+        Uri picked=data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+        if(picked==null){toast("Ses seçilmedi.");return;}
+        prefs().edit().putString("alarm_uri",picked.toString()).apply();
+        refreshSoundName();
+        toast("Alarm sesi kaydedildi.");
+    }
+
+    private void refreshSoundName(){
+        if(soundStatus==null)return;
+        String raw=prefs().getString("alarm_uri","");
+        Uri uri;
+        try{uri=raw.isEmpty()?RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM):Uri.parse(raw);}
+        catch(Exception e){uri=RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);}
+        String name="Varsayılan alarm sesi";
+        try{
+            Ringtone ringtone=RingtoneManager.getRingtone(this,uri);
+            if(ringtone!=null)name=ringtone.getTitle(this);
+        }catch(Exception ignored){}
+        soundStatus.setText("Seçili ses: "+name);
     }
 
     private void startServiceNow(){
