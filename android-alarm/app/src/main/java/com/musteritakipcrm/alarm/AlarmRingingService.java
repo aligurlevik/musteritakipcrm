@@ -122,7 +122,10 @@ public class AlarmRingingService extends Service {
 
     private void playAlarm(){
         try{
-            Uri uri=RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+            String raw=getSharedPreferences("crm_alarm",MODE_PRIVATE).getString("alarm_uri","");
+            Uri uri=null;
+            if(!raw.isEmpty())try{uri=Uri.parse(raw);}catch(Exception ignored){}
+            if(uri==null)uri=RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
             if(uri==null)uri=RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
             ringtone=RingtoneManager.getRingtone(this,uri);
             if(Build.VERSION.SDK_INT>=21){
