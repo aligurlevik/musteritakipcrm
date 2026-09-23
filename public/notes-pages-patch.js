@@ -79,18 +79,18 @@
     s.id='compactDesktopNotesStyle';
     s.textContent=`
       @media (min-width:700px){
-        #list.list{gap:2px!important;padding:2px 8px 60px!important}
-        #list .noteDayHeading{margin:3px 0 1px!important;padding:3px 7px!important;font-size:12px!important;line-height:1.1!important}
-        #list .card{min-height:0!important;height:auto!important;padding:1px 5px!important;border-radius:7px!important;box-shadow:none!important}
-        #list .card .row{min-height:30px!important;grid-template-columns:20px minmax(0,1fr) 28px!important;gap:4px!important;align-items:center!important}
-        #list .card .check{width:15px!important;height:15px!important;margin:0!important}
-        #list .card .body{min-height:0!important;padding:0 2px!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:5px!important;align-items:center!important}
-        #list .card .noteText{font-size:13px!important;line-height:18px!important;min-height:18px!important;max-height:18px!important;-webkit-line-clamp:1!important;white-space:nowrap!important;text-overflow:ellipsis!important}
-        #list .card .meta{margin:0!important;gap:2px!important;flex-wrap:nowrap!important;justify-content:flex-end!important;white-space:nowrap!important}
-        #list .card .alarm,#list .card .voice,#list .card .badge,#list .card .archiveDate{font-size:9px!important;line-height:14px!important;padding:1px 4px!important;border-radius:5px!important;white-space:nowrap!important}
-        #list .card .menu summary{width:26px!important;height:23px!important;font-size:17px!important;border-radius:6px!important}
-        #list .card .importantMark{top:2px!important;right:34px!important;width:16px!important;height:16px!important;font-size:15px!important}
-        #list .card .compactDoneLabel{min-height:15px!important;height:15px!important;padding:0 4px!important;margin:0!important;line-height:15px!important;font-size:9px!important;border-radius:4px!important}
+        #list.list{gap:3px!important;padding:4px 8px 70px!important}
+        #list .noteDayHeading{margin:5px 0 1px!important;padding:5px 8px!important;font-size:13px!important;line-height:1.2!important}
+        #list .card{padding:3px 6px!important;border-radius:8px!important;box-shadow:none!important}
+        #list .card .row{grid-template-columns:24px minmax(0,1fr) 32px!important;gap:5px!important;align-items:center!important}
+        #list .card .check{width:18px!important;height:18px!important;margin-top:0!important}
+        #list .card .body{padding:0 3px!important}
+        #list .card .noteText{font-size:14px!important;line-height:20px!important;min-height:20px!important;max-height:20px!important;-webkit-line-clamp:1!important}
+        #list .card .meta{margin-top:1px!important;gap:3px!important}
+        #list .card .alarm,#list .card .voice,#list .card .badge,#list .card .archiveDate{font-size:10px!important;padding:2px 5px!important}
+        #list .card .menu summary{width:30px!important;height:27px!important;font-size:19px!important;border-radius:7px!important}
+        #list .card .importantMark{top:3px!important;right:39px!important;width:18px!important;height:18px!important;font-size:17px!important}
+        #list .card .compactDoneLabel{min-height:18px!important;height:auto!important;padding:2px 6px!important;margin:2px 0 0!important;line-height:15px!important;font-size:11px!important;border-radius:5px!important}
       }
     `;
     document.head.appendChild(s);
