@@ -1,4 +1,4 @@
-import worker from './private_notebook_guard.js';
+import worker from './quick_request_vertical_compact.js';
 import {pushApi,pushHealth,deliverDueReminders,sendPush,sendWakePush} from './phone_reminders.js';
 import {applyCrmBranding} from './crm_branding.js';
 import {nativeAlarmApi} from './native_alarm_api.js';
