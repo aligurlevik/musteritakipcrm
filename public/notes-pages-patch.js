@@ -66,3 +66,37 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
+
+(function(){
+  function compactDoneLabels(){
+    document.querySelectorAll('#list .card.done *').forEach(el=>{
+      if(el.children.length===0&&String(el.textContent||'').trim().replace(/\s+/g,' ')==='✓ Tamamlandı')el.classList.add('compactDoneLabel');
+    });
+  }
+  function installCompactDesktopNotes(){
+    if(document.getElementById('compactDesktopNotesStyle'))return;
+    const s=document.createElement('style');
+    s.id='compactDesktopNotesStyle';
+    s.textContent=`
+      @media (min-width:700px){
+        #list.list{gap:3px!important;padding:4px 8px 70px!important}
+        #list .noteDayHeading{margin:5px 0 1px!important;padding:5px 8px!important;font-size:13px!important;line-height:1.2!important}
+        #list .card{padding:3px 6px!important;border-radius:8px!important;box-shadow:none!important}
+        #list .card .row{grid-template-columns:24px minmax(0,1fr) 32px!important;gap:5px!important;align-items:center!important}
+        #list .card .check{width:18px!important;height:18px!important;margin-top:0!important}
+        #list .card .body{padding:0 3px!important}
+        #list .card .noteText{font-size:14px!important;line-height:20px!important;min-height:20px!important;max-height:20px!important;-webkit-line-clamp:1!important}
+        #list .card .meta{margin-top:1px!important;gap:3px!important}
+        #list .card .alarm,#list .card .voice,#list .card .badge,#list .card .archiveDate{font-size:10px!important;padding:2px 5px!important}
+        #list .card .menu summary{width:30px!important;height:27px!important;font-size:19px!important;border-radius:7px!important}
+        #list .card .importantMark{top:3px!important;right:39px!important;width:18px!important;height:18px!important;font-size:17px!important}
+        #list .card .compactDoneLabel{min-height:18px!important;height:auto!important;padding:2px 6px!important;margin:2px 0 0!important;line-height:15px!important;font-size:11px!important;border-radius:5px!important}
+      }
+    `;
+    document.head.appendChild(s);
+    compactDoneLabels();
+    const list=document.getElementById('list');
+    if(list)new MutationObserver(compactDoneLabels).observe(list,{childList:true,subtree:true,characterData:true});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installCompactDesktopNotes,{once:true});else installCompactDesktopNotes();
+})();
