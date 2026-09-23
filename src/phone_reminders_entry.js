@@ -1,7 +1,20 @@
 import worker from './private_notebook_guard.js';
-import {pushApi,pushHealth,deliverDueReminders} from './phone_reminders.js';
+import {pushApi,pushHealth,deliverDueReminders,sendPush,sendWakePush} from './phone_reminders.js';
 import {applyCrmBranding} from './crm_branding.js';
 import {nativeAlarmApi} from './native_alarm_api.js';
+
+async function sendBackgroundReminder(device,data,vapid){
+  try{
+    const primary=await sendPush(device,data,vapid);
+    if(primary.ok||primary.status===404||primary.status===410)return primary;
+    try{
+      const fallback=await sendWakePush(device,data,vapid);
+      return fallback.ok?fallback:primary;
+    }catch(_){return primary}
+  }catch(primaryError){
+    try{return await sendWakePush(device,data,vapid)}catch(_){throw primaryError}
+  }
+}
 
 export default{
   async fetch(request,env,ctx){
@@ -24,5 +37,5 @@ export default{
     }
     return applyCrmBranding(await worker.fetch(request,env,ctx),request);
   },
-  async scheduled(controller,env){await deliverDueReminders(env,{now:controller.scheduledTime||Date.now()})}
+  async scheduled(controller,env){await deliverDueReminders(env,{now:controller.scheduledTime||Date.now(),send:sendBackgroundReminder})}
 };
