@@ -1,4 +1,4 @@
-# VERSION: 2026.09.24.2
+# VERSION: 2026.09.24.3
 $ErrorActionPreference = 'SilentlyContinue'
 
 $AppDir = Join-Path $env:LOCALAPPDATA 'MusteriTakipCRM'
@@ -51,29 +51,12 @@ function Invoke-CrmRequest {
 function Show-CrmAlarm {
     param($Reminder)
 
-    $soundPath = @(
-        "$env:WINDIR\Media\Alarm01.wav",
-        "$env:WINDIR\Media\Alarm02.wav",
-        "$env:WINDIR\Media\Windows Notify Calendar.wav",
-        "$env:WINDIR\Media\Windows Notify.wav"
-    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
-
-    $player = $null
-    try {
-        if ($soundPath) {
-            $player = New-Object System.Media.SoundPlayer $soundPath
-            $player.PlayLooping()
-        } else {
-            [System.Media.SystemSounds]::Exclamation.Play()
-        }
-    } catch {}
-
     [xml]$xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        Title="CRM AJANDA ALARMI" Width="560" Height="350"
+        Title="CRM AJANDA UYARISI" Width="560" Height="350"
         WindowStartupLocation="CenterScreen" Topmost="True"
         ResizeMode="NoResize" Background="#FFF5CC">
-  <Border BorderBrush="#F59E0B" BorderThickness="5" CornerRadius="14" Padding="22">
+  <Border Name="AlarmBorder" BorderBrush="#DC2626" BorderThickness="7" CornerRadius="14" Padding="22" Background="#FFF5CC">
     <Grid>
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto"/>
@@ -81,12 +64,12 @@ function Show-CrmAlarm {
         <RowDefinition Height="*"/>
         <RowDefinition Height="Auto"/>
       </Grid.RowDefinitions>
-      <TextBlock Grid.Row="0" Text="⏰ AJANDA ALARMI" FontSize="20" FontWeight="Bold" Foreground="#8A4B00" Margin="0,0,0,14"/>
-      <TextBlock Grid.Row="1" Name="AlarmTitle" FontSize="28" FontWeight="Bold" Foreground="#173F63" TextWrapping="Wrap" Margin="0,0,0,14"/>
+      <TextBlock Grid.Row="0" Text="⚠ AJANDA UYARISI" FontSize="22" FontWeight="Bold" Foreground="#991B1B" Margin="0,0,0,14"/>
+      <TextBlock Grid.Row="1" Name="AlarmTitle" FontSize="30" FontWeight="Bold" Foreground="#173F63" TextWrapping="Wrap" Margin="0,0,0,14"/>
       <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-        <TextBlock Name="AlarmBody" FontSize="20" Foreground="#1F2937" TextWrapping="Wrap"/>
+        <TextBlock Name="AlarmBody" FontSize="21" Foreground="#1F2937" TextWrapping="Wrap"/>
       </ScrollViewer>
-      <Button Grid.Row="3" Name="StopButton" Content="TAMAM — SESİ DURDUR" Height="58" Margin="0,18,0,0" FontSize="18" FontWeight="Bold" Background="#173F63" Foreground="White"/>
+      <Button Grid.Row="3" Name="StopButton" Content="TAMAM — UYARIYI KAPAT" Height="58" Margin="0,18,0,0" FontSize="18" FontWeight="Bold" Background="#173F63" Foreground="White"/>
     </Grid>
   </Border>
 </Window>
@@ -95,26 +78,29 @@ function Show-CrmAlarm {
     try {
         $reader = New-Object System.Xml.XmlNodeReader $xaml
         $window = [Windows.Markup.XamlReader]::Load($reader)
+        $border = $window.FindName('AlarmBorder')
         $window.FindName('AlarmTitle').Text = [string]$Reminder.title
         $window.FindName('AlarmBody').Text = [string]$Reminder.body
         $window.FindName('StopButton').Add_Click({ $window.Close() })
 
-        $timer = New-Object System.Windows.Threading.DispatcherTimer
-        $timer.Interval = [TimeSpan]::FromSeconds(3)
-        $timer.Add_Tick({
-            $timer.Stop()
-            try { if ($player) { $player.Stop() } } catch {}
-            try { $window.Close() } catch {}
+        $flashOn = $false
+        $flashTimer = New-Object System.Windows.Threading.DispatcherTimer
+        $flashTimer.Interval = [TimeSpan]::FromMilliseconds(500)
+        $flashTimer.Add_Tick({
+            $flashOn = -not $flashOn
+            if ($flashOn) {
+                $border.Background = [Windows.Media.Brushes]::LightYellow
+                $border.BorderBrush = [Windows.Media.Brushes]::Red
+            } else {
+                $border.Background = [Windows.Media.Brushes]::White
+                $border.BorderBrush = [Windows.Media.Brushes]::OrangeRed
+            }
         })
-        $window.Add_Loaded({ $timer.Start() })
-        $window.Add_Closed({
-            try { $timer.Stop() } catch {}
-            try { if ($player) { $player.Stop() } } catch {}
-        })
+        $window.Add_Loaded({ $flashTimer.Start(); $window.Activate() })
+        $window.Add_Closed({ try { $flashTimer.Stop() } catch {} })
 
         [void]$window.ShowDialog()
     } catch {
-        try { if ($player) { $player.Stop() } } catch {}
         try { [System.Windows.MessageBox]::Show(([string]$Reminder.body), ([string]$Reminder.title), 'OK', 'Exclamation') | Out-Null } catch {}
     }
 }
