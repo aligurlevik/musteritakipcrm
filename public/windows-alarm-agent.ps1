@@ -74,7 +74,20 @@ function Show-CrmAlarm {
         $window.FindName('AlarmTitle').Text = [string]$Reminder.title
         $window.FindName('AlarmBody').Text = [string]$Reminder.body
         $window.FindName('StopButton').Add_Click({ $window.Close() })
-        $window.Add_Closed({ try { if ($player) { $player.Stop() } } catch {} })
+
+        $timer = New-Object System.Windows.Threading.DispatcherTimer
+        $timer.Interval = [TimeSpan]::FromSeconds(3)
+        $timer.Add_Tick({
+            $timer.Stop()
+            try { if ($player) { $player.Stop() } } catch {}
+            try { $window.Close() } catch {}
+        })
+        $window.Add_Loaded({ $timer.Start() })
+        $window.Add_Closed({
+            try { $timer.Stop() } catch {}
+            try { if ($player) { $player.Stop() } } catch {}
+        })
+
         [void]$window.ShowDialog()
     } catch {
         try { if ($player) { $player.Stop() } } catch {}
