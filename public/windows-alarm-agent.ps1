@@ -1,3 +1,4 @@
+# VERSION: 2026.09.24.2
 $ErrorActionPreference = 'SilentlyContinue'
 
 $AppDir = Join-Path $env:LOCALAPPDATA 'MusteriTakipCRM'
@@ -6,6 +7,29 @@ if (!(Test-Path $ConfigPath)) { exit 2 }
 
 try { $Config = Get-Content -Raw -Path $ConfigPath | ConvertFrom-Json } catch { exit 3 }
 if (-not $Config.baseUrl -or -not $Config.token) { exit 4 }
+
+function Update-SelfIfNeeded {
+    try {
+        if (-not $PSCommandPath) { return }
+        $stamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+        $remoteUrl = ([string]$Config.baseUrl).TrimEnd('/') + '/windows-alarm-agent.ps1?v=' + $stamp
+        $tmp = Join-Path $env:TEMP ('crm-alarm-agent-' + [guid]::NewGuid().ToString('N') + '.ps1')
+        Invoke-WebRequest -Uri $remoteUrl -UseBasicParsing -OutFile $tmp -TimeoutSec 15
+        if (!(Test-Path $tmp)) { return }
+
+        $currentHash = (Get-FileHash -Algorithm SHA256 -Path $PSCommandPath).Hash
+        $remoteHash = (Get-FileHash -Algorithm SHA256 -Path $tmp).Hash
+        if ($currentHash -ne $remoteHash) {
+            Copy-Item -Path $tmp -Destination $PSCommandPath -Force
+            Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+            Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File',$PSCommandPath) -WindowStyle Hidden
+            exit 0
+        }
+        Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+    } catch {}
+}
+
+Update-SelfIfNeeded
 
 $created = $false
 $mutex = New-Object System.Threading.Mutex($true, 'Local\MusteriTakipCRMAlarmAgent', [ref]$created)
@@ -95,6 +119,8 @@ function Show-CrmAlarm {
     }
 }
 
+$lastUpdateCheck = [DateTime]::UtcNow
+
 while ($true) {
     try {
         $data = Invoke-CrmRequest '/api/native-alarm/reminders'
@@ -109,5 +135,11 @@ while ($true) {
             }
         }
     } catch {}
+
+    if (([DateTime]::UtcNow - $lastUpdateCheck).TotalMinutes -ge 10) {
+        Update-SelfIfNeeded
+        $lastUpdateCheck = [DateTime]::UtcNow
+    }
+
     Start-Sleep -Seconds 15
 }
