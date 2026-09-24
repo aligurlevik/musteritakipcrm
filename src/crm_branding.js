@@ -13,6 +13,36 @@ export async function applyCrmBranding(response,request){
   html=html.replace(/<\/head>/i,icons+'\n'+manifest+'\n</head>');
   html=html.replace('<div class="logo">CRM Müşteri Takip</div>','<div class="logo crmBrand"><img src="/notes-logo-ag-v1.webp" width="48" height="48" alt="AG"><span>CRM Müşteri Takip</span></div>');
   if(html.includes('class="logo crmBrand"')&&!html.includes('id="crmBrandStyle"'))html=html.replace(/<\/head>/i,'<style id="crmBrandStyle">.crmBrand{display:flex;align-items:center;gap:10px}.crmBrand img{display:block;width:48px;height:48px;flex:0 0 48px;object-fit:contain}</style>\n</head>');
+
+  // Windows masaüstünde CRM alarmı tamamen sessiz olsun.
+  // Görsel popup ve başlık yanıp-sönmesi devam eder; ses ve bildirim sesi kapalıdır.
+  if(request&&/Windows/i.test(request.headers.get('user-agent')||'')&&!html.includes('id="crmSilentDesktopAlarm"')){
+    const silentDesktop=`<script id="crmSilentDesktopAlarm">
+(function(){
+  function silence(){
+    try{ window.unlockReminderAudio=function(){}; }catch(_){}
+    try{ window.playReminderSound=function(){}; }catch(_){}
+    try{
+      if(window.reminderAudioContext&&typeof window.reminderAudioContext.close==='function'){
+        window.reminderAudioContext.close().catch(function(){});
+        window.reminderAudioContext=null;
+      }
+    }catch(_){}
+    try{
+      window.showDesktopReminder=function(title,body,tag){
+        if(!('Notification' in window)||Notification.permission!=='granted')return;
+        var notice=new Notification(title,{body:body,tag:tag,requireInteraction:true,renotify:false,silent:true});
+        notice.onclick=function(){try{window.focus()}catch(_){};try{notice.close()}catch(_){}};
+      };
+    }catch(_){}
+  }
+  silence();
+  window.addEventListener('load',silence,{once:true});
+})();
+</script>`;
+    html=html.replace(/<\/body>/i,silentDesktop+'\n</body>');
+  }
+
   const headers=new Headers(response.headers);
   for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
   headers.set('cache-control','no-cache, no-store, must-revalidate');
