@@ -16,9 +16,9 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 
 public class AlarmRingingService extends Service {
-    static final String CHANNEL_ALARM="crm_alarm_visual_v2";
+    static final String CHANNEL_ALARM="crm_alarm_visual_v3";
     static final String CHANNEL_SYNC="crm_alarm_sync";
-    private static final long AUTO_STOP_MS=5000L;
+    private static final long AUTO_STOP_MS=3000L;
     private final Handler handler=new Handler(Looper.getMainLooper());
     private Vibrator vibrator;
     private PowerManager.WakeLock wakeLock;
@@ -32,11 +32,10 @@ public class AlarmRingingService extends Service {
         sync.enableVibration(false);
         nm.createNotificationChannel(sync);
 
-        NotificationChannel alarm=new NotificationChannel(CHANNEL_ALARM,"CRM sessiz ajanda uyarısı",NotificationManager.IMPORTANCE_HIGH);
-        alarm.setDescription("Sessiz ekran uyarısı ve kısa titreşim");
+        NotificationChannel alarm=new NotificationChannel(CHANNEL_ALARM,"CRM sessiz ekran uyarısı",NotificationManager.IMPORTANCE_HIGH);
+        alarm.setDescription("Ses yok; tam ekran uyarı ve kısa titreşim");
         alarm.setSound(null,null);
-        alarm.enableVibration(true);
-        alarm.setVibrationPattern(new long[]{0,400,200,400});
+        alarm.enableVibration(false);
         nm.createNotificationChannel(alarm);
     }
 
@@ -58,31 +57,31 @@ public class AlarmRingingService extends Service {
         if(title==null||title.isEmpty())title="Ajanda Uyarısı";
         if(body==null)body="";
 
-        Intent stop=new Intent(this,AlarmRingingService.class).setAction("STOP");
-        PendingIntent stopPi=PendingIntent.getService(this,2002,stop,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        Intent display=new Intent(this,AlarmDisplayActivity.class);
+        display.putExtra("title",title);
+        display.putExtra("body",body);
+        display.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent displayPi=PendingIntent.getActivity(this,3001,display,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
 
-        Intent open=new Intent(this,MainActivity.class);
-        open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent openPi=PendingIntent.getActivity(this,2003,open,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-
-        Notification.Action stopAction=new Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel,"UYARIYI KAPAT",stopPi).build();
         Notification n=new Notification.Builder(this,CHANNEL_ALARM)
                 .setSmallIcon(android.R.drawable.ic_dialog_alert)
                 .setContentTitle("AJANDA UYARISI - "+title)
                 .setContentText(body)
                 .setStyle(new Notification.BigTextStyle().bigText(body))
-                .setContentIntent(openPi)
+                .setContentIntent(displayPi)
+                .setFullScreenIntent(displayPi,true)
                 .setOngoing(false)
                 .setAutoCancel(true)
-                .setCategory(Notification.CATEGORY_REMINDER)
+                .setCategory(Notification.CATEGORY_ALARM)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setOnlyAlertOnce(true)
-                .addAction(stopAction)
                 .build();
 
         startForeground(2001,n);
         acquireWakeLock();
         vibrateOnce();
+
+        try{startActivity(display);}catch(Exception ignored){}
 
         handler.removeCallbacksAndMessages(null);
         handler.postDelayed(() -> stopAlarmAndSelf(false),AUTO_STOP_MS);
@@ -110,9 +109,8 @@ public class AlarmRingingService extends Service {
     private void vibrateOnce(){
         try{
             vibrator=(Vibrator)getSystemService(VIBRATOR_SERVICE);
-            long[] pattern={0,400,200,400};
-            if(Build.VERSION.SDK_INT>=26)vibrator.vibrate(VibrationEffect.createWaveform(pattern,-1));
-            else vibrator.vibrate(pattern,-1);
+            if(Build.VERSION.SDK_INT>=26)vibrator.vibrate(VibrationEffect.createOneShot(500,VibrationEffect.DEFAULT_AMPLITUDE));
+            else vibrator.vibrate(500);
         }catch(Exception ignored){}
     }
 
