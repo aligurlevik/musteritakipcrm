@@ -7,7 +7,6 @@ async function sha(value){
 }
 function b64(bytes){return btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function randomToken(size=32){return b64(crypto.getRandomValues(new Uint8Array(size)))}
-function istanbulNow(now=Date.now()){return now}
 function reminderTime(value){
   const s=String(value||'').trim();
   if(!/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:?\d{2})?$/.test(s))return NaN;
@@ -45,6 +44,18 @@ function safePayload(note){
   const title=String(note.title||'').trim(),text=String(note.note||'').trim();
   return {id:Number(note.id),remind_at:String(note.remind_at),title:(title||text.split('\n')[0]||'Ajanda alarmı').slice(0,120),body:(text||title||'Hatırlatma zamanı geldi.').slice(0,650),notebook_no:book};
 }
+function safeMeetingPayload(meeting){
+  const company=String(meeting.company||'Müşteri').trim();
+  const no=Number(meeting.meeting_no)||1;
+  const note=String(meeting.remind_note||meeting.note||'Bu görüşmeyi takip et.').trim();
+  return {
+    id:-Math.abs(Number(meeting.id)||1),
+    remind_at:String(meeting.remind_at),
+    title:(company+' — '+no+'. Görüşme').slice(0,120),
+    body:(note||'Görüşme hatırlatma zamanı geldi.').slice(0,650),
+    notebook_no:1
+  };
+}
 export async function nativeAlarmApi(request,env,{now=Date.now()}={}){
   await ensureSchema(env);
   const url=new URL(request.url),path=url.pathname;
@@ -76,19 +87,35 @@ export async function nativeAlarmApi(request,env,{now=Date.now()}={}){
 
   if(path==='/api/native-alarm/reminders'&&request.method==='GET'){
     const from=now-5*60*1000,to=now+48*60*60*1000;
+    const reminders=[];
+
     const rows=(await env.DB.prepare(`SELECT id,title,note,remind_at,notebook_no,entry_status,is_archived,COALESCE(source_type,'manual') source_type
       FROM agenda_entries WHERE COALESCE(remind_at,'')<>'' AND COALESCE(source_type,'manual')='manual'
       AND COALESCE(is_archived,0)=0 AND COALESCE(entry_status,'')<>'Yapıldı' ORDER BY remind_at,id`).all()).results||[];
-    const reminders=[];
     for(const note of rows){
       const when=reminderTime(note.remind_at);
       if(!Number.isFinite(when)||when<from||when>to)continue;
-      const ack=await env.DB.prepare('SELECT acked_at FROM native_alarm_acks WHERE device_id=? AND agenda_id=? AND remind_at=?').bind(device.id,note.id,note.remind_at).first();
+      const payload=safePayload(note);
+      const ack=await env.DB.prepare('SELECT acked_at FROM native_alarm_acks WHERE device_id=? AND agenda_id=? AND remind_at=?').bind(device.id,payload.id,payload.remind_at).first();
       if(ack)continue;
-      reminders.push({...safePayload(note),when});
-      if(reminders.length>=100)break;
+      reminders.push({...payload,when});
     }
-    return json({ok:true,serverNow:now,reminders});
+
+    const meetings=(await env.DB.prepare(`SELECT m.id,m.meeting_no,m.note,m.remind_at,m.remind_note,m.reminder_status,c.company
+      FROM meetings m LEFT JOIN customers c ON c.id=m.customer_id
+      WHERE COALESCE(m.remind_at,'')<>'' AND COALESCE(m.reminder_status,'')='Açık'
+      ORDER BY m.remind_at,m.id`).all()).results||[];
+    for(const meeting of meetings){
+      const when=reminderTime(meeting.remind_at);
+      if(!Number.isFinite(when)||when<from||when>to)continue;
+      const payload=safeMeetingPayload(meeting);
+      const ack=await env.DB.prepare('SELECT acked_at FROM native_alarm_acks WHERE device_id=? AND agenda_id=? AND remind_at=?').bind(device.id,payload.id,payload.remind_at).first();
+      if(ack)continue;
+      reminders.push({...payload,when});
+    }
+
+    reminders.sort((a,b)=>a.when-b.when||a.id-b.id);
+    return json({ok:true,serverNow:now,reminders:reminders.slice(0,100)});
   }
 
   if(path==='/api/native-alarm/ack'&&request.method==='POST'){
