@@ -13,7 +13,9 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
@@ -21,9 +23,12 @@ import android.os.Vibrator;
 public class AlarmRingingService extends Service {
     static final String CHANNEL_ALARM="crm_alarm_loud";
     static final String CHANNEL_SYNC="crm_alarm_sync";
+    private static final long AUTO_STOP_MS=3000L;
     private Ringtone ringtone;
     private Vibrator vibrator;
     private PowerManager.WakeLock wakeLock;
+    private final Handler handler=new Handler(Looper.getMainLooper());
+    private final Runnable autoStopRunnable=this::stopAlarmAndSelf;
 
     static void ensureChannels(Context c){
         if(Build.VERSION.SDK_INT<26)return;
@@ -90,6 +95,9 @@ public class AlarmRingingService extends Service {
         playAlarm();
         vibrate();
 
+        handler.removeCallbacks(autoStopRunnable);
+        handler.postDelayed(autoStopRunnable,AUTO_STOP_MS);
+
         String token=getSharedPreferences("crm_alarm",MODE_PRIVATE).getString("token","");
         if(id!=999999&&!token.isEmpty()&&remindAt!=null&&!remindAt.isEmpty()){
             final int alarmId=id;
@@ -149,6 +157,7 @@ public class AlarmRingingService extends Service {
     }
 
     private void releaseAlarm(){
+        handler.removeCallbacks(autoStopRunnable);
         try{if(ringtone!=null&&ringtone.isPlaying())ringtone.stop();}catch(Exception ignored){}
         try{if(vibrator!=null)vibrator.cancel();}catch(Exception ignored){}
         try{if(wakeLock!=null&&wakeLock.isHeld())wakeLock.release();}catch(Exception ignored){}
