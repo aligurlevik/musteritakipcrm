@@ -81,7 +81,6 @@ public class AlarmRingingService extends Service {
                 .setFullScreenIntent(displayPi,true)
                 .setOngoing(true)
                 .setAutoCancel(false)
-                .setSilent(true)
                 .setCategory(Notification.CATEGORY_ALARM)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setPriority(Notification.PRIORITY_MAX)
