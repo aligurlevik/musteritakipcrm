@@ -3,15 +3,18 @@ name: Build Android Alarm APK
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
       - "android-alarm/**"
       - ".github/workflows/android-alarm.yml"
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -24,11 +27,50 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      - name: Verify EXE-like alarm behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          DISPLAY='android-alarm/app/src/main/java/com/musteritakipcrm/alarm/AlarmDisplayActivity.java'
+          RING='android-alarm/app/src/main/java/com/musteritakipcrm/alarm/AlarmRingingService.java'
+          grep -q 'ALARMI KAPAT' "$DISPLAY"
+          grep -q 'onBackPressed' "$DISPLAY"
+          grep -q 'setFullScreenIntent(displayPi,true)' "$RING"
+          grep -q 'setSilent(true)' "$RING"
+          ! grep -q 'AUTO_CLOSE_MS\|postDelayed(this::finish' "$DISPLAY"
+          ! grep -q 'AUTO_STOP_MS\|postDelayed.*stopAlarmAndSelf' "$RING"
+          ! grep -q 'Api.ack' "$RING"
+          ! grep -R -E 'MediaPlayer|RingtoneManager|Vibrator|\.vibrate\(' android-alarm/app/src/main/java
+
       - name: Build debug APK
         run: gradle -p android-alarm assembleDebug --stacktrace
 
+      - name: Prepare APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp android-alarm/app/build/outputs/apk/debug/app-debug.apk dist/CRM-Android-Alarm.apk
+          test -s dist/CRM-Android-Alarm.apk
+          ls -lh dist/CRM-Android-Alarm.apk
+
+      - name: Publish latest release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag='android-alarm-latest'
+          apk='dist/CRM-Android-Alarm.apk'
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$apk" --clobber
+            gh release edit "$tag" --title 'CRM Android Alarm - Güncel Sürüm' --notes 'Sessiz, tam ekran Android alarm uygulaması. 6 haneli CRM eşleştirme koduyla bağlanır ve kullanıcı ALARMI KAPAT düğmesine basana kadar ekranda kalır.'
+          else
+            gh release create "$tag" "$apk" --title 'CRM Android Alarm - Güncel Sürüm' --notes 'Sessiz, tam ekran Android alarm uygulaması. 6 haneli CRM eşleştirme koduyla bağlanır ve kullanıcı ALARMI KAPAT düğmesine basana kadar ekranda kalır.'
+          fi
+
       - uses: actions/upload-artifact@v4
         with:
-          name: CRM-Alarm-debug-apk
-          path: android-alarm/app/build/outputs/apk/debug/app-debug.apk
+          name: CRM-Android-Alarm
+          path: dist/CRM-Android-Alarm.apk
           if-no-files-found: error
