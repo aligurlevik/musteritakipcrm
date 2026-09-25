@@ -12,15 +12,12 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
 
 public class AlarmRingingService extends Service {
-    static final String CHANNEL_ALARM="crm_alarm_visual_v3";
+    static final String CHANNEL_ALARM="crm_alarm_visual_v4";
     static final String CHANNEL_SYNC="crm_alarm_sync";
     private static final long AUTO_STOP_MS=3000L;
     private final Handler handler=new Handler(Looper.getMainLooper());
-    private Vibrator vibrator;
     private PowerManager.WakeLock wakeLock;
 
     static void ensureChannels(Context c){
@@ -33,9 +30,11 @@ public class AlarmRingingService extends Service {
         nm.createNotificationChannel(sync);
 
         NotificationChannel alarm=new NotificationChannel(CHANNEL_ALARM,"CRM sessiz ekran uyarısı",NotificationManager.IMPORTANCE_HIGH);
-        alarm.setDescription("Ses yok; tam ekran uyarı ve kısa titreşim");
+        alarm.setDescription("Ses ve titreşim yok; ekran açılır ve görsel uyarı gösterilir");
         alarm.setSound(null,null);
         alarm.enableVibration(false);
+        alarm.setVibrationPattern(new long[]{0L});
+        alarm.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
         nm.createNotificationChannel(alarm);
     }
 
@@ -75,12 +74,15 @@ public class AlarmRingingService extends Service {
                 .setAutoCancel(true)
                 .setCategory(Notification.CATEGORY_ALARM)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setPriority(Notification.PRIORITY_MAX)
+                .setSilent(true)
                 .build();
 
         startForeground(2001,n);
-        acquireWakeLock();
-        vibrateOnce();
+        wakeScreen();
 
+        // Full-screen notification normal yoldur. Bazı üreticilerde gecikirse
+        // doğrudan Activity başlatmayı da yedek olarak dene.
         try{startActivity(display);}catch(Exception ignored){}
 
         handler.removeCallbacksAndMessages(null);
@@ -98,24 +100,18 @@ public class AlarmRingingService extends Service {
         return START_NOT_STICKY;
     }
 
-    private void acquireWakeLock(){
+    @SuppressWarnings("deprecation")
+    private void wakeScreen(){
         try{
             PowerManager pm=(PowerManager)getSystemService(POWER_SERVICE);
-            wakeLock=pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"CRMAlarm:visual");
+            int flags=PowerManager.FULL_WAKE_LOCK|PowerManager.ACQUIRE_CAUSES_WAKEUP|PowerManager.ON_AFTER_RELEASE;
+            wakeLock=pm.newWakeLock(flags,"CRMAlarm:screen");
+            wakeLock.setReferenceCounted(false);
             wakeLock.acquire(10000L);
         }catch(Exception ignored){}
     }
 
-    private void vibrateOnce(){
-        try{
-            vibrator=(Vibrator)getSystemService(VIBRATOR_SERVICE);
-            if(Build.VERSION.SDK_INT>=26)vibrator.vibrate(VibrationEffect.createOneShot(500,VibrationEffect.DEFAULT_AMPLITUDE));
-            else vibrator.vibrate(500);
-        }catch(Exception ignored){}
-    }
-
     private void releaseAlarm(){
-        try{if(vibrator!=null)vibrator.cancel();}catch(Exception ignored){}
         try{if(wakeLock!=null&&wakeLock.isHeld())wakeLock.release();}catch(Exception ignored){}
     }
 
