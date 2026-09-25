@@ -14,9 +14,10 @@ import android.os.Looper;
 import android.os.PowerManager;
 
 public class AlarmRingingService extends Service {
-    static final String CHANNEL_ALARM="crm_alarm_visual_v4";
+    // Yeni kanal ID'si: eski cihazlarda daha önce oluşmuş kanal ayarları bu sürümü etkilemesin.
+    static final String CHANNEL_ALARM="crm_alarm_visual_v5";
     static final String CHANNEL_SYNC="crm_alarm_sync";
-    private static final long AUTO_STOP_MS=3000L;
+    private static final long AUTO_STOP_MS=10000L;
     private final Handler handler=new Handler(Looper.getMainLooper());
     private PowerManager.WakeLock wakeLock;
 
@@ -29,8 +30,8 @@ public class AlarmRingingService extends Service {
         sync.enableVibration(false);
         nm.createNotificationChannel(sync);
 
-        NotificationChannel alarm=new NotificationChannel(CHANNEL_ALARM,"CRM sessiz ekran uyarısı",NotificationManager.IMPORTANCE_HIGH);
-        alarm.setDescription("Ses ve titreşim yok; ekran açılır ve görsel uyarı gösterilir");
+        NotificationChannel alarm=new NotificationChannel(CHANNEL_ALARM,"CRM ekranı açan alarm",NotificationManager.IMPORTANCE_HIGH);
+        alarm.setDescription("Alarm geldiğinde kilit ekranının üzerinde tam ekran uyarı gösterir");
         alarm.setSound(null,null);
         alarm.enableVibration(false);
         alarm.setVibrationPattern(new long[]{0L});
@@ -59,19 +60,22 @@ public class AlarmRingingService extends Service {
         Intent display=new Intent(this,AlarmDisplayActivity.class);
         display.putExtra("title",title);
         display.putExtra("body",body);
-        display.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        display.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                |Intent.FLAG_ACTIVITY_CLEAR_TOP
+                |Intent.FLAG_ACTIVITY_SINGLE_TOP
+                |Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
         int displayRequestCode=(id+"|"+String.valueOf(remindAt)).hashCode();
         PendingIntent displayPi=PendingIntent.getActivity(this,displayRequestCode,display,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
 
         Notification n=new Notification.Builder(this,CHANNEL_ALARM)
-                .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
                 .setContentTitle("AJANDA UYARISI - "+title)
                 .setContentText(body)
                 .setStyle(new Notification.BigTextStyle().bigText(body))
                 .setContentIntent(displayPi)
                 .setFullScreenIntent(displayPi,true)
-                .setOngoing(false)
-                .setAutoCancel(true)
+                .setOngoing(true)
+                .setAutoCancel(false)
                 .setCategory(Notification.CATEGORY_ALARM)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setPriority(Notification.PRIORITY_MAX)
@@ -80,6 +84,8 @@ public class AlarmRingingService extends Service {
         startForeground(2001,n);
         wakeScreen();
 
+        // Android 13 ve altı başta olmak üzere, izin verdiği cihazlarda alarm ekranını
+        // bildirime dokunulmasını beklemeden doğrudan kilit ekranının üzerine getir.
         try{startActivity(display);}catch(Exception ignored){}
 
         handler.removeCallbacksAndMessages(null);
@@ -100,11 +106,14 @@ public class AlarmRingingService extends Service {
     @SuppressWarnings("deprecation")
     private void wakeScreen(){
         try{
+            if(wakeLock!=null&&wakeLock.isHeld())wakeLock.release();
             PowerManager pm=(PowerManager)getSystemService(POWER_SERVICE);
-            int flags=PowerManager.FULL_WAKE_LOCK|PowerManager.ACQUIRE_CAUSES_WAKEUP|PowerManager.ON_AFTER_RELEASE;
-            wakeLock=pm.newWakeLock(flags,"CRMAlarm:screen");
+            int flags=PowerManager.FULL_WAKE_LOCK
+                    |PowerManager.ACQUIRE_CAUSES_WAKEUP
+                    |PowerManager.ON_AFTER_RELEASE;
+            wakeLock=pm.newWakeLock(flags,"CRMAlarm:force-screen-on");
             wakeLock.setReferenceCounted(false);
-            wakeLock.acquire(10000L);
+            wakeLock.acquire(15000L);
         }catch(Exception ignored){}
     }
 
