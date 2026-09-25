@@ -16,6 +16,28 @@ async function sendBackgroundReminder(device,data,vapid){
   }
 }
 
+async function injectPlannerPhoneAlarm(response){
+  if(!response.ok)return response;
+  const ct=response.headers.get('content-type')||'';
+  if(!ct.includes('text/html'))return response;
+  let html=await response.text();
+  if(!html.includes('id="plannerPhoneAlarmIntegration"')){
+    const integration=`
+<script id="plannerPhoneAlarmIntegration" src="/phone-reminders.js"></script>
+<script src="/phone-notification-controls.js"></script>
+<style>
+#nativeAlarmPair{display:none!important}
+#mobileNotifyBtn{background:#173f63!important;color:#fff!important}
+#mobileNotifyStatus{margin:8px 12px 0!important}
+</style>`;
+    html=html.replace('</body>',integration+'\n</body>');
+  }
+  const headers=new Headers(response.headers);
+  headers.set('content-type','text/html; charset=utf-8');
+  headers.set('cache-control','no-cache, no-store, must-revalidate');
+  return new Response(html,{status:response.status,statusText:response.statusText,headers});
+}
+
 export default{
   async fetch(request,env,ctx){
     const path=new URL(request.url).pathname;
@@ -35,7 +57,9 @@ export default{
       if(path.endsWith('.webmanifest'))headers.set('content-type','application/manifest+json');
       return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
     }
-    return applyCrmBranding(await worker.fetch(request,env,ctx),request);
+    let response=await worker.fetch(request,env,ctx);
+    if(request.method==='GET'&&['/planlama','/planlama/','/planlama.html'].includes(path))response=await injectPlannerPhoneAlarm(response);
+    return applyCrmBranding(response,request);
   },
   async scheduled(controller,env){await deliverDueReminders(env,{now:controller.scheduledTime||Date.now(),send:sendBackgroundReminder})}
 };
