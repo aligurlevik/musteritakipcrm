@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
     <application
         android:allowBackup="false"
@@ -32,6 +33,7 @@
 
         <service android:name=".SyncService" android:exported="false"/>
         <service android:name=".AlarmRingingService" android:exported="false"/>
+        <service android:name=".AlarmOverlayService" android:exported="false"/>
 
         <receiver android:name=".AlarmReceiver" android:exported="false"/>
         <receiver android:name=".SyncWatchdogReceiver" android:exported="false"/>
