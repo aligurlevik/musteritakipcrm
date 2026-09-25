@@ -32,10 +32,15 @@ export default {
     let html=await response.text();
     html=html.replace(/\/notes-title-patch\.js(?:\?v=[^"']+)?/g,'/notes-title-patch.js?v=20260918-2');
 
+    if(!html.includes('id="crmVisualOnlyWorker"')){
+      const silentPatch=`<script id="crmVisualOnlyWorker">(function(){window.CRM_VISUAL_ONLY=true;if(!('serviceWorker'in navigator))return;try{var raw=navigator.serviceWorker.register.bind(navigator.serviceWorker);navigator.serviceWorker.register=function(url,opts){return raw(url==='/agenda-sw.js'?'/agenda-sw-silent.js':url,opts)};raw('/agenda-sw-silent.js',{scope:'/',updateViaCache:'none'}).catch(function(){})}catch(_){}})();</script>`;
+      html=html.replace('</head>',silentPatch+'\n</head>');
+    }
+
     if(!html.includes('/phone-reminders.js')){
-      html=html.replace('</head>','<link rel="manifest" href="/agenda.webmanifest"><link rel="apple-touch-icon" href="/agenda-icon-192.png"><script src="/phone-reminders.js?v=20260925-ajanda3"></script>\n</head>');
+      html=html.replace('</head>','<link rel="manifest" href="/agenda.webmanifest"><link rel="apple-touch-icon" href="/agenda-icon-192.png"><script src="/phone-reminders.js?v=20260925-ajanda4"></script>\n</head>');
     }else{
-      html=html.replace(/\/phone-reminders\.js(?:\?v=[^"']+)?/g,'/phone-reminders.js?v=20260925-ajanda3');
+      html=html.replace(/\/phone-reminders\.js(?:\?v=[^"']+)?/g,'/phone-reminders.js?v=20260925-ajanda4');
     }
 
     if(notesPage||newNotePage){
@@ -56,9 +61,9 @@ export default {
 
     if(notificationPage){
       if(!html.includes('/mobile-notification-permission.js')&&!html.includes('/phone-notification-controls.js')){
-        html=html.replace('</body>','<script src="/phone-notification-controls.js?v=20260925-ajanda3"></script>\n</body>');
+        html=html.replace('</body>','<script src="/phone-notification-controls.js?v=20260925-ajanda4"></script>\n</body>');
       }else{
-        html=html.replace(/\/(?:mobile-notification-permission|phone-notification-controls)\.js(?:\?v=[^"']+)?/g,'/phone-notification-controls.js?v=20260925-ajanda3');
+        html=html.replace(/\/(?:mobile-notification-permission|phone-notification-controls)\.js(?:\?v=[^"']+)?/g,'/phone-notification-controls.js?v=20260925-ajanda4');
       }
     }
 
