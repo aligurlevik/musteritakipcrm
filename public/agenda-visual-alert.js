@@ -3,6 +3,27 @@
   if(window.__agendaVisualAlertLoaded)return;
   window.__agendaVisualAlertLoaded=true;
 
+  const onNoteEditor=()=>['/yeni-not','/yeni-not/','/yeni-not.html'].includes(location.pathname);
+  function cleanNoteEditorOverlays(){
+    if(!onNoteEditor())return;
+    ['agendaVisualControls','mobileNotifyBtn','mobileNotifyStatus','mobileNotifyTest','nativeAlarmPair','mobileNotifyMsg'].forEach(id=>{
+      try{document.getElementById(id)?.remove()}catch(_){ }
+    });
+    try{document.body?.removeAttribute('data-ajanda-alarm-fixed')}catch(_){ }
+  }
+  if(onNoteEditor()){
+    cleanNoteEditorOverlays();
+    try{
+      const observer=new MutationObserver(cleanNoteEditorOverlays);
+      observer.observe(document.documentElement,{childList:true,subtree:true});
+    }catch(_){ }
+    setTimeout(cleanNoteEditorOverlays,0);
+    setTimeout(cleanNoteEditorOverlays,250);
+    setTimeout(cleanNoteEditorOverlays,1000);
+    window.addEventListener('pageshow',cleanNoteEditorOverlays);
+    return;
+  }
+
   const shown=new Set();
   let currentKey='';
 
