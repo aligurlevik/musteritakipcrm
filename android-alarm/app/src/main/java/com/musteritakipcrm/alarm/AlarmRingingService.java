@@ -8,17 +8,13 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
 import android.os.PowerManager;
 
 public class AlarmRingingService extends Service {
-    // Yeni kanal ID'si: eski cihazlarda daha önce oluşmuş kanal ayarları bu sürümü etkilemesin.
-    static final String CHANNEL_ALARM="crm_alarm_visual_v5";
-    static final String CHANNEL_SYNC="crm_alarm_sync";
-    private static final long AUTO_STOP_MS=10000L;
-    private final Handler handler=new Handler(Looper.getMainLooper());
+    // Yeni kanal ID'si eski cihazlarda kalmış ses/titreşim kanal ayarlarını devre dışı bırakır.
+    static final String CHANNEL_ALARM="crm_alarm_visual_v6";
+    static final String CHANNEL_SYNC="crm_alarm_sync_v2";
     private PowerManager.WakeLock wakeLock;
 
     static void ensureChannels(Context c){
@@ -30,8 +26,8 @@ public class AlarmRingingService extends Service {
         sync.enableVibration(false);
         nm.createNotificationChannel(sync);
 
-        NotificationChannel alarm=new NotificationChannel(CHANNEL_ALARM,"CRM ekranı açan alarm",NotificationManager.IMPORTANCE_HIGH);
-        alarm.setDescription("Alarm geldiğinde kilit ekranının üzerinde tam ekran uyarı gösterir");
+        NotificationChannel alarm=new NotificationChannel(CHANNEL_ALARM,"CRM sessiz tam ekran alarm",NotificationManager.IMPORTANCE_HIGH);
+        alarm.setDescription("Alarm geldiğinde ses ve titreşim olmadan tam ekran uyarı gösterir");
         alarm.setSound(null,null);
         alarm.enableVibration(false);
         alarm.setVibrationPattern(new long[]{0L});
@@ -56,16 +52,25 @@ public class AlarmRingingService extends Service {
         String body=intent==null?"Hatırlatma zamanı geldi.":intent.getStringExtra("body");
         if(title==null||title.isEmpty())title="Ajanda Uyarısı";
         if(body==null)body="";
+        if(remindAt==null)remindAt="";
 
         Intent display=new Intent(this,AlarmDisplayActivity.class);
+        display.putExtra("id",id);
+        display.putExtra("remind_at",remindAt);
         display.putExtra("title",title);
         display.putExtra("body",body);
         display.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                 |Intent.FLAG_ACTIVITY_CLEAR_TOP
                 |Intent.FLAG_ACTIVITY_SINGLE_TOP
                 |Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
-        int displayRequestCode=(id+"|"+String.valueOf(remindAt)).hashCode();
-        PendingIntent displayPi=PendingIntent.getActivity(this,displayRequestCode,display,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+
+        int displayRequestCode=(id+"|"+remindAt).hashCode();
+        PendingIntent displayPi=PendingIntent.getActivity(
+                this,
+                displayRequestCode,
+                display,
+                PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE
+        );
 
         Notification n=new Notification.Builder(this,CHANNEL_ALARM)
                 .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
@@ -76,6 +81,7 @@ public class AlarmRingingService extends Service {
                 .setFullScreenIntent(displayPi,true)
                 .setOngoing(true)
                 .setAutoCancel(false)
+                .setSilent(true)
                 .setCategory(Notification.CATEGORY_ALARM)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setPriority(Notification.PRIORITY_MAX)
@@ -84,22 +90,11 @@ public class AlarmRingingService extends Service {
         startForeground(2001,n);
         wakeScreen();
 
-        // Android 13 ve altı başta olmak üzere, izin verdiği cihazlarda alarm ekranını
-        // bildirime dokunulmasını beklemeden doğrudan kilit ekranının üzerine getir.
+        // Android izin veriyorsa bildirime dokunmayı beklemeden alarm ekranını öne getir.
         try{startActivity(display);}catch(Exception ignored){}
 
-        handler.removeCallbacksAndMessages(null);
-        handler.postDelayed(() -> stopAlarmAndSelf(false),AUTO_STOP_MS);
-
-        String token=getSharedPreferences("crm_alarm",MODE_PRIVATE).getString("token","");
-        if(id!=999999&&!token.isEmpty()&&remindAt!=null&&!remindAt.isEmpty()){
-            final int alarmId=id;
-            final String at=remindAt;
-            new Thread(()->{
-                try{Api.ack(token,alarmId,at);}catch(Exception ignored){}
-            }).start();
-        }
-
+        // Burada ACK YOK. Sunucu onayı yalnızca kullanıcı ALARMI KAPAT düğmesine bastığında gönderilir.
+        // Otomatik kapanma da yok: EXE sürümündeki gibi kullanıcı kapatana kadar alarm ekranda kalır.
         return START_NOT_STICKY;
     }
 
@@ -122,14 +117,12 @@ public class AlarmRingingService extends Service {
     }
 
     private void stopAlarmAndSelf(boolean removeNotification){
-        handler.removeCallbacksAndMessages(null);
         releaseAlarm();
         stopForeground(removeNotification);
         stopSelf();
     }
 
     @Override public void onDestroy(){
-        handler.removeCallbacksAndMessages(null);
         releaseAlarm();
         super.onDestroy();
     }
