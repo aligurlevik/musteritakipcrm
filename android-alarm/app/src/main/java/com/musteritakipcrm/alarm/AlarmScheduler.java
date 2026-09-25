@@ -23,7 +23,7 @@ final class AlarmScheduler {
     }
 
     static void scheduleLocalTest(Context context,long when){
-        Api.Reminder r=new Api.Reminder(999999,"local-test-"+when,when,"CRM Alarm Testi","Bu gerçek Android ALARM sesidir.");
+        Api.Reminder r=new Api.Reminder(999999,"local-test-"+when,when,"CRM Alarm Testi","Ekran kapalıyken açılması gereken sessiz görsel uyarı testidir.");
         schedule(context,r);
     }
 }
