@@ -1,4 +1,4 @@
-# VERSION: 2026.09.24.3
+# VERSION: 2026.09.25.1
 $ErrorActionPreference = 'SilentlyContinue'
 
 $AppDir = Join-Path $env:LOCALAPPDATA 'MusteriTakipCRM'
@@ -31,9 +31,13 @@ function Update-SelfIfNeeded {
 
 Update-SelfIfNeeded
 
+# Yeni sürüm, eski ajan kapanırken kısa süre mutex'in boşalmasını bekler.
+# Böylece otomatik güncelleme sonrası yeni süreç hemen kapanıp alarm servisini durdurmaz.
 $created = $false
-$mutex = New-Object System.Threading.Mutex($true, 'Local\MusteriTakipCRMAlarmAgent', [ref]$created)
-if (-not $created) { exit 0 }
+$mutex = New-Object System.Threading.Mutex($false, 'Local\MusteriTakipCRMAlarmAgent', [ref]$created)
+$hasMutex = $false
+try { $hasMutex = $mutex.WaitOne([TimeSpan]::FromSeconds(10)) } catch { $hasMutex = $false }
+if (-not $hasMutex) { exit 0 }
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System
