@@ -75,14 +75,11 @@ public class AlarmRingingService extends Service {
                 .setCategory(Notification.CATEGORY_ALARM)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setPriority(Notification.PRIORITY_MAX)
-                .setSilent(true)
                 .build();
 
         startForeground(2001,n);
         wakeScreen();
 
-        // Full-screen notification normal yoldur. Bazı üreticilerde gecikirse
-        // doğrudan Activity başlatmayı da yedek olarak dene.
         try{startActivity(display);}catch(Exception ignored){}
 
         handler.removeCallbacksAndMessages(null);
