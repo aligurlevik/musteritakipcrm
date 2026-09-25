@@ -32,6 +32,22 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Parse Windows alarm PowerShell
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Join-Path $PWD 'public/windows-alarm-agent.ps1'),
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+          Write-Host 'windows-alarm-agent.ps1 PowerShell parse OK'
+
       - name: Deploy to Cloudflare
         run: npx wrangler deploy
         env:
