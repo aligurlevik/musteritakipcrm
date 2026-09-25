@@ -7,6 +7,8 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Gravity;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -14,6 +16,11 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class AlarmDisplayActivity extends Activity {
+    private static final long AUTO_CLOSE_MS=3000L;
+    private final Handler handler=new Handler(Looper.getMainLooper());
+    private TextView titleView;
+    private TextView bodyView;
+
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
         if(Build.VERSION.SDK_INT>=27){
@@ -24,14 +31,16 @@ public class AlarmDisplayActivity extends Activity {
         }
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(buildUi());
+        renderIntent(getIntent());
+    }
+
+    @Override protected void onNewIntent(Intent intent){
+        super.onNewIntent(intent);
+        setIntent(intent);
+        renderIntent(intent);
     }
 
     private LinearLayout buildUi(){
-        String title=getIntent().getStringExtra("title");
-        String body=getIntent().getStringExtra("body");
-        if(title==null||title.trim().isEmpty())title="AJANDA UYARISI";
-        if(body==null)body="";
-
         LinearLayout root=new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
@@ -46,22 +55,20 @@ public class AlarmDisplayActivity extends Activity {
         head.setGravity(Gravity.CENTER);
         root.addView(head,new LinearLayout.LayoutParams(-1,-2));
 
-        TextView t=new TextView(this);
-        t.setText(title);
-        t.setTextSize(34);
-        t.setTypeface(null,Typeface.BOLD);
-        t.setTextColor(Color.rgb(23,63,99));
-        t.setGravity(Gravity.CENTER);
-        t.setPadding(0,40,0,20);
-        root.addView(t,new LinearLayout.LayoutParams(-1,-2));
+        titleView=new TextView(this);
+        titleView.setTextSize(34);
+        titleView.setTypeface(null,Typeface.BOLD);
+        titleView.setTextColor(Color.rgb(23,63,99));
+        titleView.setGravity(Gravity.CENTER);
+        titleView.setPadding(0,40,0,20);
+        root.addView(titleView,new LinearLayout.LayoutParams(-1,-2));
 
-        TextView b=new TextView(this);
-        b.setText(body);
-        b.setTextSize(22);
-        b.setTextColor(Color.rgb(31,41,55));
-        b.setGravity(Gravity.CENTER);
-        b.setPadding(0,0,0,40);
-        root.addView(b,new LinearLayout.LayoutParams(-1,-2));
+        bodyView=new TextView(this);
+        bodyView.setTextSize(22);
+        bodyView.setTextColor(Color.rgb(31,41,55));
+        bodyView.setGravity(Gravity.CENTER);
+        bodyView.setPadding(0,0,0,40);
+        root.addView(bodyView,new LinearLayout.LayoutParams(-1,-2));
 
         Button close=new Button(this);
         close.setText("KAPAT");
@@ -71,7 +78,19 @@ public class AlarmDisplayActivity extends Activity {
         return root;
     }
 
+    private void renderIntent(Intent intent){
+        String title=intent==null?null:intent.getStringExtra("title");
+        String body=intent==null?null:intent.getStringExtra("body");
+        if(title==null||title.trim().isEmpty())title="AJANDA UYARISI";
+        if(body==null)body="";
+        titleView.setText(title);
+        bodyView.setText(body);
+        handler.removeCallbacksAndMessages(null);
+        handler.postDelayed(this::finish,AUTO_CLOSE_MS);
+    }
+
     private void closeAlarm(){
+        handler.removeCallbacksAndMessages(null);
         try{
             NotificationManager nm=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);
             nm.cancel(2001);
@@ -81,6 +100,11 @@ public class AlarmDisplayActivity extends Activity {
             if(Build.VERSION.SDK_INT>=26)startForegroundService(stop);else startService(stop);
         }catch(Exception ignored){}
         finish();
+    }
+
+    @Override protected void onDestroy(){
+        handler.removeCallbacksAndMessages(null);
+        super.onDestroy();
     }
 
     @Override public void onBackPressed(){closeAlarm();}
