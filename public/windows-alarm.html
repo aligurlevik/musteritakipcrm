@@ -10,17 +10,21 @@ body{font-family:Arial,sans-serif;background:#eef4f8;color:#173f63;margin:0;padd
 </head>
 <body>
 <div class="card">
-  <div class="title">💻 Windows Masaüstü Alarmı</div>
-  <div class="lead">Bu kurulumdan sonra CRM veya tarayıcı kapalı olsa bile, bilgisayar açık olduğu sürece ajanda alarmı Windows'ta arka planda çalışır.</div>
+  <div class="title">💻 Windows EXE Alarmı</div>
+  <div class="lead">Bu sürüm tarayıcıdan ve PowerShell alarmından bağımsızdır. Bilgisayar açık olduğu sürece arka planda çalışır; alarm zamanı geldiğinde sessiz tam ekran uyarıyı diğer normal Windows uygulamalarının üstüne getirir.</div>
   <div id="status" class="box">1) Önce aşağıdaki düğmeden 6 haneli eşleştirme kodu oluştur.</div>
   <button id="codeBtn" class="btn">1 — EŞLEŞTİRME KODU OLUŞTUR</button>
   <div id="codeBox" class="box" style="display:none">
-    <div>Kurulum dosyası bu kodu isteyecek:</div>
+    <div>EXE ilk açılışta bu kodu isteyecek:</div>
     <div id="code" class="code">------</div>
     <div class="small">Kod 10 dakika geçerlidir.</div>
   </div>
-  <a id="downloadBtn" class="btn secondary" href="/CRM-Windows-Alarm-Kur.cmd" download style="display:none">2 — WINDOWS ALARM KURULUMUNU İNDİR</a>
-  <div class="box small">İndirdikten sonra <b>CRM-Windows-Alarm-Kur.cmd</b> dosyasına çift tıkla, ekrandaki 6 haneli kodu gir. Kurulum tamamlanınca Windows açıldığında alarm servisi otomatik başlar.</div>
+  <a id="downloadBtn" class="btn secondary" href="https://github.com/aligurlevik/musteritakipcrm/releases/download/windows-alarm-latest/CRM-Windows-Alarm.exe" style="display:none">2 — CRM WINDOWS ALARM.EXE İNDİR</a>
+  <div class="box small">
+    <b>Kurulum:</b> EXE'yi aç → yukarıdaki 6 haneli kodu gir → <b>BAĞLA VE BAŞLAT</b> de. Program kendini kullanıcı hesabına kurar ve Windows başlangıcına ekler.<br><br>
+    Eski PowerShell alarm başlangıcı EXE tarafından devre dışı bırakılır. Alarmda ses çalmaz; ekranda yalnızca uyarı ve <b>ALARMI KAPAT</b> düğmesi görünür.<br><br>
+    Windows ilk açılışta “Bilinmeyen yayıncı / Windows bilgisayarınızı korudu” uyarısı gösterebilir; dosya kod imzalı olmadığı için bu normaldir.
+  </div>
 </div>
 <script>
 const codeBtn=document.getElementById('codeBtn'),codeBox=document.getElementById('codeBox'),codeEl=document.getElementById('code'),downloadBtn=document.getElementById('downloadBtn'),status=document.getElementById('status');
@@ -30,7 +34,7 @@ codeBtn.onclick=async()=>{
     const r=await fetch('/api/native-alarm/pair-code',{method:'POST',credentials:'same-origin',cache:'no-store'});
     let d={};try{d=await r.json()}catch(_){}
     if(!r.ok)throw new Error(r.status===401?'Bu işlem için yönetici (Ali) oturumuyla giriş yapın.':d.error||'Kod oluşturulamadı.');
-    codeEl.textContent=d.code;codeBox.style.display='block';downloadBtn.style.display='block';status.className='box ok';status.textContent='✅ Kod hazır. Şimdi kurulum dosyasını indir.';
+    codeEl.textContent=d.code;codeBox.style.display='block';downloadBtn.style.display='block';status.className='box ok';status.textContent='✅ Kod hazır. Şimdi EXE dosyasını indir.';
   }catch(e){status.className='box bad';status.textContent='❌ '+e.message}
   finally{codeBtn.disabled=false}
 };
