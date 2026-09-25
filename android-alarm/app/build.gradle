@@ -8,8 +8,8 @@ android {
         applicationId "com.musteritakipcrm.alarm13"
         minSdk 26
         targetSdk 33
-        versionCode 10
-        versionName "2.2"
+        versionCode 11
+        versionName "2.3"
     }
 
     compileOptions {
