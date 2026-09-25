@@ -33,7 +33,9 @@ export default {
     html=html.replace(/\/notes-title-patch\.js(?:\?v=[^"']+)?/g,'/notes-title-patch.js?v=20260918-2');
 
     if(!html.includes('/phone-reminders.js')){
-      html=html.replace('</head>','<link rel="manifest" href="/agenda.webmanifest"><link rel="apple-touch-icon" href="/agenda-icon-192.png"><script src="/phone-reminders.js?v=20260921-3"></script>\n</head>');
+      html=html.replace('</head>','<link rel="manifest" href="/agenda.webmanifest"><link rel="apple-touch-icon" href="/agenda-icon-192.png"><script src="/phone-reminders.js?v=20260925-ajanda1"></script>\n</head>');
+    }else{
+      html=html.replace(/\/phone-reminders\.js(?:\?v=[^"']+)?/g,'/phone-reminders.js?v=20260925-ajanda1');
     }
 
     if(notesPage||newNotePage){
@@ -54,11 +56,13 @@ export default {
 
     if(notificationPage){
       if(!html.includes('/mobile-notification-permission.js')&&!html.includes('/phone-notification-controls.js')){
-        html=html.replace('</body>','<script src="/phone-notification-controls.js?v=20260918-1"></script>\n</body>');
+        html=html.replace('</body>','<script src="/phone-notification-controls.js?v=20260925-ajanda1"></script>\n</body>');
       }else{
-        html=html.replace(/\/(?:mobile-notification-permission|phone-notification-controls)\.js(?:\?v=[^"']+)?/g,'/phone-notification-controls.js?v=20260918-1');
+        html=html.replace(/\/(?:mobile-notification-permission|phone-notification-controls)\.js(?:\?v=[^"']+)?/g,'/phone-notification-controls.js?v=20260925-ajanda1');
       }
     }
+
+    if(planPage&&!html.includes('data-ajanda-push="1"'))html=html.replace('<div class="app" id="plannerApp"','<div class="app" id="plannerApp" data-ajanda-push="1"');
 
     const headers=new Headers(response.headers);
     headers.delete('content-length');
