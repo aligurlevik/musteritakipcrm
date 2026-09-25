@@ -18,6 +18,7 @@ public class SyncService extends Service {
 
     private final Runnable tick=new Runnable(){
         @Override public void run(){
+            heartbeat();
             sync();
             handler.postDelayed(this,30000);
         }
@@ -33,7 +34,15 @@ public class SyncService extends Service {
                 .setOngoing(true)
                 .build();
         startForeground(1001,n);
+        heartbeat();
+        SyncWatchdog.schedule(this);
         handler.post(tick);
+    }
+
+    private void heartbeat(){
+        getSharedPreferences("crm_alarm",MODE_PRIVATE).edit()
+                .putLong("sync_heartbeat",System.currentTimeMillis())
+                .apply();
     }
 
     private void sync(){
@@ -45,18 +54,40 @@ public class SyncService extends Service {
             try{
                 List<Api.Reminder> items=Api.reminders(token);
                 for(Api.Reminder r:items)AlarmScheduler.schedule(this,r);
-            }catch(Exception ignored){
+                getSharedPreferences("crm_alarm",MODE_PRIVATE).edit()
+                        .putLong("last_sync_ok",System.currentTimeMillis())
+                        .putInt("last_sync_count",items.size())
+                        .remove("last_sync_error")
+                        .apply();
+            }catch(Exception e){
+                getSharedPreferences("crm_alarm",MODE_PRIVATE).edit()
+                        .putLong("last_sync_error_at",System.currentTimeMillis())
+                        .putString("last_sync_error",String.valueOf(e.getMessage()))
+                        .apply();
             }finally{
+                heartbeat();
                 busy=false;
             }
         });
     }
 
-    @Override public int onStartCommand(Intent intent,int flags,int startId){return START_STICKY;}
+    @Override public int onStartCommand(Intent intent,int flags,int startId){
+        heartbeat();
+        SyncWatchdog.schedule(this);
+        sync();
+        return START_STICKY;
+    }
+
+    @Override public void onTaskRemoved(Intent rootIntent){
+        SyncWatchdog.schedule(this,5000L);
+        super.onTaskRemoved(rootIntent);
+    }
+
     @Override public IBinder onBind(Intent intent){return null;}
 
     @Override public void onDestroy(){
         handler.removeCallbacksAndMessages(null);
+        SyncWatchdog.schedule(this,5000L);
         executor.shutdownNow();
         super.onDestroy();
     }
