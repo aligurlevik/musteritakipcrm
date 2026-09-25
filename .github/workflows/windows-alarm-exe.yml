@@ -1,0 +1,65 @@
+name: Build Windows Alarm EXE
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'windows-alarm-exe/**'
+      - '.github/workflows/windows-alarm-exe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore windows-alarm-exe/CRMWindowsAlarm.csproj
+
+      - name: Build
+        run: dotnet build windows-alarm-exe/CRMWindowsAlarm.csproj -c Release --no-restore
+
+      - name: Publish single EXE
+        run: dotnet publish windows-alarm-exe/CRMWindowsAlarm.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false -o dist
+
+      - name: Verify EXE
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD 'dist/CRM-Windows-Alarm.exe'
+          if (!(Test-Path $exe)) { throw 'CRM-Windows-Alarm.exe oluşmadı.' }
+          $size = (Get-Item $exe).Length
+          if ($size -lt 1000000) { throw "EXE boyutu beklenenden küçük: $size" }
+          Write-Host "EXE hazır: $size bytes"
+
+      - name: Publish latest release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'windows-alarm-latest'
+          $exe = 'dist/CRM-Windows-Alarm.exe'
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag $exe --title 'CRM Windows Alarm - Güncel Sürüm' --notes 'Sessiz, bağımsız Windows EXE alarm uygulaması. İlk açılışta CRM eşleştirme kodunu girin.' --latest
+          } else {
+            gh release upload $tag $exe --clobber
+            gh release edit $tag --title 'CRM Windows Alarm - Güncel Sürüm' --notes 'Sessiz, bağımsız Windows EXE alarm uygulaması. İlk açılışta CRM eşleştirme kodunu girin.' --latest
+          }
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CRM-Windows-Alarm
+          path: dist/CRM-Windows-Alarm.exe
+          if-no-files-found: error
