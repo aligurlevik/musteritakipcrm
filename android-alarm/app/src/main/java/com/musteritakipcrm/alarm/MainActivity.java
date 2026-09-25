@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
         root.addView(title,new LinearLayout.LayoutParams(-1,-2));
 
         TextView info=new TextView(this);
-        info.setText("\nEXE sürümüyle aynı mantık: CRM kapalı olsa bile alarm servisi çalışır. Alarm zamanı gelince SES ve TİTREŞİM olmaz; tam ekran uyarı açılır ve ALARMI KAPAT düğmesine basana kadar kapanmaz.\n");
+        info.setText("\nCRM kapalı olsa bile alarm servisi çalışır. Alarm zamanı gelince SES ve TİTREŞİM olmaz; diğer uygulamaların ÜSTÜNE tam ekran uyarı çıkar ve ALARMI KAPAT düğmesine basana kadar kalır.\n");
         info.setTextSize(16);
         root.addView(info,new LinearLayout.LayoutParams(-1,-2));
 
@@ -74,13 +74,18 @@ public class MainActivity extends Activity {
         exact.setOnClickListener(v->openExactAlarmSettings());
         root.addView(exact,new LinearLayout.LayoutParams(-1,-2));
 
+        Button overlay=new Button(this);
+        overlay.setText("2 — DİĞER UYGULAMALARIN ÜZERİNDE GÖSTER");
+        overlay.setOnClickListener(v->openOverlaySettings());
+        root.addView(overlay,new LinearLayout.LayoutParams(-1,-2));
+
         Button fullScreen=new Button(this);
-        fullScreen.setText("2 — EKRANI OTOMATİK AÇMA İZNİ");
+        fullScreen.setText("3 — EKRANI OTOMATİK AÇMA İZNİ");
         fullScreen.setOnClickListener(v->openFullScreenIntentSettings());
         root.addView(fullScreen,new LinearLayout.LayoutParams(-1,-2));
 
         Button battery=new Button(this);
-        battery.setText("3 — PİL KISITLAMASINI KALDIR");
+        battery.setText("4 — PİL KISITLAMASINI KALDIR");
         battery.setOnClickListener(v->{
             try{startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));}
             catch(Exception ignored){}
@@ -90,13 +95,13 @@ public class MainActivity extends Activity {
         Button test=new Button(this);
         test.setText("10 SANİYE SONRA TAM EKRAN TEST");
         test.setOnClickListener(v->{
-            if(!canUseFullScreenIntent()){
-                toast("Önce 'ekranı otomatik açma' iznini açın. Ayar sayfası açılıyor.");
-                openFullScreenIntentSettings();
+            if(!canDrawOverlays()){
+                toast("Önce 'Diğer uygulamaların üzerinde göster' iznini açın.");
+                openOverlaySettings();
                 return;
             }
             AlarmScheduler.scheduleLocalTest(this,System.currentTimeMillis()+10000);
-            toast("Test kuruldu. Başka uygulamaya geç veya ekranı kapat; 10 saniye sonra sessiz tam ekran alarm gelmeli ve sen kapatana kadar kalmalı.");
+            toast("Test kuruldu. Ana ekrana veya başka uygulamaya geç; 10 saniye sonra sessiz alarm ekranın üstüne çıkmalı.");
         });
         root.addView(test,new LinearLayout.LayoutParams(-1,-2));
 
@@ -121,13 +126,14 @@ public class MainActivity extends Activity {
                     toast("Telefon bağlandı. Alarm servisi başlatıldı.");
                     refreshStatus();
                     startServiceNow();
-                    if(!canUseFullScreenIntent()){
-                        toast("Son adım: alarmın diğer uygulamaların önüne gelmesi için ekranı otomatik açma iznini açın.");
-                        openFullScreenIntentSettings();
-                    }
+                    if(!canDrawOverlays())openOverlaySettings();
                 });
             }catch(Exception e){runOnUiThread(()->status.setText("Bağlantı hatası: "+e.getMessage()));}
         }).start();
+    }
+
+    private boolean canDrawOverlays(){
+        return Build.VERSION.SDK_INT<23||Settings.canDrawOverlays(this);
     }
 
     private boolean canUseFullScreenIntent(){
@@ -140,7 +146,9 @@ public class MainActivity extends Activity {
 
     private void refreshStatus(){
         String token=prefs().getString("token","");
-        final String permissionInfo=canUseFullScreenIntent()?"\n✅ Tam ekran alarm izni açık":"\n❌ TAM EKRAN ALARM İZNİ KAPALI — 2. düğmeden aç";
+        String overlayInfo=canDrawOverlays()?"\n✅ Ekran üstü alarm izni açık":"\n❌ EKRAN ÜSTÜ İZNİ KAPALI — 2. düğmeden aç";
+        String fullInfo=canUseFullScreenIntent()?"\n✅ Ekran uyandırma izni açık":"\n⚠️ Ekran uyandırma izni kapalı";
+        final String permissionInfo=overlayInfo+fullInfo;
         status.setText((token.isEmpty()?"Telefon henüz CRM'ye bağlı değil.":"Telefon CRM'ye bağlı. Sessiz alarm servisi çalışıyor.")+permissionInfo);
         if(!token.isEmpty())new Thread(()->{
             try{
@@ -160,6 +168,12 @@ public class MainActivity extends Activity {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},20);
     }
 
+    private void openOverlaySettings(){
+        if(canDrawOverlays()){toast("Diğer uygulamaların üzerinde göster izni açık.");return;}
+        try{startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:"+getPackageName())));}
+        catch(Exception e){startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getPackageName())));}
+    }
+
     private void openExactAlarmSettings(){
         if(Build.VERSION.SDK_INT>=31){
             AlarmManager am=(AlarmManager)getSystemService(ALARM_SERVICE);
@@ -176,18 +190,17 @@ public class MainActivity extends Activity {
         if(Build.VERSION.SDK_INT>=34){
             try{
                 if(canUseFullScreenIntent()){
-                    toast("Tam ekran alarm izni zaten açık.");
+                    toast("Ekranı otomatik açma izni zaten açık.");
                     return;
                 }
-                Intent i=new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,Uri.parse("package:"+getPackageName()));
-                startActivity(i);
+                startActivity(new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,Uri.parse("package:"+getPackageName())));
                 return;
             }catch(Exception e){
                 try{startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getPackageName())));return;}
                 catch(Exception ignored){}
             }
         }
-        toast("Bu Android sürümünde tam ekran alarm izni ayrıca gerekmiyor.");
+        toast("Bu Android sürümünde ekranı açma izni ayrıca gerekmiyor.");
     }
 
     private void toast(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
