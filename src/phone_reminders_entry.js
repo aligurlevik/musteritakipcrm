@@ -28,10 +28,10 @@ export default{
     if(path.startsWith('/api/push/')){
       try{return await pushApi(request,env)}catch(error){console.error('Phone reminder API failed',error?.name);return new Response(JSON.stringify({error:'Telefon bildirimi kurulamadı. Tekrar deneyin.'}),{status:500,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}
     }
-    if(['/agenda-sw.js','/agenda.webmanifest','/crm.webmanifest','/agenda-icon-192.png','/agenda-icon-512.png','/phone-reminders.js','/phone-notification-controls.js','/note-color-palette.js'].includes(path)){
+    if(['/agenda-sw.js','/agenda-sw-silent.js','/agenda.webmanifest','/crm.webmanifest','/agenda-icon-192.png','/agenda-icon-512.png','/phone-reminders.js','/phone-notification-controls.js','/note-color-palette.js'].includes(path)){
       const response=await env.ASSETS.fetch(request),headers=new Headers(response.headers);
       headers.set('cache-control','no-cache');
-      if(path==='/agenda-sw.js'){headers.set('content-type','application/javascript');headers.set('service-worker-allowed','/')}
+      if(path==='/agenda-sw.js'||path==='/agenda-sw-silent.js'){headers.set('content-type','application/javascript');headers.set('service-worker-allowed','/')}
       if(path.endsWith('.webmanifest'))headers.set('content-type','application/manifest+json');
       return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
     }
