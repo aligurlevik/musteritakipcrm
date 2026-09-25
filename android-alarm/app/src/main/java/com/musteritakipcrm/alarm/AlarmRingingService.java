@@ -10,10 +10,10 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.provider.Settings;
 
 public class AlarmRingingService extends Service {
-    // Yeni kanal ID'si eski cihazlarda kalmış ses/titreşim kanal ayarlarını devre dışı bırakır.
-    static final String CHANNEL_ALARM="crm_alarm_visual_v6";
+    static final String CHANNEL_ALARM="crm_alarm_visual_v7";
     static final String CHANNEL_SYNC="crm_alarm_sync_v2";
     private PowerManager.WakeLock wakeLock;
 
@@ -42,6 +42,7 @@ public class AlarmRingingService extends Service {
 
     @Override public int onStartCommand(Intent intent,int flags,int startId){
         if(intent!=null&&"STOP".equals(intent.getAction())){
+            try{stopService(new Intent(this,AlarmOverlayService.class));}catch(Exception ignored){}
             stopAlarmAndSelf(true);
             return START_NOT_STICKY;
         }
@@ -59,18 +60,10 @@ public class AlarmRingingService extends Service {
         display.putExtra("remind_at",remindAt);
         display.putExtra("title",title);
         display.putExtra("body",body);
-        display.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                |Intent.FLAG_ACTIVITY_CLEAR_TOP
-                |Intent.FLAG_ACTIVITY_SINGLE_TOP
-                |Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+        display.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP|Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
 
         int displayRequestCode=(id+"|"+remindAt).hashCode();
-        PendingIntent displayPi=PendingIntent.getActivity(
-                this,
-                displayRequestCode,
-                display,
-                PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE
-        );
+        PendingIntent displayPi=PendingIntent.getActivity(this,displayRequestCode,display,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
 
         Notification n=new Notification.Builder(this,CHANNEL_ALARM)
                 .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
@@ -89,11 +82,22 @@ public class AlarmRingingService extends Service {
         startForeground(2001,n);
         wakeScreen();
 
-        // Android izin veriyorsa bildirime dokunmayı beklemeden alarm ekranını öne getir.
-        try{startActivity(display);}catch(Exception ignored){}
+        boolean overlayAllowed=Build.VERSION.SDK_INT<23||Settings.canDrawOverlays(this);
+        if(overlayAllowed){
+            try{
+                Intent overlay=new Intent(this,AlarmOverlayService.class);
+                overlay.putExtra("id",id);
+                overlay.putExtra("remind_at",remindAt);
+                overlay.putExtra("title",title);
+                overlay.putExtra("body",body);
+                startService(overlay);
+            }catch(Exception ignored){
+                try{startActivity(display);}catch(Exception ignored2){}
+            }
+        }else{
+            try{startActivity(display);}catch(Exception ignored){}
+        }
 
-        // Burada ACK YOK. Sunucu onayı yalnızca kullanıcı ALARMI KAPAT düğmesine bastığında gönderilir.
-        // Otomatik kapanma da yok: EXE sürümündeki gibi kullanıcı kapatana kadar alarm ekranda kalır.
         return START_NOT_STICKY;
     }
 
@@ -102,9 +106,7 @@ public class AlarmRingingService extends Service {
         try{
             if(wakeLock!=null&&wakeLock.isHeld())wakeLock.release();
             PowerManager pm=(PowerManager)getSystemService(POWER_SERVICE);
-            int flags=PowerManager.FULL_WAKE_LOCK
-                    |PowerManager.ACQUIRE_CAUSES_WAKEUP
-                    |PowerManager.ON_AFTER_RELEASE;
+            int flags=PowerManager.FULL_WAKE_LOCK|PowerManager.ACQUIRE_CAUSES_WAKEUP|PowerManager.ON_AFTER_RELEASE;
             wakeLock=pm.newWakeLock(flags,"CRMAlarm:force-screen-on");
             wakeLock.setReferenceCounted(false);
             wakeLock.acquire(15000L);
@@ -121,10 +123,6 @@ public class AlarmRingingService extends Service {
         stopSelf();
     }
 
-    @Override public void onDestroy(){
-        releaseAlarm();
-        super.onDestroy();
-    }
-
+    @Override public void onDestroy(){releaseAlarm();super.onDestroy();}
     @Override public IBinder onBind(Intent intent){return null;}
 }
