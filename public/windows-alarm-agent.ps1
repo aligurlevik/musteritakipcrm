@@ -1,4 +1,4 @@
-# VERSION: 2026.09.25.1
+# VERSION: 2026.09.25.2
 $ErrorActionPreference = 'SilentlyContinue'
 
 $AppDir = Join-Path $env:LOCALAPPDATA 'MusteriTakipCRM'
@@ -31,8 +31,6 @@ function Update-SelfIfNeeded {
 
 Update-SelfIfNeeded
 
-# Yeni sürüm, eski ajan kapanırken kısa süre mutex'in boşalmasını bekler.
-# Böylece otomatik güncelleme sonrası yeni süreç hemen kapanıp alarm servisini durdurmaz.
 $created = $false
 $mutex = New-Object System.Threading.Mutex($false, 'Local\MusteriTakipCRMAlarmAgent', [ref]$created)
 $hasMutex = $false
@@ -41,6 +39,26 @@ if (-not $hasMutex) { exit 0 }
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class CrmAlarmWin32 {
+    [DllImport("user32.dll", SetLastError=true)]
+    public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+    [DllImport("user32.dll")]
+    public static extern bool SetForegroundWindow(IntPtr hWnd);
+    [DllImport("user32.dll")]
+    public static extern bool BringWindowToTop(IntPtr hWnd);
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+}
+'@
+
+$HWND_TOPMOST = [IntPtr](-1)
+$SWP_NOSIZE = 0x0001
+$SWP_NOMOVE = 0x0002
+$SWP_SHOWWINDOW = 0x0040
+$SW_RESTORE = 9
 
 function Invoke-CrmRequest {
     param([string]$Path, [string]$Method = 'GET', $Body = $null)
@@ -52,15 +70,31 @@ function Invoke-CrmRequest {
     return Invoke-RestMethod -Uri $uri -Method $Method -Headers $headers -ContentType 'application/json; charset=utf-8' -Body ($Body | ConvertTo-Json -Compress) -TimeoutSec 15
 }
 
+function Set-CrmAlarmForeground {
+    param($Window)
+    try {
+        $helper = New-Object System.Windows.Interop.WindowInteropHelper($Window)
+        $handle = $helper.Handle
+        if ($handle -eq [IntPtr]::Zero) { return }
+        [CrmAlarmWin32]::ShowWindowAsync($handle, $SW_RESTORE) | Out-Null
+        [CrmAlarmWin32]::SetWindowPos($handle, $HWND_TOPMOST, 0, 0, 0, 0, ($SWP_NOMOVE -bor $SWP_NOSIZE -bor $SWP_SHOWWINDOW)) | Out-Null
+        [CrmAlarmWin32]::BringWindowToTop($handle) | Out-Null
+        [CrmAlarmWin32]::SetForegroundWindow($handle) | Out-Null
+        $Window.Topmost = $true
+        $Window.Activate() | Out-Null
+        $Window.Focus() | Out-Null
+    } catch {}
+}
+
 function Show-CrmAlarm {
     param($Reminder)
 
     [xml]$xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        Title="CRM AJANDA UYARISI" Width="560" Height="350"
-        WindowStartupLocation="CenterScreen" Topmost="True"
-        ResizeMode="NoResize" Background="#FFF5CC">
-  <Border Name="AlarmBorder" BorderBrush="#DC2626" BorderThickness="7" CornerRadius="14" Padding="22" Background="#FFF5CC">
+        Title="CRM AJANDA UYARISI" Width="620" Height="390"
+        WindowStartupLocation="CenterScreen" Topmost="True" ShowActivated="True"
+        ShowInTaskbar="True" ResizeMode="NoResize" Background="#FFF8DC">
+  <Border BorderBrush="#DC2626" BorderThickness="7" CornerRadius="14" Padding="24" Background="#FFF8DC">
     <Grid>
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto"/>
@@ -68,12 +102,12 @@ function Show-CrmAlarm {
         <RowDefinition Height="*"/>
         <RowDefinition Height="Auto"/>
       </Grid.RowDefinitions>
-      <TextBlock Grid.Row="0" Text="⚠ AJANDA UYARISI" FontSize="22" FontWeight="Bold" Foreground="#991B1B" Margin="0,0,0,14"/>
-      <TextBlock Grid.Row="1" Name="AlarmTitle" FontSize="30" FontWeight="Bold" Foreground="#173F63" TextWrapping="Wrap" Margin="0,0,0,14"/>
+      <TextBlock Grid.Row="0" Text="AJANDA UYARISI" FontSize="22" FontWeight="Bold" Foreground="#991B1B" Margin="0,0,0,14" HorizontalAlignment="Center"/>
+      <TextBlock Grid.Row="1" Name="AlarmTitle" FontSize="30" FontWeight="Bold" Foreground="#173F63" TextWrapping="Wrap" Margin="0,0,0,14" TextAlignment="Center"/>
       <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-        <TextBlock Name="AlarmBody" FontSize="21" Foreground="#1F2937" TextWrapping="Wrap"/>
+        <TextBlock Name="AlarmBody" FontSize="21" Foreground="#1F2937" TextWrapping="Wrap" TextAlignment="Center"/>
       </ScrollViewer>
-      <Button Grid.Row="3" Name="StopButton" Content="TAMAM — UYARIYI KAPAT" Height="58" Margin="0,18,0,0" FontSize="18" FontWeight="Bold" Background="#173F63" Foreground="White"/>
+      <Button Grid.Row="3" Name="StopButton" Content="ALARMI KAPAT" Height="62" Margin="0,20,0,0" FontSize="19" FontWeight="Bold" Background="#173F63" Foreground="White" IsDefault="True"/>
     </Grid>
   </Border>
 </Window>
@@ -82,30 +116,31 @@ function Show-CrmAlarm {
     try {
         $reader = New-Object System.Xml.XmlNodeReader $xaml
         $window = [Windows.Markup.XamlReader]::Load($reader)
-        $border = $window.FindName('AlarmBorder')
         $window.FindName('AlarmTitle').Text = [string]$Reminder.title
         $window.FindName('AlarmBody').Text = [string]$Reminder.body
         $window.FindName('StopButton').Add_Click({ $window.Close() })
 
-        $flashOn = $false
-        $flashTimer = New-Object System.Windows.Threading.DispatcherTimer
-        $flashTimer.Interval = [TimeSpan]::FromMilliseconds(500)
-        $flashTimer.Add_Tick({
-            $flashOn = -not $flashOn
-            if ($flashOn) {
-                $border.Background = [Windows.Media.Brushes]::LightYellow
-                $border.BorderBrush = [Windows.Media.Brushes]::Red
-            } else {
-                $border.Background = [Windows.Media.Brushes]::White
-                $border.BorderBrush = [Windows.Media.Brushes]::OrangeRed
-            }
+        $keepFrontTimer = New-Object System.Windows.Threading.DispatcherTimer
+        $keepFrontTimer.Interval = [TimeSpan]::FromMilliseconds(900)
+        $keepFrontTimer.Add_Tick({ Set-CrmAlarmForeground $window })
+
+        $window.Add_SourceInitialized({ Set-CrmAlarmForeground $window })
+        $window.Add_Loaded({
+            Set-CrmAlarmForeground $window
+            $keepFrontTimer.Start()
         })
-        $window.Add_Loaded({ $flashTimer.Start(); $window.Activate() })
-        $window.Add_Closed({ try { $flashTimer.Stop() } catch {} })
+        $window.Add_Activated({ Set-CrmAlarmForeground $window })
+        $window.Add_Closed({ try { $keepFrontTimer.Stop() } catch {} })
 
         [void]$window.ShowDialog()
+        return $true
     } catch {
-        try { [System.Windows.MessageBox]::Show(([string]$Reminder.body), ([string]$Reminder.title), 'OK', 'Exclamation') | Out-Null } catch {}
+        try {
+            [System.Windows.MessageBox]::Show(([string]$Reminder.body), ([string]$Reminder.title), 'OK', 'Exclamation') | Out-Null
+            return $true
+        } catch {
+            return $false
+        }
     }
 }
 
@@ -118,10 +153,12 @@ while ($true) {
         foreach ($r in @($data.reminders)) {
             $when = [int64]$r.when
             if ($when -le ($now + 15000) -and $when -ge ($now - 300000)) {
-                try {
-                    Invoke-CrmRequest '/api/native-alarm/ack' 'POST' @{ id = [int]$r.id; remind_at = [string]$r.remind_at } | Out-Null
-                } catch {}
-                Show-CrmAlarm $r
+                $shown = Show-CrmAlarm $r
+                if ($shown) {
+                    try {
+                        Invoke-CrmRequest '/api/native-alarm/ack' 'POST' @{ id = [int]$r.id; remind_at = [string]$r.remind_at } | Out-Null
+                    } catch {}
+                }
             }
         }
     } catch {}
