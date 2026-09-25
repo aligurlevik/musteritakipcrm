@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
         root.addView(title,new LinearLayout.LayoutParams(-1,-2));
 
         TextView info=new TextView(this);
-        info.setText("\nAlarm zamanı gelince SES ve TİTREŞİM OLMAZ. Ekran kapalıysa açılır ve büyük görsel uyarı gösterilir.\n");
+        info.setText("\nAlarm zamanı gelince SES ve TİTREŞİM OLMAZ. Ekran kapalıysa açılır ve büyük görsel uyarı gösterilir. Android 14 ve üstünde 'ekranı açma' izni MUTLAKA açık olmalıdır.\n");
         info.setTextSize(16);
         root.addView(info,new LinearLayout.LayoutParams(-1,-2));
 
@@ -75,7 +75,7 @@ public class MainActivity extends Activity {
         root.addView(exact,new LinearLayout.LayoutParams(-1,-2));
 
         Button fullScreen=new Button(this);
-        fullScreen.setText("EKRANI AÇMA İZNİNİ KONTROL ET");
+        fullScreen.setText("ZORUNLU: EKRANI OTOMATİK AÇMA İZNİ");
         fullScreen.setOnClickListener(v->openFullScreenIntentSettings());
         root.addView(fullScreen,new LinearLayout.LayoutParams(-1,-2));
 
@@ -90,8 +90,13 @@ public class MainActivity extends Activity {
         Button test=new Button(this);
         test.setText("10 SANİYE SONRA EKRANI AÇ TESTİ");
         test.setOnClickListener(v->{
+            if(!canUseFullScreenIntent()){
+                toast("Önce 'ekranı otomatik açma' iznini açın. Ayar sayfası açılıyor.");
+                openFullScreenIntentSettings();
+                return;
+            }
             AlarmScheduler.scheduleLocalTest(this,System.currentTimeMillis()+10000);
-            toast("Test kuruldu. Şimdi ekranı kapatın; 10 saniye sonra sessiz uyarı ekranı açılmalı.");
+            toast("Test kuruldu. Şimdi ekranı kapatın; 10 saniye sonra sessiz uyarı ekranı kendiliğinden açılmalı.");
         });
         root.addView(test,new LinearLayout.LayoutParams(-1,-2));
 
@@ -112,27 +117,36 @@ public class MainActivity extends Activity {
             try{
                 String token=Api.pair(c,Build.MANUFACTURER+" "+Build.MODEL);
                 prefs().edit().putString("token",token).apply();
-                runOnUiThread(()->{toast("Telefon bağlandı.");refreshStatus();startServiceNow();});
+                runOnUiThread(()->{
+                    toast("Telefon bağlandı.");
+                    refreshStatus();
+                    startServiceNow();
+                    if(!canUseFullScreenIntent()){
+                        toast("Son adım: ekranın alarmda kendiliğinden açılması için izni açın.");
+                        openFullScreenIntentSettings();
+                    }
+                });
             }catch(Exception e){runOnUiThread(()->status.setText("Bağlantı hatası: "+e.getMessage()));}
         }).start();
     }
 
+    private boolean canUseFullScreenIntent(){
+        if(Build.VERSION.SDK_INT<34)return true;
+        try{
+            NotificationManager nm=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+            return nm!=null&&nm.canUseFullScreenIntent();
+        }catch(Exception ignored){return false;}
+    }
+
     private void refreshStatus(){
         String token=prefs().getString("token","");
-        String permissionInfo="";
-        if(Build.VERSION.SDK_INT>=34){
-            try{
-                NotificationManager nm=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);
-                permissionInfo=nm.canUseFullScreenIntent()?"\n✅ Ekranı açma izni açık":"\n❌ Ekranı açma izni kapalı — yukarıdaki izin düğmesine basın";
-            }catch(Exception ignored){}
-        }
-        final String extra=permissionInfo;
-        status.setText((token.isEmpty()?"Telefon henüz CRM'ye bağlı değil.":"Telefon CRM'ye bağlı. Sessiz uyarı servisi çalışacak.")+extra);
+        final String permissionInfo=canUseFullScreenIntent()?"\n✅ Ekranı otomatik açma izni açık":"\n❌ EKRANI OTOMATİK AÇMA İZNİ KAPALI — alarm gelir ama ekran uyanmaz";
+        status.setText((token.isEmpty()?"Telefon henüz CRM'ye bağlı değil.":"Telefon CRM'ye bağlı. Sessiz uyarı servisi çalışacak.")+permissionInfo);
         if(!token.isEmpty())new Thread(()->{
             try{
                 JSONObject p=Api.ping(token);
-                runOnUiThread(()->status.setText("Bağlı — "+p.optString("label","Android Uyarı")+extra));
-            }catch(Exception e){runOnUiThread(()->status.setText("Bağlantı kontrolü: "+e.getMessage()+extra));}
+                runOnUiThread(()->status.setText("Bağlı — "+p.optString("label","Android Uyarı")+permissionInfo));
+            }catch(Exception e){runOnUiThread(()->status.setText("Bağlantı kontrolü: "+e.getMessage()+permissionInfo));}
         }).start();
     }
 
@@ -161,9 +175,8 @@ public class MainActivity extends Activity {
     private void openFullScreenIntentSettings(){
         if(Build.VERSION.SDK_INT>=34){
             try{
-                NotificationManager nm=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);
-                if(nm.canUseFullScreenIntent()){
-                    toast("Ekranı açma izni zaten açık.");
+                if(canUseFullScreenIntent()){
+                    toast("Ekranı otomatik açma izni zaten açık.");
                     return;
                 }
                 Intent i=new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,Uri.parse("package:"+getPackageName()));
