@@ -3,6 +3,7 @@ package com.musteritakipcrm.alarm;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlarmManager;
+import android.app.NotificationManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
@@ -35,6 +36,11 @@ public class MainActivity extends Activity {
         if(!token.isEmpty())startServiceNow();
     }
 
+    @Override protected void onResume(){
+        super.onResume();
+        if(status!=null)refreshStatus();
+    }
+
     private View buildUi(){
         LinearLayout root=new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -48,7 +54,7 @@ public class MainActivity extends Activity {
         root.addView(title,new LinearLayout.LayoutParams(-1,-2));
 
         TextView info=new TextView(this);
-        info.setText("\nAlarm zamanı gelince SES ÇALMAZ. Ekranda büyük uyarı açılır ve telefon bir kez kısa titreşir.\n");
+        info.setText("\nAlarm zamanı gelince SES ve TİTREŞİM OLMAZ. Ekran kapalıysa açılır ve büyük görsel uyarı gösterilir.\n");
         info.setTextSize(16);
         root.addView(info,new LinearLayout.LayoutParams(-1,-2));
 
@@ -68,6 +74,11 @@ public class MainActivity extends Activity {
         exact.setOnClickListener(v->openExactAlarmSettings());
         root.addView(exact,new LinearLayout.LayoutParams(-1,-2));
 
+        Button fullScreen=new Button(this);
+        fullScreen.setText("EKRANI AÇMA İZNİNİ KONTROL ET");
+        fullScreen.setOnClickListener(v->openFullScreenIntentSettings());
+        root.addView(fullScreen,new LinearLayout.LayoutParams(-1,-2));
+
         Button battery=new Button(this);
         battery.setText("PİL KISITLAMASINI KONTROL ET");
         battery.setOnClickListener(v->{
@@ -77,8 +88,11 @@ public class MainActivity extends Activity {
         root.addView(battery,new LinearLayout.LayoutParams(-1,-2));
 
         Button test=new Button(this);
-        test.setText("10 SANİYE SONRAYA SESSİZ TEST");
-        test.setOnClickListener(v->AlarmScheduler.scheduleLocalTest(this,System.currentTimeMillis()+10000));
+        test.setText("10 SANİYE SONRA EKRANI AÇ TESTİ");
+        test.setOnClickListener(v->{
+            AlarmScheduler.scheduleLocalTest(this,System.currentTimeMillis()+10000);
+            toast("Test kuruldu. Şimdi ekranı kapatın; 10 saniye sonra sessiz uyarı ekranı açılmalı.");
+        });
         root.addView(test,new LinearLayout.LayoutParams(-1,-2));
 
         status=new TextView(this);
@@ -105,12 +119,20 @@ public class MainActivity extends Activity {
 
     private void refreshStatus(){
         String token=prefs().getString("token","");
-        status.setText(token.isEmpty()?"Telefon henüz CRM'ye bağlı değil.":"Telefon CRM'ye bağlı. Sessiz uyarı servisi çalışacak.");
+        String permissionInfo="";
+        if(Build.VERSION.SDK_INT>=34){
+            try{
+                NotificationManager nm=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+                permissionInfo=nm.canUseFullScreenIntent()?"\n✅ Ekranı açma izni açık":"\n❌ Ekranı açma izni kapalı — yukarıdaki izin düğmesine basın";
+            }catch(Exception ignored){}
+        }
+        final String extra=permissionInfo;
+        status.setText((token.isEmpty()?"Telefon henüz CRM'ye bağlı değil.":"Telefon CRM'ye bağlı. Sessiz uyarı servisi çalışacak.")+extra);
         if(!token.isEmpty())new Thread(()->{
             try{
                 JSONObject p=Api.ping(token);
-                runOnUiThread(()->status.setText("Bağlı — "+p.optString("label","Android Uyarı")));
-            }catch(Exception e){runOnUiThread(()->status.setText("Bağlantı kontrolü: "+e.getMessage()));}
+                runOnUiThread(()->status.setText("Bağlı — "+p.optString("label","Android Uyarı")+extra));
+            }catch(Exception e){runOnUiThread(()->status.setText("Bağlantı kontrolü: "+e.getMessage()+extra));}
         }).start();
     }
 
@@ -134,6 +156,25 @@ public class MainActivity extends Activity {
             }
         }
         toast("Tam saatli uyarı izni açık.");
+    }
+
+    private void openFullScreenIntentSettings(){
+        if(Build.VERSION.SDK_INT>=34){
+            try{
+                NotificationManager nm=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+                if(nm.canUseFullScreenIntent()){
+                    toast("Ekranı açma izni zaten açık.");
+                    return;
+                }
+                Intent i=new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,Uri.parse("package:"+getPackageName()));
+                startActivity(i);
+                return;
+            }catch(Exception e){
+                try{startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getPackageName())));return;}
+                catch(Exception ignored){}
+            }
+        }
+        toast("Bu Android sürümünde ekranı açma izni ayrıca gerekmiyor.");
     }
 
     private void toast(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
