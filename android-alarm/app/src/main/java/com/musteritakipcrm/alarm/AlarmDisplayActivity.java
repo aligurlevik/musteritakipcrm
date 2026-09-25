@@ -1,6 +1,7 @@
 package com.musteritakipcrm.alarm;
 
 import android.app.Activity;
+import android.app.KeyguardManager;
 import android.app.NotificationManager;
 import android.content.Intent;
 import android.graphics.Color;
@@ -16,20 +17,34 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class AlarmDisplayActivity extends Activity {
-    private static final long AUTO_CLOSE_MS=3000L;
+    private static final long AUTO_CLOSE_MS=10000L;
     private final Handler handler=new Handler(Looper.getMainLooper());
     private TextView titleView;
     private TextView bodyView;
 
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
+
+        // Hem yeni hem eski Android sürümlerinde kilit ekranının üzerinde görün.
+        getWindow().addFlags(
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                        |WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+                        |WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+                        |WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
+        );
         if(Build.VERSION.SDK_INT>=27){
             setShowWhenLocked(true);
             setTurnScreenOn(true);
-        }else{
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED|WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
         }
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if(Build.VERSION.SDK_INT>=26){
+            try{
+                KeyguardManager km=(KeyguardManager)getSystemService(KEYGUARD_SERVICE);
+                if(km!=null&&km.isKeyguardLocked()){
+                    km.requestDismissKeyguard(this,null);
+                }
+            }catch(Exception ignored){}
+        }
+
         setContentView(buildUi());
         renderIntent(getIntent());
     }
