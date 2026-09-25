@@ -61,7 +61,8 @@ public class AlarmRingingService extends Service {
         display.putExtra("title",title);
         display.putExtra("body",body);
         display.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        PendingIntent displayPi=PendingIntent.getActivity(this,3001,display,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        int displayRequestCode=(id+"|"+String.valueOf(remindAt)).hashCode();
+        PendingIntent displayPi=PendingIntent.getActivity(this,displayRequestCode,display,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
 
         Notification n=new Notification.Builder(this,CHANNEL_ALARM)
                 .setSmallIcon(android.R.drawable.ic_dialog_alert)
@@ -74,7 +75,6 @@ public class AlarmRingingService extends Service {
                 .setAutoCancel(true)
                 .setCategory(Notification.CATEGORY_ALARM)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
-                .setOnlyAlertOnce(true)
                 .build();
 
         startForeground(2001,n);
