@@ -43,6 +43,83 @@ export async function applyCrmBranding(response,request){
     html=html.replace(/<\/body>/i,silentDesktop+'\n</body>');
   }
 
+  // Ana CRM ajandasında bağımsız Windows EXE alarmının gerçekten çalışıp
+  // çalışmadığını canlı göster. EXE /reminders isteği attıkça sunucu last_seen
+  // alanını güncellediği için tarayıcı kapalı alarm yolunu da doğrudan doğrular.
+  if(request&&/Windows/i.test(request.headers.get('user-agent')||'')&&['/','/index.html'].includes(new URL(request.url).pathname)&&!html.includes('id="crmWindowsAlarmStatusScript"')){
+    const windowsStatus=`<script id="crmWindowsAlarmStatusScript">
+(function(){
+  var timer=null;
+  function paint(button,state,text){
+    if(!button)return;
+    button.textContent=text;
+    button.style.border='1px solid';
+    button.style.borderRadius='9px';
+    button.style.padding='9px 12px';
+    button.style.fontWeight='900';
+    button.style.cursor='pointer';
+    if(state==='ok'){
+      button.style.background='#dcfce7';button.style.color='#166534';button.style.borderColor='#86efac';
+    }else if(state==='bad'){
+      button.style.background='#fee2e2';button.style.color='#991b1b';button.style.borderColor='#fca5a5';
+    }else if(state==='warn'){
+      button.style.background='#fef3c7';button.style.color='#92400e';button.style.borderColor='#fcd34d';
+    }else{
+      button.style.background='#e2e8f0';button.style.color='#475569';button.style.borderColor='#cbd5e1';
+    }
+  }
+  function ensureButton(){
+    var agenda=document.getElementById('agenda');
+    if(!agenda)return null;
+    var button=document.getElementById('crmWindowsAlarmStatus');
+    if(button)return button;
+    button=document.createElement('button');
+    button.type='button';
+    button.id='crmWindowsAlarmStatus';
+    button.className='btn';
+    button.title='Windows alarm kurulumunu aç';
+    button.onclick=function(){location.href='/windows-alarm.html'};
+    paint(button,'idle','⚪ Windows alarmı kontrol ediliyor');
+    var toolbar=agenda.querySelector('.toolbar');
+    if(toolbar)toolbar.appendChild(button);else agenda.insertBefore(button,agenda.firstChild);
+    return button;
+  }
+  async function check(){
+    var button=ensureButton();
+    if(!button)return;
+    try{
+      var response=await fetch('/api/native-alarm/status',{credentials:'same-origin',cache:'no-store'});
+      var data={};try{data=await response.json()}catch(_){}
+      if(response.status===401){paint(button,'idle','⚪ Windows alarmı: giriş bekleniyor');button.title='CRM girişinden sonra durum otomatik kontrol edilir.';return}
+      if(!response.ok)throw new Error(data.error||'Durum alınamadı');
+      if(!data.installed){
+        paint(button,'warn','🟠 Windows alarmı kurulu değil');
+        button.title='Kurmak için tıklayın.';
+      }else if(data.online){
+        paint(button,'ok','🟢 Windows alarmı çalışıyor');
+        button.title='Arka plan alarmı aktif. Son bağlantı '+(data.ageSeconds==null?'az önce':data.ageSeconds+' sn önce')+'.';
+      }else{
+        paint(button,'bad','🔴 Windows alarmı çalışmıyor');
+        button.title='EXE eşleştirilmiş ama şu an sunucuya bağlanmıyor. Kurulum sayfasını açmak için tıklayın.';
+      }
+    }catch(_){
+      paint(button,'idle','⚪ Windows alarm durumu alınamadı');
+      button.title='Bağlantı düzelince otomatik tekrar kontrol edilir.';
+    }
+  }
+  function start(){
+    ensureButton();
+    check();
+    if(timer)clearInterval(timer);
+    timer=setInterval(check,10000);
+    document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')check()});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})();
+</script>`;
+    html=html.replace(/<\/body>/i,windowsStatus+'\n</body>');
+  }
+
   const headers=new Headers(response.headers);
   for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
   headers.set('cache-control','no-cache, no-store, must-revalidate');
