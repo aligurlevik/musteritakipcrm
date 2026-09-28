@@ -12,13 +12,20 @@ function reminderTime(value){
   if(!/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:?\d{2})?$/.test(s))return NaN;
   return Date.parse(s.replace(' ','T')+(/(?:Z|[+-]\d{2}:?\d{2})$/.test(s)?'':'+03:00'));
 }
-async function admin(request,env){
-  const day=new Date().toISOString().slice(0,10),value='admin.'+day;
+async function crmSessionRole(request,env){
+  const token=(request.headers.get('cookie')||'').match(/(?:^|;\s*)crm_session=([^;]+)/)?.[1]||'';
+  if(!token)return '';
+  const day=new Date().toISOString().slice(0,10);
   const key=await crypto.subtle.importKey('raw',encoder.encode(env.SESSION_SECRET||'change-me'),{name:'HMAC',hash:'SHA-256'},false,['sign']);
-  const sig=await crypto.subtle.sign('HMAC',key,encoder.encode(value));
-  const expected=value+'.'+[...new Uint8Array(sig)].map(x=>x.toString(16).padStart(2,'0')).join('');
-  return (request.headers.get('cookie')||'').match(/(?:^|;\s*)crm_session=([^;]+)/)?.[1]===expected;
+  for(const role of ['admin','graphic','tracking']){
+    const value=role+'.'+day;
+    const sig=await crypto.subtle.sign('HMAC',key,encoder.encode(value));
+    const expected=value+'.'+[...new Uint8Array(sig)].map(x=>x.toString(16).padStart(2,'0')).join('');
+    if(token===expected)return role;
+  }
+  return '';
 }
+async function admin(request,env){return (await crmSessionRole(request,env))==='admin'}
 let schemaPromise;
 async function ensureSchema(env){
   if(schemaPromise)return schemaPromise;
@@ -79,6 +86,24 @@ export async function nativeAlarmApi(request,env,{now=Date.now()}={}){
     await env.DB.prepare('INSERT INTO native_alarm_devices(id,token_hash,label,enabled,created_at,last_seen) VALUES(?,?,?,1,?,?)').bind(id,tokenHash,label,now,now).run();
     await env.DB.prepare('UPDATE native_alarm_pair_codes SET used_at=? WHERE code_hash=?').bind(now,codeHash).run();
     return json({ok:true,token,deviceId:id});
+  }
+
+  if(path==='/api/native-alarm/status'&&request.method==='GET'){
+    const role=await crmSessionRole(request,env);
+    if(!role)return json({error:'Yetkisiz'},401);
+    const devices=(await env.DB.prepare(`SELECT id,label,last_seen,created_at FROM native_alarm_devices
+      WHERE enabled=1 AND lower(label) LIKE '%windows%alarm%' ORDER BY last_seen DESC LIMIT 5`).all()).results||[];
+    const latest=devices[0]||null,lastSeen=Number(latest?.last_seen||0);
+    const ageMs=lastSeen?Math.max(0,now-lastSeen):null;
+    return json({
+      ok:true,
+      installed:devices.length>0,
+      online:Boolean(lastSeen&&ageMs<=20000),
+      lastSeen:lastSeen||null,
+      ageSeconds:ageMs===null?null:Math.round(ageMs/1000),
+      label:latest?.label||'',
+      deviceCount:devices.length
+    });
   }
 
   const device=await bearerDevice(request,env);
