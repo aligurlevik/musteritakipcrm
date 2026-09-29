@@ -19,8 +19,7 @@ export async function applyCrmBranding(response,request){
   html=html.replace('<div class="logo">CRM Müşteri Takip</div>','<div class="logo crmBrand"><img src="/notes-logo-ag-v1.webp" width="48" height="48" alt="AG"><span>CRM Müşteri Takip</span></div>');
   if(html.includes('class="logo crmBrand"')&&!html.includes('id="crmBrandStyle"'))html=html.replace(/<\/head>/i,'<style id="crmBrandStyle">.crmBrand{display:flex;align-items:center;gap:10px}.crmBrand img{display:block;width:48px;height:48px;flex:0 0 48px;object-fit:contain}</style>\n</head>');
 
-  // Ana Ajanda üst şeridinde alarm aç/kapat/test düğmeleri bulunmasın.
-  // Telefon kanalı ve Windows EXE kanalı aşağıdaki sabit politika ile yönetilir.
+  // Ana Ajanda üst şeridi temiz kalsın; aç/kapat/test düğmeleri görünmesin.
   if(onMainCrm){
     html=html.replace('<button class="btn green" onclick="enableNotifications()">🔔 Masaüstü Bildirimini Aç</button>','');
     const cleanStyle=`<style id="crmAgendaAlarmCleanStyle">
@@ -29,15 +28,13 @@ export async function applyCrmBranding(response,request){
     html=html.replace(/<\/head>/i,cleanStyle+'\n</head>');
   }
 
-  // Alarm kanalları sabit:
-  // - Windows bilgisayarda tarayıcı push kapalı tutulur; tam ekran alarmı yalnızca bağımsız EXE verir.
-  // - Telefon/diğer cihazlarda izin daha önce verilmişse push her açılışta yeniden bağlı tutulur.
+  // Telefon ve bilgisayar uyarı kanalı kullanıcı kapatmadan sürekli açık kabul edilir.
+  // Önceki sürüm Windows'ta reminders.disable() çağırdığı için bilgisayar uyarısını kapatıyordu.
   if(!html.includes('id="crmPermanentAlarmPolicy"')){
     const permanentPolicy=`<script id="crmPermanentAlarmPolicy">
 (function(){
-  var isWindows=/Windows/i.test(navigator.userAgent||'');
   var pref='crm_notifications_enabled';
-  try{localStorage.setItem(pref,isWindows?'0':'1')}catch(_){}
+  try{localStorage.setItem(pref,'1')}catch(_){}
 
   function cleanAgendaControls(){
     var host=document.getElementById('agendaMonthControls');
@@ -50,16 +47,9 @@ export async function applyCrmBranding(response,request){
   var tries=0;
   function enforce(){
     cleanAgendaControls();
-    var reminders=window.crmReminders;
-    if(!reminders){if(++tries<30)setTimeout(enforce,500);return}
-    if(isWindows){
-      try{localStorage.setItem(pref,'0')}catch(_){}
-      // Daha önce bilgisayar tarayıcısına açılmış push aboneliği varsa kaldır.
-      // Böylece telefon push'ı Windows tam ekran alarmını bir daha etkilemez.
-      try{Promise.resolve(reminders.disable()).catch(function(){})}catch(_){}
-      return;
-    }
     try{localStorage.setItem(pref,'1')}catch(_){}
+    var reminders=window.crmReminders;
+    if(!reminders){if(++tries<40)setTimeout(enforce,500);return}
     try{
       if('Notification' in window&&Notification.permission==='granted'&&!reminders.status.connected&&!reminders.status.busy){
         Promise.resolve(reminders.connect()).catch(function(){});
@@ -70,11 +60,11 @@ export async function applyCrmBranding(response,request){
   function start(){
     enforce();
     cleanAgendaControls();
-    try{
-      new MutationObserver(cleanAgendaControls).observe(document.documentElement,{childList:true,subtree:true});
-    }catch(_){}
+    try{new MutationObserver(cleanAgendaControls).observe(document.documentElement,{childList:true,subtree:true})}catch(_){}
     window.addEventListener('pageshow',enforce);
+    window.addEventListener('focus',enforce);
     document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')enforce()});
+    setInterval(enforce,15000);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
@@ -82,20 +72,25 @@ export async function applyCrmBranding(response,request){
     html=html.replace(/<\/body>/i,permanentPolicy+'\n</body>');
   }
 
-  // Windows masaüstünde eski tarayıcı bildirim kanalını tamamen sustur.
-  // Bilgisayardaki gerçek alarm bağımsız Windows EXE üzerinden tam ekran gelir.
+  // Windows'ta ses yok; fakat görsel uyarı kapatılmaz.
   if(isWindows&&!html.includes('id="crmSilentDesktopAlarm"')){
     const silentDesktop=`<script id="crmSilentDesktopAlarm">
 (function(){
   function silence(){
     try{window.unlockReminderAudio=function(){}}catch(_){}
     try{window.playReminderSound=function(){}}catch(_){}
-    try{window.showDesktopReminder=function(){}}catch(_){}
     try{
       if(window.reminderAudioContext&&typeof window.reminderAudioContext.close==='function'){
         window.reminderAudioContext.close().catch(function(){});
         window.reminderAudioContext=null;
       }
+    }catch(_){}
+    try{
+      window.showDesktopReminder=function(title,body,tag){
+        if(!('Notification' in window)||Notification.permission!=='granted')return;
+        var notice=new Notification(title,{body:body,tag:tag,requireInteraction:true,renotify:false,silent:true});
+        notice.onclick=function(){try{window.focus()}catch(_){};try{notice.close()}catch(_){}};
+      };
     }catch(_){}
   }
   silence();
@@ -105,8 +100,8 @@ export async function applyCrmBranding(response,request){
     html=html.replace(/<\/body>/i,silentDesktop+'\n</body>');
   }
 
-  // Windows EXE sağlık kontrolü devam eder fakat her şey normalken ekranda yer kaplamaz.
-  // Sadece EXE gerçekten kapalı/kurulu değilse küçük bir uyarı gösterilir.
+  // Bağımsız Windows EXE de çalışmaya devam eder; normalken üstte yer kaplamaz.
+  // Yalnızca EXE kapalı/kurulu değilse uyarı görünür.
   if(isWindows&&onMainCrm&&!html.includes('id="crmWindowsAlarmStatusScript"')){
     const windowsStatus=`<script id="crmWindowsAlarmStatusScript">
 (function(){
@@ -137,15 +132,10 @@ export async function applyCrmBranding(response,request){
     try{
       var response=await fetch('/api/native-alarm/status',{credentials:'same-origin',cache:'no-store'});
       var data={};try{data=await response.json()}catch(_){}
-      if(response.status===401){hide(button);return}
-      if(!response.ok){hide(button);return}
-      if(!data.installed){
-        paint(button,'warn','🟠 Windows alarmı kurulu değil');button.title='Kurmak için tıklayın.';
-      }else if(data.online){
-        hide(button);
-      }else{
-        paint(button,'bad','🔴 Windows alarmı çalışmıyor');button.title='Alarm servisini düzeltmek için tıklayın.';
-      }
+      if(response.status===401||!response.ok){hide(button);return}
+      if(!data.installed){paint(button,'warn','🟠 Windows alarmı kurulu değil');button.title='Kurmak için tıklayın.'}
+      else if(data.online){hide(button)}
+      else{paint(button,'bad','🔴 Windows alarmı çalışmıyor');button.title='Alarm servisini düzeltmek için tıklayın.'}
     }catch(_){hide(button)}
   }
   function start(){
