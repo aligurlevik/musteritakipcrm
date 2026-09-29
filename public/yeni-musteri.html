@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Yeni Müşteri Kartı</title>
+<style>
+:root{--nav:#0b1730;--blue:#1769f6;--bg:#f4f7fb;--panel:#fff;--line:#dce5ef;--text:#0f172a;--muted:#64748b;--green:#16a34a;--red:#dc2626}
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}button,input,select,textarea{font:inherit}.top{background:var(--nav);color:white;padding:16px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px}.top h1{margin:0;font-size:22px}.top a{color:white;text-decoration:none;border:1px solid #395074;border-radius:8px;padding:8px 11px;font-weight:700}.wrap{max-width:1500px;margin:18px auto;padding:0 14px}.grid{display:grid;grid-template-columns:1.5fr .8fr .9fr;gap:14px}.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px}.panel h2{margin:0 0 13px;font-size:16px}.field{margin-bottom:11px}.field label{display:block;font-size:12px;font-weight:800;margin-bottom:5px;color:#334155}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;background:white}.two{display:grid;grid-template-columns:1fr 1fr;gap:9px}.contacts{overflow:auto}.contact-head,.contact-row{display:grid;grid-template-columns:28px minmax(135px,1fr) minmax(115px,.8fr) minmax(130px,.9fr) minmax(190px,1.15fr);gap:7px;align-items:center;min-width:720px}.contact-head{font-size:10px;font-weight:900;color:var(--muted);margin-bottom:5px}.contact-row{margin-bottom:7px}.contact-row input{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px}.no{width:26px;height:26px;border-radius:50%;background:#eaf2ff;color:#1769f6;display:grid;place-items:center;font-weight:900;font-size:12px}.check-block{border:1px solid var(--line);border-radius:10px;padding:10px;background:#f8fafc;margin-bottom:10px}.check-title{display:flex;align-items:center;gap:7px;font-weight:800}.check-title input{width:auto}.hidden{display:none}.cats{display:flex;flex-wrap:wrap;gap:8px}.cats label{display:flex;align-items:center;gap:5px;font-size:12px;background:#f8fafc;border:1px solid var(--line);padding:7px 9px;border-radius:8px}.cats input{width:auto}.actions{display:flex;justify-content:flex-end;gap:9px;margin-top:14px}.btn{border:0;border-radius:9px;padding:11px 15px;font-weight:900;cursor:pointer}.btn.primary{background:var(--blue);color:#fff}.btn.secondary{background:#e2e8f0;color:#334155}.msg{display:none;margin:0 0 12px;padding:10px;border-radius:8px;font-weight:800}.msg.ok{display:block;background:#dcfce7;color:#166534}.msg.err{display:block;background:#fee2e2;color:#991b1b}@media(max-width:1050px){.grid{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="top"><div><h1>＋ Yeni Müşteri Kartı</h1><div style="font-size:12px;color:#cbd5e1;margin-top:4px">Satış portföyüne yeni müşteri ekleme</div></div><a href="/musteri-portfoyu.html">← Müşteri Portföyüne Dön</a></div>
+<div class="wrap">
+<div id="msg" class="msg"></div>
+<div class="grid">
+<section class="panel"><h2>Müşteri Bilgileri</h2>
+<div class="field"><label>Firma Adı *</label><input id="company" placeholder="Firma adı"></div>
+<div class="two"><div class="field"><label>İl</label><input id="region" placeholder="İl"></div><div class="field"><label>İlçe</label><input id="district" placeholder="İlçe"></div></div>
+<div class="two"><div class="field"><label>Öncelik</label><select id="priority"><option>KRİTİK</option><option>YÜKSEK</option><option selected>NORMAL</option><option>DÜŞÜK</option></select></div><div class="field"><label>Aşama</label><select id="stage"><option>Yeni Lead</option><option>İlk Görüşme</option><option>Teklif</option><option>Pazarlık</option><option>Beklemede</option><option>Kazanıldı</option><option>Kaybedildi</option></select></div></div>
+<div class="field"><label>Takip Tarihi</label><input id="follow_date" type="date"></div>
+<div class="field"><label>Görüşülen Kişiler</label><div class="contacts"><div class="contact-head"><span></span><span>İsim Soyisim</span><span>Görevi</span><span>Cep Telefonu</span><span>Mail Adresi</span></div>
+<div class="contact-row"><span class="no">1</span><input id="n1" placeholder="İsim Soyisim"><input id="r1" placeholder="Görevi"><input id="p1" placeholder="Cep telefonu"><input id="e1" type="email" placeholder="Mail adresi"></div>
+<div class="contact-row"><span class="no">2</span><input id="n2" placeholder="İsim Soyisim"><input id="r2" placeholder="Görevi"><input id="p2" placeholder="Cep telefonu"><input id="e2" type="email" placeholder="Mail adresi"></div>
+<div class="contact-row"><span class="no">3</span><input id="n3" placeholder="İsim Soyisim"><input id="r3" placeholder="Görevi"><input id="p3" placeholder="Cep telefonu"><input id="e3" type="email" placeholder="Mail adresi"></div>
+<div class="contact-row"><span class="no">4</span><input id="n4" placeholder="İsim Soyisim"><input id="r4" placeholder="Görevi"><input id="p4" placeholder="Cep telefonu"><input id="e4" type="email" placeholder="Mail adresi"></div>
+</div></div>
+</section>
+<section class="panel"><h2>Kategori / Sevkiyat / Servis</h2>
+<div class="field"><label>Müşteri Kategorileri</label><div class="cats"><label><input type="checkbox" class="cat" value="Matbaa">Matbaa</label><label><input type="checkbox" class="cat" value="Etiket">Etiket</label><label><input type="checkbox" class="cat" value="Ambalaj">Ambalaj</label><label><input type="checkbox" class="cat" value="PVC">PVC</label><label><input type="checkbox" class="cat" value="Otomotiv">Otomotiv</label></div></div>
+<div class="check-block"><label class="check-title"><input id="cargo_enabled" type="checkbox"> Anlaşmalı Kargo Var</label><div id="cargo_fields" class="hidden"><div class="field"><label>Kargo Firması</label><input id="cargo_company"></div><div class="field"><label>Müşteri / Anlaşma Kodu</label><input id="cargo_code"></div><div class="field"><label>Kargo Notu</label><textarea id="cargo_note" rows="3"></textarea></div></div></div>
+<div class="check-block"><label class="check-title"><input id="service_requested" type="checkbox"> Servis Talebi Var</label><div id="service_fields" class="hidden"><div class="field"><label>Servis Türü</label><input id="service_type"></div><div class="field"><label>İstenen Tarih</label><input id="service_date" type="date"></div><div class="field"><label>Servis Açıklaması</label><textarea id="service_description" rows="4"></textarea></div></div></div>
+</section>
+<section class="panel"><h2>Görüşme / Cari Bilgiler</h2>
+<div class="field"><label>Müşterinin Özel İstekleri / Görüşme Notu</label><textarea id="customer_requests" rows="5" placeholder="Ürün, termin, fiyat, kalite, numune, teknik detay vb."></textarea></div>
+<div class="field"><label>Özel Notlar</label><textarea id="special_notes" rows="3"></textarea></div>
+<div class="field"><label>Makine Bilgileri</label><textarea id="machine_info" rows="3"></textarea></div>
+<div class="field"><label>Fatura Ünvanı</label><input id="invoice_title"></div>
+<div class="two"><div class="field"><label>Vergi Dairesi</label><input id="tax_office"></div><div class="field"><label>Vergi / TC No</label><input id="tax_number"></div></div>
+<div class="field"><label>Fatura Adresi</label><textarea id="invoice_address" rows="3"></textarea></div>
+</section>
+</div>
+<div class="actions"><button class="btn secondary" onclick="location.href='/musteri-portfoyu.html'">İptal</button><button id="saveBtn" class="btn primary" onclick="saveCustomer()">✓ Müşteriyi Kaydet</button></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);const clean=v=>String(v||'').trim();
+function toggle(){ $('cargo_fields').classList.toggle('hidden',!$('cargo_enabled').checked);$('service_fields').classList.toggle('hidden',!$('service_requested').checked) }
+$('cargo_enabled').addEventListener('change',toggle);$('service_requested').addEventListener('change',toggle);
+function show(text,type){const m=$('msg');m.textContent=text;m.className='msg '+type;window.scrollTo({top:0,behavior:'smooth'})}
+function contacts(){const a=[];for(let i=1;i<=4;i++){const x={name:clean($('n'+i).value),role:clean($('r'+i).value),phone:clean($('p'+i).value),email:clean($('e'+i).value)};if(x.name||x.role||x.phone||x.email)a.push(x)}return a}
+async function saveCustomer(){
+ const company=clean($('company').value);if(!company){show('Firma adı zorunlu.','err');return}
+ const c=contacts();const payload={company,contact_name:c.map(x=>x.name).filter(Boolean).join('\n'),contacts:c,phones:c.map(x=>x.phone).filter(Boolean),emails:c.map(x=>x.email).filter(Boolean),region:clean($('region').value),district:clean($('district').value),priority:$('priority').value,stage:$('stage').value,follow_date:$('follow_date').value,categories:[...document.querySelectorAll('.cat:checked')].map(x=>x.value),customer_requests:clean($('customer_requests').value),special_notes:clean($('special_notes').value),machine_info:clean($('machine_info').value),invoice_title:clean($('invoice_title').value),tax_office:clean($('tax_office').value),tax_number:clean($('tax_number').value),invoice_address:clean($('invoice_address').value),cargo_enabled:$('cargo_enabled').checked,cargo_company:clean($('cargo_company').value),cargo_code:clean($('cargo_code').value),cargo_note:clean($('cargo_note').value),service_requested:$('service_requested').checked,service_type:clean($('service_type').value),service_date:$('service_date').value,service_description:clean($('service_description').value)};
+ const btn=$('saveBtn');btn.disabled=true;btn.textContent='Kaydediliyor...';
+ try{const r=await fetch('/api/customers',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify(payload)});let d={};try{d=await r.json()}catch(_){}if(r.status===401){location.href='/';return}if(!r.ok)throw new Error(d.error||'Müşteri kaydedilemedi.');show('Müşteri kaydedildi. Portföye dönülüyor...','ok');setTimeout(()=>location.href='/musteri-portfoyu.html',650)}catch(e){show(e.message||'Müşteri kaydedilemedi.','err');btn.disabled=false;btn.textContent='✓ Müşteriyi Kaydet'}
+}
+</script>
+</body></html>
