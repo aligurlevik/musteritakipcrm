@@ -131,10 +131,11 @@ async function saveExtraCustomerFields(request,response,env,path){
 
 export default {
   async fetch(request, env, ctx) {
-    await ensureSalesSchema(env);
     const path=new URL(request.url).pathname;
+    const salesDataRoute=/^\/api\/(?:customers|meetings|offers|mails)(?:\/|$)/.test(path);
+    if(salesDataRoute)await ensureSalesSchema(env);
     const response = await worker.fetch(request, env, ctx);
-    await saveExtraCustomerFields(request,response,env,path);
+    if(salesDataRoute)await saveExtraCustomerFields(request,response,env,path);
     const backup = response.clone();
     try {
       const type = response.headers.get('content-type') || '';
