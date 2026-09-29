@@ -1,6 +1,6 @@
 import worker from './quick_request_vertical_compact.js';
 
-const SALES_COCKPIT_ASSETS = '<link rel="stylesheet" href="/sales-cockpit.css?v=20260929c">\n<script src="/sales-cockpit.js?v=20260929c"></script>\n<script src="/sales-fields.js?v=20260929c"></script>';
+const SALES_COCKPIT_ASSETS = '<link rel="stylesheet" href="/sales-cockpit.css?v=20260929d">\n<script src="/sales-cockpit.js?v=20260929d"></script>\n<script src="/sales-fields.js?v=20260929d"></script>';
 let salesSchemaPromise;
 
 const ANKARA_LEADS = [
@@ -26,7 +26,6 @@ async function ensureSalesSchema(env){
   if(salesSchemaPromise)return salesSchemaPromise;
   salesSchemaPromise=(async()=>{
     const cols=await tableColumns(env,'customers');
-    // Not/telefon testlerinde CRM müşteri tablosu yok. O ekranlara dokunma.
     if(!cols.size)return;
     await env.DB.prepare("CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT DEFAULT '', updated_at TEXT DEFAULT CURRENT_TIMESTAMP)").run();
     if(!cols.has('city'))await env.DB.prepare("ALTER TABLE customers ADD COLUMN city TEXT DEFAULT ''").run();
@@ -36,7 +35,6 @@ async function ensureSalesSchema(env){
     const marker=await env.DB.prepare("SELECT value FROM app_meta WHERE key='ankara_carton_leads_v2'").first();
     if(marker)return;
 
-    // Kullanıcının açık talebi: eski müşteri/görüşme denemelerini kaldır, diğer CRM bölümlerine dokunma.
     for(const table of ['meetings','offers','mails','reminders']){
       try{await env.DB.prepare(`DELETE FROM ${table}`).run()}catch{}
     }
@@ -62,16 +60,22 @@ async function ensureSalesSchema(env){
   return salesSchemaPromise;
 }
 
-async function saveExtraCustomerFields(request,response,env,path){
-  if(!response.ok||!env?.DB?.prepare)return;
-  const method=request.method;if(method!=='POST'&&method!=='PUT')return;
-  if(!(path==='/api/customers'||/^\/api\/customers\/\d+$/.test(path)))return;
-  let b={};try{b=await request.clone().json()}catch{return}
+function customerWriteBody(request,path){
+  if(!['POST','PUT'].includes(request.method))return null;
+  if(!(path==='/api/customers'||/^\/api\/customers\/\d+$/.test(path)))return null;
+  return request.clone().json().catch(()=>null);
+}
+
+async function saveExtraCustomerFields(extraBody,response,env,path,method){
+  if(!response.ok||!env?.DB?.prepare||!extraBody)return;
   const fields=[],values=[];
-  for(const key of ['city','business_area','website'])if(Object.prototype.hasOwnProperty.call(b,key)){fields.push(`${key}=?`);values.push(String(b[key]||'').trim())}
+  for(const key of ['city','business_area','website'])if(Object.prototype.hasOwnProperty.call(extraBody,key)){fields.push(`${key}=?`);values.push(String(extraBody[key]||'').trim())}
   if(!fields.length)return;
-  let id=0;if(method==='PUT')id=Number(path.match(/(\d+)$/)?.[1]||0);else{try{id=Number((await response.clone().json()).id||0)}catch{}}
-  if(!id)return;values.push(id);
+  let id=0;
+  if(method==='PUT')id=Number(path.match(/(\d+)$/)?.[1]||0);
+  else{try{id=Number((await response.clone().json()).id||0)}catch{}}
+  if(!id)return;
+  values.push(id);
   await env.DB.prepare(`UPDATE customers SET ${fields.join(',')},updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(...values).run();
 }
 
@@ -108,8 +112,8 @@ function patchHtml(html){
   out=out.replace("<td><b>${esc(group.company)}</b></td><td>${esc(group.contact_name||'Yok')}</td>", "<td><b>${esc(group.company)}</b></td><td>${esc(group.city||'—')}</td><td style=\"min-width:260px\">${esc(group.business_area||'—')}</td><td>${esc(group.contact_name||'Yok')}</td>");
   out=out.replace('class="meeting-detail-row"><td colspan="9">','class="meeting-detail-row"><td colspan="11">');
   out=out.replace("$('meetingRows').innerHTML=rows||'<tr><td colspan=\"8\"><div class=\"history-empty\">", "$('meetingRows').innerHTML=rows||'<tr><td colspan=\"11\"><div class=\"history-empty\">");
-  out=out.replace('placeholder="Firma, kişi, telefon, mail ara..."','placeholder="Firma, kişi, telefon, mail, il veya iş alanı ara..."');
-  if(!out.includes('/sales-cockpit.js?v=20260929c'))out=out.includes('</body>')?out.replace('</body>',SALES_COCKPIT_ASSETS+'\n</body>'):out+SALES_COCKPIT_ASSETS;
+  out=out.replace('placeholder="Firma, kişi, telefon, mail ara..."','placeholder="Firma, kişi, telefon, mail ara..."');
+  if(!out.includes('/sales-cockpit.js?v=20260929d'))out=out.includes('</body>')?out.replace('</body>',SALES_COCKPIT_ASSETS+'\n</body>'):out+SALES_COCKPIT_ASSETS;
   return out;
 }
 
@@ -120,11 +124,11 @@ function rebuild(response,html){
 
 export default{
   async fetch(request,env,ctx){
-    // İlk sayfa açılışında bile Ankara kurulumu yapılır. Test DB'sinde customers yoksa sessizce atlanır.
     await ensureSalesSchema(env);
     const path=new URL(request.url).pathname;
+    const extraBodyPromise=customerWriteBody(request,path);
     let response=await worker.fetch(request,env,ctx);
-    await saveExtraCustomerFields(request,response,env,path);
+    await saveExtraCustomerFields(extraBodyPromise?await extraBodyPromise:null,response,env,path,request.method);
     if(path==='/api/meetings'&&request.method==='GET')response=await enrichMeetings(response,env);
     const backup=response.clone();
     try{
