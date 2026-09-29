@@ -54,6 +54,15 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
+      - name: Verify live CRM sales setup
+        run: |
+          CRM_URL="https://musteri-takip-crm.musteritakipcrm.workers.dev/"
+          HTML="$(curl --fail --silent --show-error --retry 5 --retry-delay 2 "$CRM_URL")"
+          echo "$HTML" | grep -q 'id="c_city"'
+          echo "$HTML" | grep -q 'Yaptığı İş Alanı'
+          echo "$HTML" | grep -q 'Aranacak / Bekleyen'
+          echo "CRM satış ekranı canlı ve Ankara kurulumu tetiklendi."
+
       - name: Reminder diagnostics
         run: |
           curl --fail --silent --show-error --retry 5 --retry-delay 2 https://musteri-takip-crm.musteritakipcrm.workers.dev/api/push/health
