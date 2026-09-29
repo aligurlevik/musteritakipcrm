@@ -77,7 +77,53 @@ async function simplifyCrmMenu(response,request){
   let html=await response.text();
   html=html.replace(/<div class="customer-folder-group">[\s\S]*?<\/div>/,'');
   html=html.replace(/<button data-page="meetings">Görüşmeler<\/button>/,'');
-  if(!html.includes('/customer-card-extended.js'))html=html.replace(/<\/body>/i,'<script src="/customer-card-extended.js?v=20260929-1"></script>\n</body>');
+  if(!html.includes('/customer-card-extended.js'))html=html.replace(/<\/body>/i,'<script src="/customer-card-extended.js?v=20260929-2"></script>\n</body>');
+
+  if(url.searchParams.get('newCustomer')==='1'&&!html.includes('id="crmForceOpenNewCustomer"')){
+    const forceOpen=`<script id="crmForceOpenNewCustomer">
+(function(){
+  var attempts=0;
+  function openCard(){
+    attempts++;
+    var login=document.getElementById('login');
+    if(login&&login.classList.contains('show')){if(attempts<120)setTimeout(openCard,250);return;}
+
+    var customerPage=document.querySelector('.menu button[data-page="customers"]');
+    var customerSection=document.getElementById('customers');
+    if(customerPage&&customerSection&&!customerSection.classList.contains('active')){
+      try{customerPage.click()}catch(_){}
+    }
+
+    var modal=document.getElementById('customerModal');
+    try{
+      if(typeof window.openCustomer==='function')window.openCustomer();
+      else{
+        var newButton=[].slice.call(document.querySelectorAll('button')).find(function(btn){
+          return /Yeni Müşteri/i.test(btn.textContent||'')&&String(btn.getAttribute('onclick')||'').indexOf('openCustomer')!==-1;
+        });
+        if(newButton)newButton.click();
+      }
+    }catch(_){}
+
+    modal=document.getElementById('customerModal');
+    if(modal){
+      modal.classList.add('open');
+      var title=document.getElementById('customerModalTitle');if(title)title.textContent='Yeni Müşteri';
+      var id=document.getElementById('c_id');if(id)id.value='';
+    }
+
+    if(modal&&modal.classList.contains('open')){
+      try{history.replaceState(null,'','/')}catch(_){}
+      return;
+    }
+    if(attempts<120)setTimeout(openCard,250);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(openCard,350)},{once:true});
+  else setTimeout(openCard,350);
+})();
+</script>`;
+    html=html.replace(/<\/body>/i,forceOpen+'\n</body>');
+  }
 
   const headers=new Headers(response.headers);
   for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
