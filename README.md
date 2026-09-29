@@ -107,3 +107,4 @@ Tarayıcı bildirimi için Görüşmeler ekranındaki **Bildirim İzni** düğme
 Cloudflare otomatik deploy aktif.
 
 <!-- deploy-trigger: agenda-title-detail-2026-09-14 -->
+<!-- deploy-trigger: restore-first-crm-2026-09-29 -->
