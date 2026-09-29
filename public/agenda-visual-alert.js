@@ -4,6 +4,7 @@
   window.__agendaVisualAlertLoaded=true;
 
   const onNoteEditor=()=>['/yeni-not','/yeni-not/','/yeni-not.html'].includes(location.pathname);
+  const onMainAgenda=()=>!!document.getElementById('agendaMonthControls');
   function cleanNoteEditorOverlays(){
     if(!onNoteEditor())return;
     ['agendaVisualControls','mobileNotifyBtn','mobileNotifyStatus','mobileNotifyTest','nativeAlarmPair','mobileNotifyMsg'].forEach(id=>{
@@ -132,6 +133,10 @@
 
   function ensureControls(){
     ensureStyle();
+    if(onMainAgenda()){
+      try{document.getElementById('agendaVisualControls')?.remove()}catch(_){ }
+      return;
+    }
     if(document.getElementById('agendaVisualControls'))return;
     const wrap=document.createElement('div');
     wrap.id='agendaVisualControls';
