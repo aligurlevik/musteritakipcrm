@@ -11,6 +11,7 @@ export async function ensureCustomerExtendedFields(env){
     const cols=await tableColumns(env,'customers');
     if(!cols.has('contacts_json'))await env.DB.prepare("ALTER TABLE customers ADD COLUMN contacts_json TEXT DEFAULT '[]'").run();
     if(!cols.has('district'))await env.DB.prepare("ALTER TABLE customers ADD COLUMN district TEXT DEFAULT ''").run();
+    if(!cols.has('customer_requests'))await env.DB.prepare("ALTER TABLE customers ADD COLUMN customer_requests TEXT DEFAULT ''").run();
   })().catch(error=>{extendedCustomerSchemaPromise=null;throw error});
   return extendedCustomerSchemaPromise;
 }
@@ -29,6 +30,7 @@ export async function persistCustomerExtendedFields(env,customerId,payload){
   await ensureCustomerExtendedFields(env);
   const contacts=cleanContacts(payload?.contacts);
   const district=String(payload?.district||'').trim().slice(0,180);
-  await env.DB.prepare('UPDATE customers SET contacts_json=?,district=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
-    .bind(JSON.stringify(contacts),district,id).run();
+  const customerRequests=String(payload?.customer_requests||'').trim().slice(0,5000);
+  await env.DB.prepare('UPDATE customers SET contacts_json=?,district=?,customer_requests=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
+    .bind(JSON.stringify(contacts),district,customerRequests,id).run();
 }
