@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Müşteri Portföyü</title>
+<style>
+:root{--nav:#0f172a;--blue:#2563eb;--bg:#f4f7fb;--panel:#fff;--line:#dbe3ee;--muted:#64748b;--green:#16a34a;--red:#dc2626;--amber:#d97706;--purple:#7c3aed}
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:#0f172a}.app{min-height:100vh;display:grid;grid-template-columns:230px 1fr}.side{background:var(--nav);color:#fff;padding:20px 16px}.brand{font-weight:900;font-size:18px;display:flex;align-items:center;gap:9px;margin-bottom:20px}.brand img{width:42px;height:42px;object-fit:contain}.side a{display:block;color:#cbd5e1;text-decoration:none;padding:11px 12px;border-radius:9px;margin:4px 0;font-weight:700}.side a:hover,.side a.active{background:var(--blue);color:#fff}.main{padding:22px;min-width:0}.top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.top h1{margin:0;font-size:25px}.top-actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:9px;padding:9px 12px;font-weight:800;cursor:pointer;background:#e2e8f0;color:#0f172a}.btn.primary{background:var(--blue);color:#fff}.btn.green{background:var(--green);color:#fff}.btn.red{background:var(--red);color:#fff}.btn.amber{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}.statusbar{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.status-pill{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 12px;font-weight:800;cursor:pointer}.status-pill.active{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8}.status-pill.pos{color:#166534}.status-pill.neg{color:#991b1b}.status-pill.wait{color:#92400e}.cards{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:12px;margin-bottom:14px}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}.card b{font-size:25px;display:block}.card span{font-size:12px;color:var(--muted)}.filters{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;display:grid;grid-template-columns:2fr repeat(3,minmax(130px,1fr));gap:9px;margin-bottom:14px}.filters input,.filters select,.drawer input,.drawer textarea,.drawer select{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px;font:inherit}.table-wrap{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:auto}table{border-collapse:collapse;width:100%;min-width:1040px}th,td{padding:10px 11px;border-bottom:1px solid #e8edf4;text-align:left;font-size:13px;vertical-align:middle}th{background:#f8fafc;position:sticky;top:0;z-index:1}tbody tr{cursor:pointer}tbody tr:hover td{background:#f8fbff}tbody tr.overdue td{background:#fff1f2}tbody tr.overdue:hover td{background:#ffe4e6}.company{font-weight:900}.muted{color:var(--muted);font-size:12px}.badge{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:900}.badge.pos{background:#dcfce7;color:#166534}.badge.neg{background:#fee2e2;color:#991b1b}.badge.wait{background:#fef3c7;color:#92400e}.badge.neutral{background:#e2e8f0;color:#475569}.badge.over{background:#991b1b;color:white}.email{color:#2563eb;text-decoration:none}.empty{padding:28px;text-align:center;color:var(--muted)}
+.drawer-wrap{position:fixed;inset:0;background:#0f172a66;display:none;z-index:60}.drawer-wrap.open{display:block}.drawer{position:absolute;top:0;right:0;width:min(560px,96vw);height:100%;background:#fff;overflow:auto;box-shadow:-20px 0 45px #0f172a33}.drawer-head{position:sticky;top:0;z-index:2;background:linear-gradient(135deg,#0f172a,#1e3a8a);color:#fff;padding:18px;display:flex;justify-content:space-between;gap:12px}.drawer-head h2{margin:0;font-size:20px}.drawer-body{padding:16px}.panel{border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:12px}.panel h3{font-size:14px;margin:0 0 10px;color:#1e3a8a}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field label{display:block;font-size:11px;color:var(--muted);font-weight:800;margin-bottom:4px}.check-list{display:grid;gap:7px;margin-top:8px}.check-row{display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border-radius:8px;background:#f8fafc}.check-row input{width:auto;margin-top:3px}.timeline{display:grid;gap:8px}.timeline-item{border-left:4px solid var(--blue);background:#f8fafc;border-radius:8px;padding:9px}.notice{display:none;padding:10px 12px;border-radius:9px;margin-bottom:10px;font-weight:800}.notice.show{display:block}.notice.err{background:#fee2e2;color:#991b1b}.notice.ok{background:#dcfce7;color:#166534}.reminder-row{display:grid;grid-template-columns:1fr 120px auto;gap:8px}.result-row{display:flex;gap:8px;flex-wrap:wrap}.close{background:#ffffff22;color:#fff;border:1px solid #ffffff44}.mini{font-size:11px}.top-overdue{display:none}.top-overdue.show{display:inline-flex}
+@media(max-width:1050px){.cards{grid-template-columns:repeat(3,1fr)}.filters{grid-template-columns:1fr 1fr}.app{grid-template-columns:190px 1fr}}@media(max-width:760px){.app{display:block}.side{display:flex;gap:6px;overflow:auto;padding:9px;position:sticky;top:0;z-index:50}.brand{display:none}.side a{white-space:nowrap;margin:0}.main{padding:12px}.cards{grid-template-columns:1fr 1fr}.filters{grid-template-columns:1fr}.info-grid{grid-template-columns:1fr}.reminder-row{grid-template-columns:1fr}.top h1{font-size:21px}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+  <div class="brand"><img src="/notes-logo-ag-v1.webp" alt="AG"><span>CRM Müşteri Takip</span></div>
+  <a href="/">Ana Ekran</a>
+  <a href="/?page=customers">Müşteriler</a>
+  <a class="active" href="/musteri-portfoyu.html">📊 Müşteri Portföyü</a>
+  <a href="/?page=mails">Mailler</a>
+  <a href="/?page=graphicJobs">Grafik İşleri</a>
+  <a href="/?page=tracking">Takip</a>
+  <a href="/?page=reports">Raporlama</a>
+  <a href="/?page=agenda">Ajanda</a>
+</aside>
+<main class="main">
+  <div class="top">
+    <div><h1>Müşteri Portföyü</h1><div class="muted">Saha notlarını, takip tarihlerini ve müşteri durumunu tek ekranda analiz et.</div></div>
+    <div class="top-actions"><button id="notifyBtn" class="btn">🔔 Bildirim</button><span id="overdueTop" class="btn red top-overdue"></span><a class="btn primary" href="/?page=customers">+ Yeni Müşteri</a></div>
+  </div>
+
+  <div class="statusbar">
+    <button class="status-pill active" data-result="all">Tümü <span id="countAll"></span></button>
+    <button class="status-pill pos" data-result="positive">Olumlu <span id="countPositive"></span></button>
+    <button class="status-pill wait" data-result="waiting">Beklemede <span id="countWaiting"></span></button>
+    <button class="status-pill neg" data-result="negative">Olumsuz <span id="countNegative"></span></button>
+    <button class="status-pill" data-result="open">Sonuçlanmamış <span id="countOpen"></span></button>
+  </div>
+
+  <div class="cards">
+    <div class="card"><b id="kTotal">0</b><span>Toplam müşteri</span></div>
+    <div class="card"><b id="kPositive">0</b><span>Olumlu</span></div>
+    <div class="card"><b id="kWaiting">0</b><span>Beklemede</span></div>
+    <div class="card"><b id="kOverdue">0</b><span>Süresi geçen</span></div>
+    <div class="card"><b id="kCities">0</b><span>Şehir / bölge</span></div>
+  </div>
+
+  <div class="filters">
+    <input id="search" placeholder="Firma, kişi, telefon, mail ara...">
+    <select id="city"><option value="">Tüm şehirler</option></select>
+    <select id="sector"><option value="">Tüm iş alanları</option></select>
+    <select id="priority"><option value="">Tüm öncelikler</option><option>KRİTİK</option><option>YÜKSEK</option><option>NORMAL</option></select>
+  </div>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>Firma</th><th>Görüşülen kişi</th><th>Telefon</th><th>Mail</th><th>Şehir</th><th>İş alanı</th><th>Durum</th><th>Takip</th><th>Not</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table><div id="empty" class="empty" style="display:none">Filtreye uygun müşteri yok.</div></div>
+</main>
+</div>
+
+<div id="drawerWrap" class="drawer-wrap" onclick="if(event.target===this)closeDrawer()"><aside class="drawer">
+  <div class="drawer-head"><div><div class="mini">MÜŞTERİ PORTFÖYÜ</div><h2 id="dCompany">Firma</h2><div id="dSub" class="mini"></div></div><button class="btn close" onclick="closeDrawer()">✕</button></div>
+  <div class="drawer-body">
+    <div id="notice" class="notice"></div>
+    <div class="panel"><h3>İletişim & Firma</h3><div class="info-grid">
+      <div class="field"><label>Görüşülen kişi</label><input id="dContact"></div>
+      <div class="field"><label>Telefon</label><input id="dPhone"></div>
+      <div class="field"><label>Mail</label><input id="dEmail"></div>
+      <div class="field"><label>Şehir / Bölge</label><input id="dRegion"></div>
+      <div class="field"><label>İş alanı</label><input id="dCategories"></div>
+      <div class="field"><label>Öncelik</label><select id="dPriority"><option>KRİTİK</option><option>YÜKSEK</option><option>NORMAL</option></select></div>
+    </div></div>
+
+    <div class="panel"><h3>Sonuç & Takip</h3><div class="result-row"><button class="btn green" onclick="setResult('Olumlu')">✓ Olumlu</button><button class="btn red" onclick="setResult('Olumsuz')">✕ Olumsuz</button><span id="dResult" class="badge neutral"></span></div>
+    <div class="field" style="margin-top:10px"><label>Sonraki takip tarihi</label><input type="date" id="dFollow"></div>
+    <div class="reminder-row" style="margin-top:9px"><input type="date" id="rDate"><input type="time" id="rTime" value="09:00"><button class="btn amber" onclick="createReminder()">🔔 Hatırlat</button></div></div>
+
+    <div class="panel"><h3>✓ Notlar / Kontrol Listesi</h3><div class="muted">Her satır bir madde. Tik işaretleri müşteri notunda saklanır.</div><textarea id="dNotes" rows="5" placeholder="[ ] Numune gönderilecek\n[ ] Fiyat geri dönüşü bekleniyor"></textarea><div id="checkList" class="check-list"></div></div>
+
+    <div class="panel"><h3>Otomatik Özet</h3><div id="analysis" class="muted">Yükleniyor...</div></div>
+    <div class="panel"><h3>Görüşme Geçmişi</h3><div id="timeline" class="timeline"></div></div>
+    <button class="btn primary" style="width:100%;padding:12px" onclick="saveCustomer()">Kaydet</button>
+  </div>
+</aside></div>
+
+<script>
+const $=id=>document.getElementById(id);let customers=[],selected=null,historyData=null,currentFilter='all';
+const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+async function api(url,opt={}){const r=await fetch(url,{credentials:'same-origin',headers:{'content-type':'application/json',...(opt.headers||{})},...opt});if(r.status===401){location.href='/';throw new Error('Oturum gerekli')}let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||'İşlem başarısız');return d}
+function parsed(value,fallback=[]){try{const v=JSON.parse(value||'');return Array.isArray(v)?v:fallback}catch{return fallback}}
+function resultOf(c){if(c.stage==='Kazanıldı')return 'positive';if(c.stage==='Kaybedildi'||c.record_status==='Pasif')return 'negative';if(c.stage==='Beklemede')return 'waiting';return 'open'}
+function resultLabel(c){const r=resultOf(c);return r==='positive'?'Olumlu':r==='negative'?'Olumsuz':r==='waiting'?'Beklemede':'Sonuçlanmamış'}
+function badgeClass(c){const r=resultOf(c);return r==='positive'?'pos':r==='negative'?'neg':r==='waiting'?'wait':'neutral'}
+function isOverdue(c){return c.follow_date&&c.follow_date<today()&&!['positive','negative'].includes(resultOf(c))}
+function shortNote(c){const s=String(c.special_notes||'').split(/\n/).map(x=>x.replace(/^\[[ xX]\]\s*/,'' )).find(Boolean)||'';return s.length>54?s.slice(0,54)+'…':s}
+function fillFilters(){const cities=[...new Set(customers.map(c=>String(c.region||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr'));const sectors=[...new Set(customers.flatMap(c=>String(c.categories||c.sector||'').split(',').map(x=>x.trim()).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'tr'));$('city').innerHTML='<option value="">Tüm şehirler</option>'+cities.map(x=>`<option>${esc(x)}</option>`).join('');$('sector').innerHTML='<option value="">Tüm iş alanları</option>'+sectors.map(x=>`<option>${esc(x)}</option>`).join('')}
+function renderCounts(){const pos=customers.filter(c=>resultOf(c)==='positive').length,neg=customers.filter(c=>resultOf(c)==='negative').length,wait=customers.filter(c=>resultOf(c)==='waiting').length,open=customers.filter(c=>resultOf(c)==='open').length,over=customers.filter(isOverdue).length;$('countAll').textContent='('+customers.length+')';$('countPositive').textContent='('+pos+')';$('countNegative').textContent='('+neg+')';$('countWaiting').textContent='('+wait+')';$('countOpen').textContent='('+open+')';$('kTotal').textContent=customers.length;$('kPositive').textContent=pos;$('kWaiting').textContent=wait;$('kOverdue').textContent=over;$('kCities').textContent=new Set(customers.map(c=>c.region).filter(Boolean)).size;const top=$('overdueTop');if(over){top.classList.add('show');top.textContent='⚠ '+over+' takip gecikti'}else top.classList.remove('show')}
+function filtered(){const q=$('search').value.trim().toLocaleLowerCase('tr-TR'),city=$('city').value,sector=$('sector').value,priority=$('priority').value;return customers.filter(c=>{if(currentFilter!=='all'&&resultOf(c)!==currentFilter)return false;if(city&&c.region!==city)return false;if(priority&&c.priority!==priority)return false;if(sector&&!String(c.categories||c.sector||'').split(',').map(x=>x.trim()).includes(sector))return false;if(q){const bag=[c.company,c.contact_name,c.phone,c.email,c.region,c.categories,c.sector,c.phones_json,c.emails_json].join(' ').toLocaleLowerCase('tr-TR');if(!bag.includes(q))return false}return true})}
+function render(){const list=filtered();$('rows').innerHTML=list.map(c=>{const phone=parsed(c.phones_json,[c.phone])[0]||c.phone||'',email=parsed(c.emails_json,[c.email])[0]||c.email||'',over=isOverdue(c);return `<tr class="${over?'overdue':''}" onclick="openCustomer(${c.id})"><td><div class="company">${esc(c.company)}</div><div class="muted">${esc(c.priority||'NORMAL')}</div></td><td>${esc(c.contact_name||'-')}</td><td>${esc(phone||'-')}</td><td>${email?`<a class="email" href="mailto:${esc(email)}" onclick="event.stopPropagation()">${esc(email)}</a>`:'-'}</td><td>${esc(c.region||'-')}</td><td>${esc(c.categories||c.sector||'-')}</td><td><span class="badge ${badgeClass(c)}">${resultLabel(c)}</span></td><td>${over?`<span class="badge over">Gecikti · ${esc(c.follow_date)}</span>`:esc(c.follow_date||'-')}</td><td>${esc(shortNote(c)||'-')}</td></tr>`}).join('');$('empty').style.display=list.length?'none':'block'}
+async function load(){await api('/api/session');customers=await api('/api/customers?status=Tümü');fillFilters();renderCounts();render()}
+document.querySelectorAll('.status-pill').forEach(b=>b.onclick=()=>{document.querySelectorAll('.status-pill').forEach(x=>x.classList.remove('active'));b.classList.add('active');currentFilter=b.dataset.result;render()});['search','city','sector','priority'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
+async function openCustomer(id){selected=customers.find(c=>Number(c.id)===Number(id));if(!selected)return;$('dCompany').textContent=selected.company;$('dSub').textContent=[selected.region,selected.categories||selected.sector].filter(Boolean).join(' • ');$('dContact').value=selected.contact_name||'';$('dPhone').value=parsed(selected.phones_json,[selected.phone])[0]||selected.phone||'';$('dEmail').value=parsed(selected.emails_json,[selected.email])[0]||selected.email||'';$('dRegion').value=selected.region||'';$('dCategories').value=selected.categories||selected.sector||'';$('dPriority').value=selected.priority||'NORMAL';$('dFollow').value=selected.follow_date||'';$('rDate').value=selected.follow_date||today();$('dNotes').value=selected.special_notes||'';paintResult();renderChecks();$('drawerWrap').classList.add('open');historyData=await api('/api/customers/'+id+'/history');renderHistory();renderAnalysis()}
+function closeDrawer(){$('drawerWrap').classList.remove('open')}
+function paintResult(){if(!selected)return;const el=$('dResult');el.className='badge '+badgeClass(selected);el.textContent=resultLabel(selected)}
+function notesLines(){return $('dNotes').value.split(/\n/).map(x=>x.trim()).filter(Boolean)}
+function normalizeLine(line){return /^\[[ xX]\]/.test(line)?line:'[ ] '+line}
+function renderChecks(){const lines=notesLines().map(normalizeLine);$('checkList').innerHTML=lines.map((line,i)=>{const done=/^\[[xX]\]/.test(line),text=line.replace(/^\[[ xX]\]\s*/,'' );return `<label class="check-row"><input type="checkbox" ${done?'checked':''} onchange="toggleCheck(${i},this.checked)"><span>${esc(text)}</span></label>`}).join('')||'<div class="muted">Henüz not yok.</div>'}
+function toggleCheck(index,done){const lines=notesLines().map(normalizeLine);if(!lines[index])return;const text=lines[index].replace(/^\[[ xX]\]\s*/,'' );lines[index]=(done?'[x] ':'[ ] ')+text;$('dNotes').value=lines.join('\n');renderChecks()}
+$('dNotes').addEventListener('input',renderChecks);
+function renderHistory(){const ms=historyData?.meetings||[];$('timeline').innerHTML=ms.length?ms.slice().reverse().map(m=>`<div class="timeline-item"><b>${esc(m.meeting_date||m.created_at||'')}</b> · <span class="badge ${m.result==='Olumlu'?'pos':m.result==='Olumsuz'?'neg':'neutral'}">${esc(m.result||'Beklemede')}</span><div style="margin-top:5px">${esc(m.note||m.result_note||'-')}</div>${m.next_follow_date?`<div class="muted">Sonraki takip: ${esc(m.next_follow_date)}</div>`:''}</div>`).join(''):'<div class="muted">Henüz görüşme kaydı yok.</div>'}
+function renderAnalysis(){if(!selected)return;const meetings=historyData?.meetings||[],offers=historyData?.offers||[],last=meetings.length?meetings[meetings.length-1]:null,parts=[];parts.push('Durum: '+resultLabel(selected)+'.');if(selected.priority)parts.push('Öncelik: '+selected.priority+'.');if(isOverdue(selected))parts.push('Takip tarihi geçmiş; müşteri yeniden aranmalı.');else if(selected.follow_date)parts.push('Sonraki takip '+selected.follow_date+'.');if(last)parts.push('Son görüşme: '+String(last.note||last.result_note||'not yok').slice(0,120)+'.');parts.push('Toplam '+meetings.length+' görüşme, '+offers.length+' teklif kaydı var.');$('analysis').textContent=parts.join(' ')}
+function notice(msg,type='ok'){const n=$('notice');n.className='notice show '+type;n.textContent=msg;setTimeout(()=>n.className='notice',2600)}
+async function saveCustomer(){if(!selected)return;const phones=parsed(selected.phones_json,[]),emails=parsed(selected.emails_json,[]);phones[0]=$('dPhone').value.trim();emails[0]=$('dEmail').value.trim();const payload={...selected,company:selected.company,contact_name:$('dContact').value.trim(),phones:phones.filter(Boolean),emails:emails.filter(Boolean),region:$('dRegion').value.trim(),categories:$('dCategories').value.split(',').map(x=>x.trim()).filter(Boolean),priority:$('dPriority').value,stage:selected.stage||'Yeni Lead',follow_date:$('dFollow').value,special_notes:$('dNotes').value,machine_info:selected.machine_info||'',invoice_title:selected.invoice_title||'',tax_office:selected.tax_office||'',tax_number:selected.tax_number||'',invoice_address:selected.invoice_address||''};await api('/api/customers/'+selected.id,{method:'PUT',body:JSON.stringify(payload)});Object.assign(selected,{contact_name:payload.contact_name,phone:payload.phones[0]||'',email:payload.emails[0]||'',phones_json:JSON.stringify(payload.phones),emails_json:JSON.stringify(payload.emails),region:payload.region,categories:payload.categories.join(','),priority:payload.priority,follow_date:payload.follow_date,special_notes:payload.special_notes});notice('Müşteri kartı kaydedildi');renderCounts();render();renderAnalysis()}
+async function setResult(result){if(!selected)return;await api('/api/customers/'+selected.id+'/result',{method:'PUT',body:JSON.stringify({result})});selected.stage=result==='Olumlu'?'Kazanıldı':'Kaybedildi';selected.record_status=result==='Olumlu'?'Aktif':'Pasif';paintResult();renderCounts();render();renderAnalysis();notice('Sonuç '+result+' olarak kaydedildi')}
+async function createReminder(){if(!selected)return;const date=$('rDate').value,time=$('rTime').value||'09:00';if(!date)return notice('Hatırlatma tarihi seçin','err');await api('/api/agenda',{method:'POST',body:JSON.stringify({entry_date:date,note:selected.company+' — müşteri takibi',remind_at:date+'T'+time})});notice('Hatırlatma ajandaya eklendi')}
+$('notifyBtn').onclick=async()=>{if(!('Notification'in window))return alert('Bu tarayıcı bildirim desteklemiyor.');const p=await Notification.requestPermission();$('notifyBtn').textContent=p==='granted'?'🔔 Bildirim Açık':'🔕 Bildirim Kapalı'};
+load().catch(e=>{console.error(e);$('rows').innerHTML='<tr><td colspan="9" class="empty">'+esc(e.message)+'</td></tr>'});
+</script>
+</body></html>
