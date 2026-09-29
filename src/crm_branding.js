@@ -19,6 +19,14 @@ export async function applyCrmBranding(response,request){
   html=html.replace('<div class="logo">CRM Müşteri Takip</div>','<div class="logo crmBrand"><img src="/notes-logo-ag-v1.webp" width="48" height="48" alt="AG"><span>CRM Müşteri Takip</span></div>');
   if(html.includes('class="logo crmBrand"')&&!html.includes('id="crmBrandStyle"'))html=html.replace(/<\/head>/i,'<style id="crmBrandStyle">.crmBrand{display:flex;align-items:center;gap:10px}.crmBrand img{display:block;width:48px;height:48px;flex:0 0 48px;object-fit:contain}</style>\n</head>');
 
+  // Ana CRM menüsüne gerçek Müşteri Portföyü panosunu ekle.
+  if(onMainCrm&&!html.includes('data-portfolio-nav="1"')){
+    const portfolioButton='<button type="button" data-portfolio-nav="1" onclick="location.href=\'/musteri-portfoyu.html\'">📊 Müşteri Portföyü</button>';
+    const customerButton='<button data-page="customers" data-result="">Müşteriler</button>';
+    if(html.includes(customerButton))html=html.replace(customerButton,customerButton+portfolioButton);
+    else html=html.replace(/(<div class="menu">)/i,'$1'+portfolioButton);
+  }
+
   // Ana Ajanda üst şeridi temiz kalsın; aç/kapat/test düğmeleri görünmesin.
   if(onMainCrm){
     html=html.replace('<button class="btn green" onclick="enableNotifications()">🔔 Masaüstü Bildirimini Aç</button>','');
