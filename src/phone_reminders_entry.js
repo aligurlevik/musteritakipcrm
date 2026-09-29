@@ -87,39 +87,23 @@ async function simplifyCrmMenu(response,request){
     attempts++;
     var login=document.getElementById('login');
     if(login&&login.classList.contains('show')){if(attempts<120)setTimeout(openCard,250);return;}
-
     var customerPage=document.querySelector('.menu button[data-page="customers"]');
     var customerSection=document.getElementById('customers');
-    if(customerPage&&customerSection&&!customerSection.classList.contains('active')){
-      try{customerPage.click()}catch(_){}
-    }
-
+    if(customerPage&&customerSection&&!customerSection.classList.contains('active')){try{customerPage.click()}catch(_){}}
     var modal=document.getElementById('customerModal');
     try{
       if(typeof window.openCustomer==='function')window.openCustomer();
       else{
-        var newButton=[].slice.call(document.querySelectorAll('button')).find(function(btn){
-          return /Yeni Müşteri/i.test(btn.textContent||'')&&String(btn.getAttribute('onclick')||'').indexOf('openCustomer')!==-1;
-        });
+        var newButton=[].slice.call(document.querySelectorAll('button')).find(function(btn){return /Yeni Müşteri/i.test(btn.textContent||'')&&String(btn.getAttribute('onclick')||'').indexOf('openCustomer')!==-1;});
         if(newButton)newButton.click();
       }
     }catch(_){}
-
     modal=document.getElementById('customerModal');
-    if(modal){
-      modal.classList.add('open');
-      var title=document.getElementById('customerModalTitle');if(title)title.textContent='Yeni Müşteri';
-      var id=document.getElementById('c_id');if(id)id.value='';
-    }
-
-    if(modal&&modal.classList.contains('open')){
-      try{history.replaceState(null,'','/')}catch(_){}
-      return;
-    }
+    if(modal){modal.classList.add('open');var title=document.getElementById('customerModalTitle');if(title)title.textContent='Yeni Müşteri';var id=document.getElementById('c_id');if(id)id.value='';}
+    if(modal&&modal.classList.contains('open')){try{history.replaceState(null,'','/')}catch(_){};return;}
     if(attempts<120)setTimeout(openCard,250);
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(openCard,350)},{once:true});
-  else setTimeout(openCard,350);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(openCard,350)},{once:true});else setTimeout(openCard,350);
 })();
 </script>`;
     html=html.replace(/<\/body>/i,forceOpen+'\n</body>');
@@ -134,7 +118,13 @@ async function simplifyCrmMenu(response,request){
 export default{
   async fetch(request,env,ctx){
     try{await cleanupDemoCustomers(env)}catch(_){}
-    const path=new URL(request.url).pathname;
+    const requestUrl=new URL(request.url),path=requestUrl.pathname;
+
+    // Portföydeki Yeni Müşteri butonu eski CRM listesine değil, doğrudan yeni karta gider.
+    if(request.method==='GET'&&['/','/index.html'].includes(path)&&requestUrl.searchParams.get('newCustomer')==='1'){
+      return Response.redirect(new URL('/yeni-musteri.html',request.url).toString(),302);
+    }
+
     if(path.startsWith('/api/customers')){
       try{await ensureCustomerExtendedFields(env)}catch(error){console.error('Extended customer schema failed',error)}
     }
