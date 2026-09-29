@@ -3,6 +3,8 @@ import {pushApi,pushHealth,deliverDueReminders,sendPush,sendWakePush} from './ph
 import {applyCrmBranding} from './crm_branding.js';
 import {nativeAlarmApi} from './native_alarm_api.js';
 
+let demoCleanupPromise;
+
 async function sendBackgroundReminder(device,data,vapid){
   try{
     const primary=await sendPush(device,data,vapid);
@@ -16,8 +18,52 @@ async function sendBackgroundReminder(device,data,vapid){
   }
 }
 
+async function cleanupDemoCustomers(env){
+  if(demoCleanupPromise)return demoCleanupPromise;
+  demoCleanupPromise=(async()=>{
+    await env.DB.prepare("CREATE TABLE IF NOT EXISTS app_meta(key TEXT PRIMARY KEY,value TEXT DEFAULT '')").run();
+    const marker=await env.DB.prepare('SELECT value FROM app_meta WHERE key=?').bind('remove_demo_customers_v1').first();
+    if(marker)return;
+
+    const demoNames=['Atlas Tekstil','Vera Medikal','Artemis Kozmetik','Mavi Kutu Ambalaj'];
+    const found=(await env.DB.prepare('SELECT id FROM customers WHERE company IN (?,?,?,?)').bind(...demoNames).all()).results||[];
+    const ids=found.map(row=>Number(row.id)).filter(Boolean);
+
+    if(ids.length){
+      const marks=ids.map(()=>'?').join(',');
+      const existingTables=(await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table'").all()).results||[];
+      const tables=new Set(existingTables.map(row=>String(row.name)));
+      for(const table of ['mails','meetings','offers','reminders']){
+        if(tables.has(table))await env.DB.prepare(`DELETE FROM ${table} WHERE customer_id IN (${marks})`).bind(...ids).run();
+      }
+      await env.DB.prepare(`DELETE FROM customers WHERE id IN (${marks})`).bind(...ids).run();
+    }
+
+    await env.DB.prepare('INSERT OR REPLACE INTO app_meta(key,value) VALUES(?,?)').bind('remove_demo_customers_v1',new Date().toISOString()).run();
+  })().catch(error=>{demoCleanupPromise=null;console.error('Demo customer cleanup failed',error);throw error});
+  return demoCleanupPromise;
+}
+
+async function simplifyCrmMenu(response,request){
+  if(request.method!=='GET'||!response.ok)return response;
+  const url=new URL(request.url);
+  if(!['/','/index.html'].includes(url.pathname))return response;
+  const type=response.headers.get('content-type')||'';
+  if(!type.includes('text/html'))return response;
+
+  let html=await response.text();
+  html=html.replace(/<div class="customer-folder-group">[\s\S]*?<\/div>/,'');
+  html=html.replace(/<button data-page="meetings">Görüşmeler<\/button>/,'');
+
+  const headers=new Headers(response.headers);
+  for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
+  headers.set('cache-control','no-cache, no-store, must-revalidate');
+  return new Response(html,{status:response.status,statusText:response.statusText,headers});
+}
+
 export default{
   async fetch(request,env,ctx){
+    try{await cleanupDemoCustomers(env)}catch(_){}
     const path=new URL(request.url).pathname;
     if(path.startsWith('/api/native-alarm/')){
       try{return await nativeAlarmApi(request,env)}catch(error){console.error('Native alarm API failed',error?.name);return new Response(JSON.stringify({error:'Yerel alarm servisi kullanılamıyor.'}),{status:500,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}
@@ -35,7 +81,8 @@ export default{
       if(path.endsWith('.webmanifest'))headers.set('content-type','application/manifest+json');
       return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
     }
-    return applyCrmBranding(await worker.fetch(request,env,ctx),request);
+    const branded=await applyCrmBranding(await worker.fetch(request,env,ctx),request);
+    return simplifyCrmMenu(branded,request);
   },
   async scheduled(controller,env){await deliverDueReminders(env,{now:controller.scheduledTime||Date.now(),send:sendBackgroundReminder})}
 };
