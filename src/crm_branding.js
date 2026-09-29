@@ -4,7 +4,8 @@ export async function applyCrmBranding(response,request){
   if(request&&request.method!=='GET')return response;
   if(!response.ok||!(response.headers.get('content-type')||'').includes('text/html'))return response;
   let html=await response.text();
-  const path=request?new URL(request.url).pathname:'';
+  const requestUrl=request?new URL(request.url):null;
+  const path=requestUrl?requestUrl.pathname:'';
   const onMainCrm=['/','/index.html'].includes(path);
   const userAgent=request?.headers.get('user-agent')||'';
   const isWindows=/Windows/i.test(userAgent);
@@ -25,6 +26,57 @@ export async function applyCrmBranding(response,request){
     const customerButton='<button data-page="customers" data-result="">Müşteriler</button>';
     if(html.includes(customerButton))html=html.replace(customerButton,customerButton+portfolioButton);
     else html=html.replace(/(<div class="menu">)/i,'$1'+portfolioButton);
+  }
+
+  // Portföy sayfasındaki + Yeni Müşteri düğmesi doğrudan müşteri ekleme formunu açsın.
+  if(path==='/musteri-portfoyu.html'&&!html.includes('id="crmPortfolioNavigationFix"')){
+    const portfolioNavFix=`<script id="crmPortfolioNavigationFix">
+(function(){
+  document.addEventListener('click',function(event){
+    var link=event.target&&event.target.closest?event.target.closest('a[href]'):null;
+    if(!link)return;
+    var text=(link.textContent||'').trim();
+    if(text.indexOf('Yeni Müşteri')!==-1){
+      event.preventDefault();
+      location.href='/?page=customers&newCustomer=1';
+    }
+  },true);
+})();
+</script>`;
+    html=html.replace(/<\/body>/i,portfolioNavFix+'\n</body>');
+  }
+
+  // URL ile istenen CRM bölümünü gerçekten aç; yeniCustomer=1 ise formu da aç.
+  if(onMainCrm&&requestUrl&&!html.includes('id="crmQueryNavigationFix"')){
+    const requestedPage=requestUrl.searchParams.get('page')||'';
+    const shouldOpenCustomer=requestUrl.searchParams.get('newCustomer')==='1';
+    if(requestedPage||shouldOpenCustomer){
+      const queryNavFix=`<script id="crmQueryNavigationFix">
+(function(){
+  var requestedPage=${JSON.stringify(requestedPage)};
+  var openNewCustomer=${shouldOpenCustomer?'true':'false'};
+  var tries=0;
+  function go(){
+    tries++;
+    var login=document.getElementById('login');
+    if(login&&login.classList.contains('show')){if(tries<80)setTimeout(go,250);return;}
+    if(requestedPage){
+      var pageButton=document.querySelector('.menu button[data-page="'+requestedPage+'"]');
+      if(pageButton)pageButton.click();
+    }
+    if(openNewCustomer){
+      if(typeof window.openCustomer==='function'){
+        try{window.openCustomer();history.replaceState(null,'','/');return}catch(_){}
+      }
+      if(tries<80){setTimeout(go,250);return;}
+    }
+    try{history.replaceState(null,'','/')}catch(_){}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(go,100)},{once:true});else setTimeout(go,100);
+})();
+</script>`;
+      html=html.replace(/<\/body>/i,queryNavFix+'\n</body>');
+    }
   }
 
   // Ana Ajanda üst şeridi temiz kalsın; aç/kapat/test düğmeleri görünmesin.
