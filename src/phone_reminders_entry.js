@@ -67,6 +67,13 @@ async function persistExtendedCustomerWrite(request,response,env,path){
   return response;
 }
 
+function rebuildHtml(response,html){
+  const headers=new Headers(response.headers);
+  for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
+  headers.set('cache-control','no-cache, no-store, must-revalidate');
+  return new Response(html,{status:response.status,statusText:response.statusText,headers});
+}
+
 async function simplifyCrmMenu(response,request){
   if(request.method!=='GET'||!response.ok)return response;
   const url=new URL(request.url);
@@ -77,42 +84,21 @@ async function simplifyCrmMenu(response,request){
   let html=await response.text();
   html=html.replace(/<div class="customer-folder-group">[\s\S]*?<\/div>/,'');
   html=html.replace(/<button data-page="meetings">Görüşmeler<\/button>/,'');
+  html=html.replace('<button class="btn primary" onclick="openCustomer()">+ Yeni Müşteri</button>','<button class="btn primary" onclick="location.href=\'/yeni-musteri.html?v=20260929-5\'">+ Yeni Müşteri</button>');
   if(!html.includes('/customer-card-extended.js'))html=html.replace(/<\/body>/i,'<script src="/customer-card-extended.js?v=20260929-2"></script>\n</body>');
+  return rebuildHtml(response,html);
+}
 
-  if(url.searchParams.get('newCustomer')==='1'&&!html.includes('id="crmForceOpenNewCustomer"')){
-    const forceOpen=`<script id="crmForceOpenNewCustomer">
-(function(){
-  var attempts=0;
-  function openCard(){
-    attempts++;
-    var login=document.getElementById('login');
-    if(login&&login.classList.contains('show')){if(attempts<120)setTimeout(openCard,250);return;}
-    var customerPage=document.querySelector('.menu button[data-page="customers"]');
-    var customerSection=document.getElementById('customers');
-    if(customerPage&&customerSection&&!customerSection.classList.contains('active')){try{customerPage.click()}catch(_){}}
-    var modal=document.getElementById('customerModal');
-    try{
-      if(typeof window.openCustomer==='function')window.openCustomer();
-      else{
-        var newButton=[].slice.call(document.querySelectorAll('button')).find(function(btn){return /Yeni Müşteri/i.test(btn.textContent||'')&&String(btn.getAttribute('onclick')||'').indexOf('openCustomer')!==-1;});
-        if(newButton)newButton.click();
-      }
-    }catch(_){}
-    modal=document.getElementById('customerModal');
-    if(modal){modal.classList.add('open');var title=document.getElementById('customerModalTitle');if(title)title.textContent='Yeni Müşteri';var id=document.getElementById('c_id');if(id)id.value='';}
-    if(modal&&modal.classList.contains('open')){try{history.replaceState(null,'','/')}catch(_){};return;}
-    if(attempts<120)setTimeout(openCard,250);
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(openCard,350)},{once:true});else setTimeout(openCard,350);
-})();
-</script>`;
-    html=html.replace(/<\/body>/i,forceOpen+'\n</body>');
-  }
-
-  const headers=new Headers(response.headers);
-  for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
-  headers.set('cache-control','no-cache, no-store, must-revalidate');
-  return new Response(html,{status:response.status,statusText:response.statusText,headers});
+async function fixPortfolioNewCustomer(response,request){
+  if(request.method!=='GET'||!response.ok)return response;
+  const url=new URL(request.url);
+  if(url.pathname!=='/musteri-portfoyu.html')return response;
+  const type=response.headers.get('content-type')||'';
+  if(!type.includes('text/html'))return response;
+  let html=await response.text();
+  html=html.replace('href="/?page=customers">＋ Yeni Müşteri</a>','href="/yeni-musteri.html?v=20260929-5">＋ Yeni Müşteri</a>');
+  html=html.replace("location.href='/?page=customers&newCustomer=1';","location.href='/yeni-musteri.html?v=20260929-5';");
+  return rebuildHtml(response,html);
 }
 
 export default{
@@ -120,9 +106,8 @@ export default{
     try{await cleanupDemoCustomers(env)}catch(_){}
     const requestUrl=new URL(request.url),path=requestUrl.pathname;
 
-    // Portföydeki Yeni Müşteri butonu eski CRM listesine değil, doğrudan yeni karta gider.
     if(request.method==='GET'&&['/','/index.html'].includes(path)&&requestUrl.searchParams.get('newCustomer')==='1'){
-      return Response.redirect(new URL('/yeni-musteri.html',request.url).toString(),302);
+      return Response.redirect(new URL('/yeni-musteri.html?v=20260929-5',request.url).toString(),302);
     }
 
     if(path.startsWith('/api/customers')){
@@ -137,9 +122,9 @@ export default{
     if(path.startsWith('/api/push/')){
       try{return await pushApi(request,env)}catch(error){console.error('Phone reminder API failed',error?.name);return new Response(JSON.stringify({error:'Telefon bildirimi kurulamadı. Tekrar deneyin.'}),{status:500,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}
     }
-    if(['/agenda-sw.js','/agenda-sw-silent.js','/agenda.webmanifest','/crm.webmanifest','/agenda-icon-192.png','/agenda-icon-512.png','/phone-reminders.js','/phone-notification-controls.js','/agenda-visual-alert.js','/note-color-palette.js','/customer-card-extended.js'].includes(path)){
+    if(['/agenda-sw.js','/agenda-sw-silent.js','/agenda.webmanifest','/crm.webmanifest','/agenda-icon-192.png','/agenda-icon-512.png','/phone-reminders.js','/phone-notification-controls.js','/agenda-visual-alert.js','/note-color-palette.js','/customer-card-extended.js','/yeni-musteri.html'].includes(path)){
       const response=await env.ASSETS.fetch(request),headers=new Headers(response.headers);
-      headers.set('cache-control','no-cache');
+      headers.set('cache-control','no-cache, no-store, must-revalidate');
       if(path==='/agenda-sw.js'||path==='/agenda-sw-silent.js'){headers.set('content-type','application/javascript');headers.set('service-worker-allowed','/')}
       if(path.endsWith('.webmanifest'))headers.set('content-type','application/manifest+json');
       if(path.endsWith('.js'))headers.set('content-type','application/javascript; charset=utf-8');
@@ -148,7 +133,8 @@ export default{
     let baseResponse=await worker.fetch(request,env,ctx);
     try{baseResponse=await persistExtendedCustomerWrite(request,baseResponse,env,path)}catch(error){console.error('Extended customer save failed',error)}
     const branded=await applyCrmBranding(baseResponse,request);
-    return simplifyCrmMenu(branded,request);
+    const portfolioFixed=await fixPortfolioNewCustomer(branded,request);
+    return simplifyCrmMenu(portfolioFixed,request);
   },
   async scheduled(controller,env){await deliverDueReminders(env,{now:controller.scheduledTime||Date.now(),send:sendBackgroundReminder})}
 };
