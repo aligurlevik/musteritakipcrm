@@ -19,12 +19,6 @@ async function sendBackgroundReminder(device,data,vapid){
 export default{
   async fetch(request,env,ctx){
     const path=new URL(request.url).pathname;
-    if(path==='/satis'||path==='/satis/'){
-      const url=new URL('/mobile-sales.html',request.url);
-      const response=await env.ASSETS.fetch(new Request(url.toString(),request));
-      const headers=new Headers(response.headers);headers.set('cache-control','no-cache, no-store, must-revalidate');
-      return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
-    }
     if(path.startsWith('/api/native-alarm/')){
       try{return await nativeAlarmApi(request,env)}catch(error){console.error('Native alarm API failed',error?.name);return new Response(JSON.stringify({error:'Yerel alarm servisi kullanılamıyor.'}),{status:500,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}
     }
@@ -34,9 +28,9 @@ export default{
     if(path.startsWith('/api/push/')){
       try{return await pushApi(request,env)}catch(error){console.error('Phone reminder API failed',error?.name);return new Response(JSON.stringify({error:'Telefon bildirimi kurulamadı. Tekrar deneyin.'}),{status:500,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}
     }
-    if(['/agenda-sw.js','/agenda-sw-silent.js','/agenda.webmanifest','/crm.webmanifest','/agenda-icon-192.png','/agenda-icon-512.png','/phone-reminders.js','/phone-notification-controls.js','/agenda-visual-alert.js','/note-color-palette.js','/sales-fields.js','/sales-cockpit.js','/sales-cockpit.css'].includes(path)){
+    if(['/agenda-sw.js','/agenda-sw-silent.js','/agenda.webmanifest','/crm.webmanifest','/agenda-icon-192.png','/agenda-icon-512.png','/phone-reminders.js','/phone-notification-controls.js','/agenda-visual-alert.js','/note-color-palette.js'].includes(path)){
       const response=await env.ASSETS.fetch(request),headers=new Headers(response.headers);
-      headers.set('cache-control','no-cache, no-store, must-revalidate');
+      headers.set('cache-control','no-cache');
       if(path==='/agenda-sw.js'||path==='/agenda-sw-silent.js'){headers.set('content-type','application/javascript');headers.set('service-worker-allowed','/')}
       if(path.endsWith('.webmanifest'))headers.set('content-type','application/manifest+json');
       return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
