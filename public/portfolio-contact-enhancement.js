@@ -30,11 +30,20 @@
     const style=document.createElement('style');
     style.id='portfolioContactEnhancementStyle';
     style.textContent=`
-      .table-card table{min-width:760px!important}
+      .workspace{grid-template-columns:minmax(0,2.45fr) minmax(360px,.78fr)!important}
+      .table-card table{width:100%!important;min-width:0!important;table-layout:fixed!important}
       .table-card th:nth-child(2),.table-card td:nth-child(2),
       .table-card th:nth-child(3),.table-card td:nth-child(3),
       .table-card th:nth-child(4),.table-card td:nth-child(4){display:none!important}
-      .table-card th:first-child,.table-card td:first-child{min-width:210px}
+      .table-card th:nth-child(1),.table-card td:nth-child(1){width:23%!important}
+      .table-card th:nth-child(5),.table-card td:nth-child(5){width:18%!important}
+      .table-card th:nth-child(6),.table-card td:nth-child(6){width:12%!important}
+      .table-card th:nth-child(7),.table-card td:nth-child(7){width:11%!important}
+      .table-card th:nth-child(8),.table-card td:nth-child(8){width:11%!important}
+      .table-card th:nth-child(9),.table-card td:nth-child(9){width:13%!important}
+      .table-card th:nth-child(10),.table-card td:nth-child(10){width:5%!important;text-align:center}
+      .table-card th:nth-child(11),.table-card td:nth-child(11){width:7%!important;text-align:center}
+      .table-card th,.table-card td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .company{color:#1769f6!important;text-decoration:underline;text-underline-offset:2px;cursor:pointer!important}
       .portfolio-contact-summary{display:grid;gap:7px;margin:7px 0 9px}
       .portfolio-contact-card{border:1px solid #dce5ef;border-radius:8px;padding:8px;background:#f8fafc}
@@ -54,7 +63,10 @@
       #portfolioContactModal .pcm-labels{font-size:10px;font-weight:900;color:#64748b;background:#f8fafc}
       #portfolioContactModal .pcm-row a{color:#1769f6;text-decoration:none}
       #portfolioContactModal .pcm-empty{padding:20px;text-align:center;color:#64748b;background:#f8fafc;border-radius:9px}
-      @media(max-width:700px){#portfolioContactModal .pcm-labels{display:none}#portfolioContactModal .pcm-row{grid-template-columns:1fr}.table-card th:first-child,.table-card td:first-child{min-width:160px}}
+      .portfolio-load-error{color:#b42335!important;font-weight:800!important}
+      @media(max-width:1380px){.workspace{grid-template-columns:minmax(0,1.75fr) minmax(350px,.75fr)!important}}
+      @media(max-width:1000px){.workspace{grid-template-columns:1fr!important}.table-card table{min-width:760px!important}}
+      @media(max-width:700px){#portfolioContactModal .pcm-labels{display:none}#portfolioContactModal .pcm-row{grid-template-columns:1fr}.table-card table{min-width:720px!important}}
     `;
     document.head.appendChild(style);
   }
@@ -118,6 +130,37 @@
     openContacts(customer);
   }
 
+  async function recoverPortfolioData(){
+    try{
+      let customerRows;
+      try{customerRows=await api('/api/customers?status=T%C3%BCm%C3%BC')}catch(_){customerRows=await api('/api/customers')}
+      if(!Array.isArray(customerRows))throw new Error('Müşteri listesi alınamadı');
+
+      let meetingRows=[];
+      try{meetingRows=await api('/api/meetings?status=T%C3%BCm%C3%BC')}catch(_){try{meetingRows=await api('/api/meetings')}catch(__){meetingRows=[]}}
+      if(!Array.isArray(meetingRows))meetingRows=[];
+
+      customers=customerRows.filter(c=>c.record_status!=='Silindi');
+      meetings=meetingRows;
+      fillFilters();
+      counts();
+      render();
+
+      const targetId=(selected&&selected.id)||(visibleRows[0]&&visibleRows[0].id);
+      if(targetId)await selectCustomer(targetId);
+      else{
+        const empty=byId('detailEmpty');
+        if(empty)empty.textContent='Henüz kayıtlı müşteri yok.';
+      }
+    }catch(error){
+      const count=byId('rowCount');
+      if(count){count.textContent='Müşteri listesi yüklenemedi';count.classList.add('portfolio-load-error')}
+      const reminder=byId('sideReminders');
+      if(reminder){reminder.textContent='Veri bağlantısı kontrol ediliyor.';reminder.classList.add('portfolio-load-error')}
+      console.error('Portfolio recovery failed',error);
+    }
+  }
+
   let lastSelected='';
   function sync(){
     addStyles();ensureModal();
@@ -134,6 +177,7 @@
     document.addEventListener('click',handleCompanyClick,true);
     sync();
     setInterval(sync,350);
+    setTimeout(recoverPortfolioData,180);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
