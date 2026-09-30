@@ -54,6 +54,14 @@ async function columns(env){
 export async function restorePortfolioCustomers(env){
   if(restorePromise)return restorePromise;
   restorePromise=(async()=>{
+    // Bu veri daha once geri yuklendiyse her API isteginde yeniden D1 yazma.
+    // Eski davranis her yeni Worker isolate'inda 8 UPDATE calistiriyor ve API
+    // isteklerinin Pending kalmasina yol acabiliyordu.
+    try{
+      const marker=await env.DB.prepare('SELECT value FROM app_meta WHERE key=?').bind('restore_ankara_portfolio_v4').first();
+      if(marker)return;
+    }catch(_){}
+
     await env.DB.prepare("CREATE TABLE IF NOT EXISTS app_meta(key TEXT PRIMARY KEY,value TEXT DEFAULT '')").run();
     await ensureCustomerTable(env);
 
