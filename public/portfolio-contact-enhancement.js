@@ -61,45 +61,54 @@
     st.textContent=`
       .detail{max-height:calc(100vh - 24px)!important;overflow:auto!important}
       .portfolio-full-info{border:1px solid #cfdbea;border-radius:10px;background:#fff;margin:10px 0;padding:10px}
-      .portfolio-full-title{font-size:12px;font-weight:900;color:#0f172a;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;gap:8px}
-      .portfolio-section-title{font-size:10px;font-weight:900;color:#334155;margin:10px 0 6px;padding-top:8px;border-top:1px solid #e6edf5}
+      .portfolio-full-title{font-size:14px;font-weight:900;color:#0f172a;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+      .portfolio-section-title{font-size:12px;font-weight:900;color:#334155;margin:10px 0 6px;padding-top:8px;border-top:1px solid #e6edf5}
       .portfolio-section-title.first{margin-top:0;padding-top:0;border-top:0}
       .portfolio-full-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-      .portfolio-full-item{border:1px solid #e1e8f0;border-radius:8px;padding:8px;background:#f8fafc;min-width:0}
+      .portfolio-full-item{border:1px solid #e1e8f0;border-radius:8px;padding:9px;background:#f8fafc;min-width:0}
       .portfolio-full-item.wide{grid-column:1/-1}
-      .portfolio-full-label{font-size:9px;font-weight:900;color:#64748b;margin-bottom:3px}
-      .portfolio-full-value{font-size:10px;font-weight:700;color:#172033;line-height:1.45;overflow-wrap:anywhere;white-space:pre-wrap}
+      .portfolio-full-label{font-size:11px;font-weight:900;color:#64748b;margin-bottom:4px}
+      .portfolio-full-value{font-size:13px;font-weight:700;color:#172033;line-height:1.45;overflow-wrap:anywhere;white-space:pre-wrap}
       .portfolio-full-value a{color:#1769f6;text-decoration:none}
       .portfolio-full-empty{color:#94a3b8;font-weight:600}
       .portfolio-history{display:grid;gap:7px}
-      .portfolio-history-row{border-left:3px solid #1769f6;background:#f8fafc;border-radius:7px;padding:8px 9px;font-size:10px;line-height:1.45}
+      .portfolio-history-row{border-left:3px solid #1769f6;background:#f8fafc;border-radius:7px;padding:10px 11px;font-size:12px;line-height:1.5}
       .portfolio-history-row.order{border-left-color:#16a34a;background:#f2fbf6}
       .portfolio-history-row.empty{border-left-color:#cbd5e1;color:#64748b}
-      .portfolio-history-head{font-weight:900;color:#172033;margin-bottom:3px}
+      .portfolio-history-head{font-size:13px;font-weight:900;color:#172033;margin-bottom:4px}
 
       #portfolioDetailExpandModal{position:fixed;inset:0;z-index:120000;background:rgba(15,23,42,.58);display:none;align-items:center;justify-content:center;padding:18px}
       #portfolioDetailExpandModal.show{display:flex}
       #portfolioDetailExpandModal .pdem-box{width:min(1180px,97vw);max-height:94vh;background:#f4f7fb;border-radius:16px;box-shadow:0 30px 90px rgba(15,23,42,.34);display:flex;flex-direction:column;overflow:hidden}
-      #portfolioDetailExpandModal .pdem-head{display:grid;grid-template-columns:minmax(260px,1fr) minmax(520px,auto) 38px;align-items:center;gap:12px;padding:12px 14px;background:#fff;border-bottom:1px solid #dce5ef}
-      #portfolioDetailExpandModal .pdem-title{font-size:17px;font-weight:900;color:#0f172a}
-      #portfolioDetailExpandModal .pdem-sub{font-size:10px;color:#64748b;margin-top:2px}
+      #portfolioDetailExpandModal .pdem-head{display:grid;grid-template-columns:minmax(260px,1fr) minmax(520px,auto) 38px;align-items:center;gap:12px;padding:13px 14px;background:#fff;border-bottom:1px solid #dce5ef}
+      #portfolioDetailExpandModal .pdem-title{font-size:21px;font-weight:900;color:#0f172a}
+      #portfolioDetailExpandModal .pdem-sub{font-size:12px;color:#64748b;margin-top:3px}
       #portfolioDetailExpandModal .pdem-contact{display:grid;grid-template-columns:minmax(150px,1.1fr) minmax(145px,.9fr) minmax(190px,1.15fr);gap:7px;min-width:0}
-      #portfolioDetailExpandModal .pdem-contact-item{border:1px solid #dbe5f0;background:#f8fafc;border-radius:9px;padding:7px 9px;min-width:0}
-      #portfolioDetailExpandModal .pdem-contact-label{font-size:8px;font-weight:900;color:#64748b;margin-bottom:3px;text-transform:uppercase;letter-spacing:.2px}
-      #portfolioDetailExpandModal .pdem-contact-value{font-size:10px;font-weight:800;color:#0f172a;line-height:1.35;overflow-wrap:anywhere}
+      #portfolioDetailExpandModal .pdem-contact-item{border:1px solid #dbe5f0;background:#f8fafc;border-radius:9px;padding:8px 10px;min-width:0}
+      #portfolioDetailExpandModal .pdem-contact-label{font-size:10px;font-weight:900;color:#64748b;margin-bottom:4px;text-transform:uppercase;letter-spacing:.2px}
+      #portfolioDetailExpandModal .pdem-contact-value{font-size:13px;font-weight:800;color:#0f172a;line-height:1.4;overflow-wrap:anywhere}
       #portfolioDetailExpandModal .pdem-contact-value a{color:#1769f6;text-decoration:none}
       #portfolioDetailExpandModal .pdem-close{width:38px;height:38px;border:0;border-radius:9px;background:#eef2f7;color:#334155;font-size:22px;cursor:pointer}
       #portfolioDetailExpandModal .pdem-body{padding:12px;overflow:auto}
       #portfolioDetailExpandModal .detail{position:static!important;top:auto!important;width:100%!important;max-height:none!important;min-height:0!important;overflow:visible!important;border-radius:12px!important;box-shadow:none!important}
       #portfolioDetailExpandModal .detail-actions{display:none!important}
+      #portfolioDetailExpandModal .detail-title{font-size:20px!important}
       #portfolioDetailExpandModal .detail-body{padding:14px 16px 18px!important}
+      #portfolioDetailExpandModal .tabs .tab{font-size:12px!important;padding:11px 6px!important}
       #portfolioDetailExpandModal .summary4{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+      #portfolioDetailExpandModal .mini-card .m-label{font-size:11px!important}
+      #portfolioDetailExpandModal .mini-card .m-value{font-size:14px!important;line-height:1.35!important}
       #portfolioDetailExpandModal .two-col{grid-template-columns:1fr 1fr!important}
       #portfolioDetailExpandModal .portfolio-full-grid{grid-template-columns:1fr 1fr!important}
       #portfolioDetailExpandModal .portfolio-full-info{padding:14px!important}
-      #portfolioDetailExpandModal .portfolio-full-label{font-size:10px!important}
-      #portfolioDetailExpandModal .portfolio-full-value{font-size:11px!important}
-      #portfolioDetailExpandModal .portfolio-history-row{font-size:11px!important;padding:10px 11px!important}
+      #portfolioDetailExpandModal .portfolio-full-title{font-size:16px!important}
+      #portfolioDetailExpandModal .portfolio-section-title{font-size:13px!important;margin-top:13px!important}
+      #portfolioDetailExpandModal .portfolio-full-label{font-size:11px!important}
+      #portfolioDetailExpandModal .portfolio-full-value{font-size:13px!important}
+      #portfolioDetailExpandModal .portfolio-history-row{font-size:13px!important;padding:11px 12px!important;line-height:1.5!important}
+      #portfolioDetailExpandModal .portfolio-history-head{font-size:13px!important}
+      #portfolioDetailExpandModal .analysis-box{font-size:12px!important;line-height:1.55!important}
+      #portfolioDetailExpandModal .panel h3{font-size:14px!important}
       #portfolioDetailExpandModal .portfolio-contact-section{display:none!important}
       @media(max-width:1200px){.portfolio-full-grid{grid-template-columns:1fr}.portfolio-full-item.wide{grid-column:auto}}
       @media(max-width:980px){
@@ -202,7 +211,7 @@
     ].join('');
 
     box.innerHTML=`
-      <div class="portfolio-full-title"><span>📋 ${esc(c.company||'Müşteri')}</span><span style="font-size:9px;color:#64748b">Satış özeti</span></div>
+      <div class="portfolio-full-title"><span>📋 ${esc(c.company||'Müşteri')}</span><span style="font-size:11px;color:#64748b">Satış özeti</span></div>
       <div class="portfolio-contact-section">
         <div class="portfolio-section-title first">İletişim</div>
         <div class="portfolio-full-grid">${contactFields}</div>
