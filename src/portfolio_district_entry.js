@@ -30,6 +30,7 @@ const DISTRICT_FILTER_SCRIPT=String.raw`
     city.parentElement.insertAdjacentElement('afterend',holder);
     var district=document.getElementById('district');
 
+    function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]});}
     function activeCustomers(){
       try{return (Array.isArray(customers)?customers:[]).filter(function(c){return c&&c.record_status!=='Silindi';});}
       catch(_){return [];}
@@ -44,10 +45,7 @@ const DISTRICT_FILTER_SCRIPT=String.raw`
         .filter(Boolean)
         .filter(function(v,i,a){return a.indexOf(v)===i;})
         .sort(function(a,b){return a.localeCompare(b,'tr');});
-      district.innerHTML='<option value="">Tümü</option>'+names.map(function(name){
-        var safe=name.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-        return '<option value="'+safe+'">'+safe+'</option>';
-      }).join('');
+      district.innerHTML='<option value="">Tümü</option>'+names.map(function(name){return '<option value="'+esc(name)+'">'+esc(name)+'</option>';}).join('');
       if(!reset&&names.indexOf(current)>=0)district.value=current;
     }
 
@@ -60,12 +58,43 @@ const DISTRICT_FILTER_SCRIPT=String.raw`
       };
     }catch(error){console.error('İlçe filtresi bağlanamadı',error);}
 
+    function refreshActiveView(){
+      var buttons=Array.prototype.slice.call(document.querySelectorAll('.views .viewbtn'));
+      var active=document.querySelector('.views .viewbtn.active');
+      var index=buttons.indexOf(active);
+      if(index>0)setTimeout(function(){try{active.click();}catch(_){}},0);
+    }
+
+    function renderDistrictMap(){
+      var buttons=Array.prototype.slice.call(document.querySelectorAll('.views .viewbtn'));
+      var active=document.querySelector('.views .viewbtn.active');
+      if(buttons.indexOf(active)!==3)return;
+      var selectedCity=String(city.value||'').trim();
+      if(!selectedCity)return;
+      var alt=document.getElementById('portfolioAltViewForced');
+      if(!alt)return;
+      var rows=[];
+      try{rows=filterRows();}catch(_){return;}
+      var groups={};
+      rows.forEach(function(c){
+        var name=String(c.district||'').trim()||'İlçe belirtilmemiş';
+        if(!groups[name])groups[name]=[];
+        groups[name].push(c);
+      });
+      var names=Object.keys(groups).sort(function(a,b){return a.localeCompare(b,'tr');});
+      alt.innerHTML='<h2>⌖ Harita — '+esc(selectedCity)+' / İlçeler</h2><div class="pvf-grid">'+(names.length?names.map(function(name){
+        var firms=groups[name];
+        return '<div class="pvf-box"><div class="pvf-titleline"><span>'+esc(name)+'</span><span>'+firms.length+' firma</span></div><div class="pvf-muted">'+firms.map(function(c){return esc(c.company||'Müşteri');}).join('<br>')+'</div></div>';
+      }).join(''):'<div class="pvf-box">Bu il için ilçe bilgisi girilmiş müşteri bulunamadı.</div>')+'</div>';
+    }
+
     try{
       var originalClearFilters=clearFilters;
       clearFilters=function(){
         district.value='';
         originalClearFilters();
         updateDistricts(true);
+        refreshActiveView();
       };
     }catch(_){}
 
@@ -75,6 +104,7 @@ const DISTRICT_FILTER_SCRIPT=String.raw`
         var result=await originalLoadAll.apply(this,arguments);
         updateDistricts(false);
         try{render();}catch(_){}
+        refreshActiveView();
         return result;
       };
     }catch(_){}
@@ -82,8 +112,19 @@ const DISTRICT_FILTER_SCRIPT=String.raw`
     city.addEventListener('change',function(){
       updateDistricts(true);
       try{render();}catch(_){}
+      refreshActiveView();
     });
-    district.addEventListener('change',function(){try{render();}catch(_){}});
+    district.addEventListener('change',function(){
+      try{render();}catch(_){}
+      refreshActiveView();
+    });
+
+    window.addEventListener('click',function(ev){
+      var button=ev.target&&ev.target.closest?ev.target.closest('.views .viewbtn'):null;
+      if(!button)return;
+      var buttons=Array.prototype.slice.call(document.querySelectorAll('.views .viewbtn'));
+      if(buttons.indexOf(button)===3)setTimeout(renderDistrictMap,0);
+    },true);
 
     var tries=0;
     var timer=setInterval(function(){
@@ -107,7 +148,7 @@ export default{
     if(request.method==='GET'&&url.pathname==='/musteri-portfoyu.html'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
       let html=await response.text();
       html=html.replace(/<script[^>]*data-portfolio-district-filter[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-      html=html.replace(/<\/body>/i,`<script data-portfolio-district-filter="20260930-1646">\n${DISTRICT_FILTER_SCRIPT}\n</script>\n</body>`);
+      html=html.replace(/<\/body>/i,`<script data-portfolio-district-filter="20260930-1655">\n${DISTRICT_FILTER_SCRIPT}\n</script>\n</body>`);
       return rebuildHtml(response,html);
     }
     return response;
