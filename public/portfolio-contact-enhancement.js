@@ -193,3 +193,165 @@
   installSafeLoaders();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
+
+(function(){
+  'use strict';
+
+  const $=id=>document.getElementById(id);
+  const value=id=>$(id)?.value??'';
+  const setValue=(id,v)=>{const el=$(id);if(el)el.value=v??''};
+
+  function addEditorStyles(){
+    if($('portfolioEditorStyle'))return;
+    const style=document.createElement('style');
+    style.id='portfolioEditorStyle';
+    style.textContent=`
+      #portfolioEditorModal{position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.56);display:none;align-items:center;justify-content:center;padding:22px}
+      #portfolioEditorModal.show{display:flex}
+      #portfolioEditorModal .pem-box{width:min(980px,96vw);max-height:90vh;background:#fff;border-radius:16px;box-shadow:0 28px 80px rgba(15,23,42,.30);display:flex;flex-direction:column;overflow:hidden}
+      #portfolioEditorModal .pem-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid #dce5ef;background:#f8fafc}
+      #portfolioEditorModal .pem-title{font-size:19px;font-weight:900;color:#0f172a}
+      #portfolioEditorModal .pem-sub{font-size:11px;color:#64748b;margin-top:3px}
+      #portfolioEditorModal .pem-close{width:38px;height:38px;border:0;border-radius:9px;background:#e9eef5;font-size:22px;cursor:pointer;color:#334155}
+      #portfolioEditorModal .pem-body{padding:18px 20px;overflow:auto}
+      #portfolioEditorModal .pem-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
+      #portfolioEditorModal .pem-field{display:grid;gap:6px}
+      #portfolioEditorModal .pem-field.full{grid-column:1/-1}
+      #portfolioEditorModal label{font-size:11px;font-weight:900;color:#334155}
+      #portfolioEditorModal input,#portfolioEditorModal select,#portfolioEditorModal textarea{width:100%;border:1px solid #cfd9e6;border-radius:9px;background:#fff;color:#0f172a;padding:10px 11px;outline:none}
+      #portfolioEditorModal input,#portfolioEditorModal select{height:42px}
+      #portfolioEditorModal textarea{min-height:110px;resize:vertical;line-height:1.45}
+      #portfolioEditorModal input:focus,#portfolioEditorModal select:focus,#portfolioEditorModal textarea:focus{border-color:#1769f6;box-shadow:0 0 0 3px rgba(23,105,246,.10)}
+      #portfolioEditorModal .pem-company{background:#eef5ff;border:1px solid #cfe0ff;border-radius:10px;padding:11px 12px;font-weight:900;color:#174ea6}
+      #portfolioEditorModal .pem-foot{display:flex;justify-content:flex-end;align-items:center;gap:9px;padding:14px 20px;border-top:1px solid #dce5ef;background:#f8fafc}
+      #portfolioEditorModal .pem-btn{border:1px solid #d4deea;border-radius:9px;padding:10px 16px;font-weight:900;cursor:pointer;background:#fff;color:#334155}
+      #portfolioEditorModal .pem-btn.primary{background:#1769f6;color:#fff;border-color:#1769f6}
+      #portfolioEditorModal .pem-btn:disabled{opacity:.55;cursor:wait}
+      #portfolioEditorModal .pem-error{display:none;color:#b42335;background:#fff0f1;border:1px solid #ffccd1;border-radius:8px;padding:9px 11px;font-size:11px;font-weight:800;margin-bottom:12px}
+      #portfolioEditorModal .pem-error.show{display:block}
+      @media(max-width:720px){#portfolioEditorModal{padding:8px}#portfolioEditorModal .pem-box{max-height:96vh}#portfolioEditorModal .pem-grid{grid-template-columns:1fr}#portfolioEditorModal .pem-field.full{grid-column:auto}}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function ensureEditor(){
+    let modal=$('portfolioEditorModal');
+    if(modal)return modal;
+    addEditorStyles();
+    modal=document.createElement('div');
+    modal.id='portfolioEditorModal';
+    modal.innerHTML=`
+      <div class="pem-box" role="dialog" aria-modal="true" aria-labelledby="pemTitle">
+        <div class="pem-head">
+          <div><div id="pemTitle" class="pem-title">Müşteri Düzenle</div><div class="pem-sub">Bilgileri rahatça düzenleyip tek seferde kaydedebilirsiniz.</div></div>
+          <button type="button" class="pem-close" aria-label="Kapat">×</button>
+        </div>
+        <div class="pem-body">
+          <div id="pemError" class="pem-error"></div>
+          <div id="pemCompany" class="pem-company"></div>
+          <div class="pem-grid" style="margin-top:14px">
+            <div class="pem-field"><label>Yetkili / Görüşülen Kişi</label><input id="pemContact" placeholder="Ad soyad"></div>
+            <div class="pem-field"><label>Telefon</label><input id="pemPhone" placeholder="Telefon numarası"></div>
+            <div class="pem-field"><label>E-posta</label><input id="pemEmail" type="email" placeholder="ornek@firma.com"></div>
+            <div class="pem-field"><label>İl / Bölge</label><input id="pemRegion" placeholder="İl / Bölge"></div>
+            <div class="pem-field"><label>İş Alanı</label><input id="pemCategories" placeholder="Örn. Ambalaj, Matbaa"></div>
+            <div class="pem-field"><label>Potansiyel</label><select id="pemPriority"><option value="KRİTİK">Yüksek</option><option value="YÜKSEK">Orta</option><option value="NORMAL">Düşük</option></select></div>
+            <div class="pem-field"><label>Sonuç</label><select id="pemResult"><option value="open">Sonuçlanmamış</option><option value="waiting">Beklemede</option><option value="positive">Olumlu</option><option value="negative">Olumsuz</option></select></div>
+            <div class="pem-field"><label>Sonraki İşlem Tarihi</label><input id="pemFollow" type="date"></div>
+            <div class="pem-field full"><label>Makine / Teknik Bilgi</label><input id="pemMachine" placeholder="Makine, teknik bilgi, özel detaylar"></div>
+            <div class="pem-field full"><label>Notlar</label><textarea id="pemNotes" placeholder="Müşteri hakkında yeni notları buraya yazın..."></textarea></div>
+          </div>
+        </div>
+        <div class="pem-foot"><button type="button" class="pem-btn pem-cancel">İptal</button><button id="pemSave" type="button" class="pem-btn primary">Kaydet</button></div>
+      </div>`;
+    modal.addEventListener('click',e=>{if(e.target===modal||e.target.closest('.pem-close')||e.target.closest('.pem-cancel'))closeEditor()});
+    $('pemSave')?.addEventListener('click',saveEditor);
+    document.body.appendChild(modal);
+    return modal;
+  }
+
+  function currentSelected(){
+    try{return typeof selected!=='undefined'?selected:null}catch(_){return null}
+  }
+
+  function currentResult(customer){
+    try{return typeof resultOf==='function'?resultOf(customer):'open'}catch(_){return 'open'}
+  }
+
+  function openEditor(){
+    const customer=currentSelected();
+    if(!customer)return;
+    const modal=ensureEditor();
+    $('pemError').classList.remove('show');
+    $('pemError').textContent='';
+    $('pemCompany').textContent=customer.company||'Müşteri';
+    setValue('pemContact',value('dContact')||customer.contact_name||'');
+    setValue('pemPhone',value('dPhone')||customer.phone||'');
+    setValue('pemEmail',value('dEmail')||customer.email||'');
+    setValue('pemRegion',value('dRegion')||customer.region||'');
+    setValue('pemCategories',value('dCategories')||customer.categories||customer.sector||'');
+    setValue('pemPriority',value('dPriority')||customer.priority||'NORMAL');
+    setValue('pemResult',value('dResultSelect')||currentResult(customer));
+    setValue('pemFollow',value('dFollow')||customer.follow_date||'');
+    setValue('pemMachine',value('dMachine')||customer.machine_info||'');
+    setValue('pemNotes',customer.special_notes||'');
+    modal.classList.add('show');
+    setTimeout(()=>$('pemContact')?.focus(),50);
+  }
+
+  function closeEditor(){
+    $('portfolioEditorModal')?.classList.remove('show');
+  }
+
+  async function saveEditor(){
+    const customer=currentSelected();
+    if(!customer)return;
+    const save=$('pemSave'),error=$('pemError');
+    if(save){save.disabled=true;save.textContent='Kaydediliyor...'}
+    if(error){error.classList.remove('show');error.textContent=''}
+    try{
+      setValue('dContact',value('pemContact').trim());
+      setValue('dPhone',value('pemPhone').trim());
+      setValue('dEmail',value('pemEmail').trim());
+      setValue('dRegion',value('pemRegion').trim());
+      setValue('dCategories',value('pemCategories').trim());
+      setValue('dPriority',value('pemPriority'));
+      setValue('dResultSelect',value('pemResult'));
+      setValue('dFollow',value('pemFollow'));
+      setValue('dMachine',value('pemMachine').trim());
+      try{
+        if(typeof parseNotes==='function')notes=parseNotes(value('pemNotes'));
+        if(typeof renderNotes==='function')renderNotes();
+      }catch(_){}
+      if(typeof saveCustomer!=='function')throw new Error('Kaydetme fonksiyonu bulunamadı.');
+      await saveCustomer();
+      closeEditor();
+    }catch(err){
+      if(error){error.textContent='Kaydedilemedi: '+(err?.message||'Bilinmeyen hata');error.classList.add('show')}
+    }finally{
+      if(save){save.disabled=false;save.textContent='Kaydet'}
+    }
+  }
+
+  function editButtonFrom(target){
+    const btn=target?.closest?.('button');
+    if(!btn)return null;
+    if(btn.closest('.detail-actions')&&btn.textContent.includes('Düzenle'))return btn;
+    return null;
+  }
+
+  function interceptEdit(event){
+    const btn=editButtonFrom(event.target);if(!btn)return;
+    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();openEditor();
+  }
+
+  function install(){
+    ensureEditor();
+    document.addEventListener('click',interceptEdit,true);
+    window.openPortfolioEditor=openEditor;
+    window.focusEdit=openEditor;
+    try{focusEdit=openEditor}catch(_){}
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+})();
