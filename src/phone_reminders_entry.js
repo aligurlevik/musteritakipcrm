@@ -18,20 +18,22 @@ async function portfolioRequestForGraphic(request,env,ctx,path){
   const portfolioApi=path.startsWith('/api/customers')||path.startsWith('/api/meetings')||path.startsWith('/api/offers');
   if(!portfolioApi)return request;
   try{
-    const sessionUrl=new URL(request.url);sessionUrl.pathname='/api/session';sessionUrl.search='';
-    const sessionResponse=await worker.fetch(new Request(sessionUrl.toString(),{method:'GET',headers:request.headers}),env,ctx);
-    if(!sessionResponse.ok)return request;
-    const session=await sessionResponse.json().catch(()=>({}));
-    if(session?.role!=='graphic')return request;
+    const cookie=request.headers.get('cookie')||'';
+    const match=cookie.match(/(?:^|;\s*)crm_session=([^;]+)/);
+    if(!match)return request;
 
     const day=new Date().toISOString().slice(0,10);
+    const graphicSignature=await hmacHex(env.SESSION_SECRET||'change-me','graphic.'+day);
+    const graphicToken='graphic.'+day+'.'+graphicSignature;
+    if(match[1]!==graphicToken)return request;
+
     const signature=await hmacHex(env.SESSION_SECRET||'change-me','admin.'+day);
     const adminToken='admin.'+day+'.'+signature;
     const headers=new Headers(request.headers);
     const oldCookie=headers.get('cookie')||'';
     const keep=oldCookie.split(';').map(x=>x.trim()).filter(x=>x&&!x.startsWith('crm_session=')).join('; ');
     headers.set('cookie',(keep?keep+'; ':'')+'crm_session='+adminToken);
-    return new Request(request.clone(),{headers});
+    return new Request(request,{headers});
   }catch(error){
     console.error('Portfolio access bridge failed',error?.message||error);
     return request;
