@@ -193,3 +193,12 @@
   installSafeLoaders();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
+
+(function(){
+  if(document.querySelector('script[data-portfolio-edit-modal]'))return;
+  const s=document.createElement('script');
+  s.src='/portfolio-edit-modal.js?v=20260930-1';
+  s.async=false;
+  s.dataset.portfolioEditModal='1';
+  document.head.appendChild(s);
+})();
