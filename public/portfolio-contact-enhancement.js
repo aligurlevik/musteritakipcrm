@@ -61,14 +61,21 @@
     st.textContent=`
       .detail{max-height:calc(100vh - 24px)!important;overflow:auto!important}
       .portfolio-full-info{border:1px solid #cfdbea;border-radius:10px;background:#fff;margin:10px 0;padding:10px}
-      .portfolio-full-title{font-size:12px;font-weight:900;color:#0f172a;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+      .portfolio-full-title{font-size:12px;font-weight:900;color:#0f172a;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+      .portfolio-section-title{font-size:10px;font-weight:900;color:#334155;margin:10px 0 6px;padding-top:8px;border-top:1px solid #e6edf5}
+      .portfolio-section-title.first{margin-top:0;padding-top:0;border-top:0}
       .portfolio-full-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
       .portfolio-full-item{border:1px solid #e1e8f0;border-radius:8px;padding:8px;background:#f8fafc;min-width:0}
       .portfolio-full-item.wide{grid-column:1/-1}
       .portfolio-full-label{font-size:9px;font-weight:900;color:#64748b;margin-bottom:3px}
-      .portfolio-full-value{font-size:10px;font-weight:700;color:#172033;line-height:1.4;overflow-wrap:anywhere;white-space:pre-wrap}
+      .portfolio-full-value{font-size:10px;font-weight:700;color:#172033;line-height:1.45;overflow-wrap:anywhere;white-space:pre-wrap}
       .portfolio-full-value a{color:#1769f6;text-decoration:none}
       .portfolio-full-empty{color:#94a3b8;font-weight:600}
+      .portfolio-history{display:grid;gap:7px}
+      .portfolio-history-row{border-left:3px solid #1769f6;background:#f8fafc;border-radius:7px;padding:8px 9px;font-size:10px;line-height:1.45}
+      .portfolio-history-row.order{border-left-color:#16a34a;background:#f2fbf6}
+      .portfolio-history-row.empty{border-left-color:#cbd5e1;color:#64748b}
+      .portfolio-history-head{font-weight:900;color:#172033;margin-bottom:3px}
       @media(max-width:1200px){.portfolio-full-grid{grid-template-columns:1fr}.portfolio-full-item.wide{grid-column:auto}}
     `;
     document.head.appendChild(st);
@@ -77,6 +84,37 @@
   function item(label,value,wide=false,html=false){
     const shown=clean(value);
     return `<div class="portfolio-full-item${wide?' wide':''}"><div class="portfolio-full-label">${esc(label)}</div><div class="portfolio-full-value${shown?'':' portfolio-full-empty'}">${shown?(html?value:esc(value)):'—'}</div></div>`;
+  }
+
+  function meetingRows(h){
+    const rows=Array.isArray(h?.meetings)?h.meetings.slice():[];
+    if(!rows.length)return '<div class="portfolio-history-row empty">Görüşme kaydı yok.</div>';
+    rows.sort((a,b)=>String(b.meeting_date||b.created_at||'').localeCompare(String(a.meeting_date||a.created_at||'')));
+    return rows.map(m=>{
+      const date=clean(m.meeting_date||m.created_at).slice(0,10)||'Tarih yok';
+      const result=clean(m.result)||'Beklemede';
+      const note=clean(m.note)||'Not yok';
+      return `<div class="portfolio-history-row"><div class="portfolio-history-head">${esc(date)} · ${esc(result)}</div><div>${esc(note)}</div></div>`;
+    }).join('');
+  }
+
+  function offerRows(h){
+    const rows=Array.isArray(h?.offers)?h.offers:[];
+    if(!rows.length)return '<div class="portfolio-history-row empty">Teklif kaydı yok.</div>';
+    return rows.map(o=>{
+      const no=clean(o.offer_no)||'Teklif';
+      const status=clean(o.status)||'Durum yok';
+      const amount=Number(o.amount||0).toLocaleString('tr-TR');
+      const currency=clean(o.currency)||'TRY';
+      const note=clean(o.subject||o.note);
+      return `<div class="portfolio-history-row"><div class="portfolio-history-head">${esc(no)} · ${esc(status)} · ${esc(amount)} ${esc(currency)}</div>${note?`<div>${esc(note)}</div>`:''}</div>`;
+    }).join('');
+  }
+
+  function orderRow(c){
+    const result=resultLabelSafe(c);
+    if(result==='Olumlu')return '<div class="portfolio-history-row order"><div class="portfolio-history-head">Olumlu / kazanılmış müşteri</div><div>Sipariş takibi yapılabilir. Sipariş detayları varsa Siparişler sekmesinden izlenebilir.</div></div>';
+    return '<div class="portfolio-history-row empty">Henüz olumlu sonuçlanmış sipariş görünmüyor.</div>';
   }
 
   function renderFullInfo(){
@@ -98,42 +136,48 @@
     const emails=uniq([c.email,...parseArray(c.emails_json),...contacts.map(x=>x.email)]);
     const people=contacts.map(x=>[x.name||'Yetkili',x.role].filter(Boolean).join(' — '));
     const h=history();
+    const meetings=Array.isArray(h.meetings)?h.meetings:[];
     let lastMeeting='';
-    try{
-      const rows=Array.isArray(h.meetings)?h.meetings:[];
-      if(rows.length){const m=rows.slice().sort((a,b)=>String(b.meeting_date||b.created_at||'').localeCompare(String(a.meeting_date||a.created_at||'')))[0];lastMeeting=clean(m?.meeting_date||m?.created_at).slice(0,10)}
-    }catch(_){}
+    if(meetings.length){
+      const m=meetings.slice().sort((a,b)=>String(b.meeting_date||b.created_at||'').localeCompare(String(a.meeting_date||a.created_at||'')))[0];
+      lastMeeting=clean(m?.meeting_date||m?.created_at).slice(0,10);
+    }
 
     const phoneHtml=phones.map(p=>`<a href="tel:${esc(p)}">${esc(p)}</a>`).join('<br>');
     const mailHtml=emails.map(e=>`<a href="mailto:${esc(e)}">${esc(e)}</a>`).join('<br>');
-    const fields=[
-      item('Firma',c.company,true),
+
+    const contactFields=[
       item('Yetkili Kişiler',people.join('\n'),true),
       item('Telefonlar',phoneHtml,false,true),
-      item('E-postalar',mailHtml,false,true),
-      item('İl / Bölge',c.region),
-      item('İlçe',c.district),
-      item('İş Alanı',c.categories||c.sector),
+      item('E-postalar',mailHtml,false,true)
+    ].join('');
+
+    const salesFields=[
       item('Potansiyel',priorityLabel(c)),
       item('Sonuç',resultLabelSafe(c)),
       item('Aşama',c.stage),
+      item('İş Alanı',c.categories||c.sector),
       item('Sonraki İşlem',c.follow_date),
       item('Son Görüşme',lastMeeting),
-      item('Görüşme Sayısı',String(Array.isArray(h.meetings)?h.meetings.length:0)),
+      item('Görüşme Sayısı',String(meetings.length)),
       item('Teklif Sayısı',String(Array.isArray(h.offers)?h.offers.length:0)),
-      item('Fatura Ünvanı',c.invoice_title,true),
-      item('Vergi Dairesi',c.tax_office),
-      item('Vergi No',c.tax_number),
-      item('Fatura Adresi',c.invoice_address,true),
       item('Makine / Teknik Bilgi',c.machine_info,true),
       item('Müşteri Talepleri',c.customer_requests,true),
-      item('Özel Notlar',c.special_notes,true),
-      item('Kayıt Durumu',c.record_status),
-      item('Kayıt Tarihi',clean(c.created_at).replace('T',' ').slice(0,16)),
-      item('Son Güncelleme',clean(c.updated_at).replace('T',' ').slice(0,16),true)
+      item('Özel Notlar',c.special_notes,true)
     ].join('');
 
-    box.innerHTML=`<div class="portfolio-full-title"><span>📋 Tüm Müşteri Bilgileri</span><span style="font-size:9px;color:#64748b">Seçili müşteri</span></div><div class="portfolio-full-grid">${fields}</div>`;
+    box.innerHTML=`
+      <div class="portfolio-full-title"><span>📋 ${esc(c.company||'Müşteri')}</span><span style="font-size:9px;color:#64748b">Satış özeti</span></div>
+      <div class="portfolio-section-title first">İletişim</div>
+      <div class="portfolio-full-grid">${contactFields}</div>
+      <div class="portfolio-section-title">Potansiyel ve Takip</div>
+      <div class="portfolio-full-grid">${salesFields}</div>
+      <div class="portfolio-section-title">Görüşmeler ve Sonuçlar</div>
+      <div class="portfolio-history">${meetingRows(h)}</div>
+      <div class="portfolio-section-title">Teklifler</div>
+      <div class="portfolio-history">${offerRows(h)}</div>
+      <div class="portfolio-section-title">Siparişler</div>
+      <div class="portfolio-history">${orderRow(c)}</div>`;
   }
 
   let lastKey='';
