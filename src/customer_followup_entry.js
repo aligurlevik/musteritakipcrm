@@ -61,7 +61,7 @@ export default{
       let html=await response.text();
       html=html.replace(/<script[^>]*data-portfolio-section-layout[^>]*>[\s\S]*?<\/script>\s*/gi,'');
       html=html.replace(/<script\s+src=["']\/portfolio-section-layout\.js[^>]*><\/script>\s*/gi,'');
-      html=html.replace(/<\/body>/i,'<script data-portfolio-section-layout="20260930-1835" src="/portfolio-section-layout.js?v=20260930-1835"></script>\n</body>');
+      html=html.replace(/<\/body>/i,'<script data-portfolio-section-layout="20260930-1840" src="/portfolio-section-layout.js?v=20260930-1840"></script>\n</body>');
       return rebuildHtml(response,html);
     }
 
