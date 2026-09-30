@@ -74,6 +74,17 @@ function rebuildHtml(response,html){
   return new Response(html,{status:response.status,statusText:response.statusText,headers});
 }
 
+async function servePortfolioDirect(request,env){
+  const assetUrl=new URL(request.url);assetUrl.pathname='/musteri-portfoyu.html';assetUrl.search='';
+  const response=await env.ASSETS.fetch(new Request(assetUrl.toString(),{method:'GET',headers:request.headers}));
+  if(!response.ok)return response;
+  let html=await response.text();
+  html=html.replace(/href=["']\/\?page=customers["'](?=[^>]*>\s*＋?\s*Yeni Müşteri)/gi,'href="/yeni-musteri.html?v=20260930-1"');
+  html=html.replace(/href=["']\/\?page=customers(?:&amp;|&)newCustomer=1["']/gi,'href="/yeni-musteri.html?v=20260930-1"');
+  html=html.replace(/location\.href=["']\/\?page=customers(?:&amp;|&)newCustomer=1["'];?/gi,"location.href='/yeni-musteri.html?v=20260930-1';");
+  return rebuildHtml(response,html);
+}
+
 async function simplifyCrmMenu(response,request){
   if(request.method!=='GET'||!response.ok)return response;
   const url=new URL(request.url);
@@ -84,20 +95,8 @@ async function simplifyCrmMenu(response,request){
   let html=await response.text();
   html=html.replace(/<div class="customer-folder-group">[\s\S]*?<\/div>/,'');
   html=html.replace(/<button data-page="meetings">Görüşmeler<\/button>/,'');
-  html=html.replace('<button class="btn primary" onclick="openCustomer()">+ Yeni Müşteri</button>','<button class="btn primary" onclick="location.href=\'/yeni-musteri.html?v=20260929-5\'">+ Yeni Müşteri</button>');
-  if(!html.includes('/customer-card-extended.js'))html=html.replace(/<\/body>/i,'<script src="/customer-card-extended.js?v=20260929-2"></script>\n</body>');
-  return rebuildHtml(response,html);
-}
-
-async function fixPortfolioNewCustomer(response,request){
-  if(request.method!=='GET'||!response.ok)return response;
-  const url=new URL(request.url);
-  if(url.pathname!=='/musteri-portfoyu.html')return response;
-  const type=response.headers.get('content-type')||'';
-  if(!type.includes('text/html'))return response;
-  let html=await response.text();
-  html=html.replace('href="/?page=customers">＋ Yeni Müşteri</a>','href="/yeni-musteri.html?v=20260929-5">＋ Yeni Müşteri</a>');
-  html=html.replace("location.href='/?page=customers&newCustomer=1';","location.href='/yeni-musteri.html?v=20260929-5';");
+  html=html.replace('<button class="btn primary" onclick="openCustomer()">+ Yeni Müşteri</button>','<button class="btn primary" type="button" onclick="location.href=\'/yeni-musteri.html?v=20260930-1\'">+ Yeni Müşteri</button>');
+  if(!html.includes('/customer-card-extended.js'))html=html.replace(/<\/body>/i,'<script src="/customer-card-extended.js?v=20260930-1"></script>\n</body>');
   return rebuildHtml(response,html);
 }
 
@@ -106,8 +105,14 @@ export default{
     try{await cleanupDemoCustomers(env)}catch(_){}
     const requestUrl=new URL(request.url),path=requestUrl.pathname;
 
+    // Portföy sayfasını alt wrapper zincirine sokmadan doğrudan sun.
+    // Böylece eski Yeni Müşteri yönlendirmesi tekrar enjekte edilemez.
+    if(request.method==='GET'&&path==='/musteri-portfoyu.html'){
+      return servePortfolioDirect(request,env);
+    }
+
     if(request.method==='GET'&&['/','/index.html'].includes(path)&&requestUrl.searchParams.get('newCustomer')==='1'){
-      return Response.redirect(new URL('/yeni-musteri.html?v=20260929-5',request.url).toString(),302);
+      return Response.redirect(new URL('/yeni-musteri.html?v=20260930-1',request.url).toString(),302);
     }
 
     if(path.startsWith('/api/customers')){
@@ -133,8 +138,7 @@ export default{
     let baseResponse=await worker.fetch(request,env,ctx);
     try{baseResponse=await persistExtendedCustomerWrite(request,baseResponse,env,path)}catch(error){console.error('Extended customer save failed',error)}
     const branded=await applyCrmBranding(baseResponse,request);
-    const portfolioFixed=await fixPortfolioNewCustomer(branded,request);
-    return simplifyCrmMenu(portfolioFixed,request);
+    return simplifyCrmMenu(branded,request);
   },
   async scheduled(controller,env){await deliverDueReminders(env,{now:controller.scheduledTime||Date.now(),send:sendBackgroundReminder})}
 };
