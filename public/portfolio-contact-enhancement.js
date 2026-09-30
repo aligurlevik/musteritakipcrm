@@ -80,9 +80,14 @@
       #portfolioDetailExpandModal{position:fixed;inset:0;z-index:120000;background:rgba(15,23,42,.58);display:none;align-items:center;justify-content:center;padding:18px}
       #portfolioDetailExpandModal.show{display:flex}
       #portfolioDetailExpandModal .pdem-box{width:min(1180px,97vw);max-height:94vh;background:#f4f7fb;border-radius:16px;box-shadow:0 30px 90px rgba(15,23,42,.34);display:flex;flex-direction:column;overflow:hidden}
-      #portfolioDetailExpandModal .pdem-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 16px;background:#fff;border-bottom:1px solid #dce5ef}
+      #portfolioDetailExpandModal .pdem-head{display:grid;grid-template-columns:minmax(260px,1fr) minmax(520px,auto) 38px;align-items:center;gap:12px;padding:12px 14px;background:#fff;border-bottom:1px solid #dce5ef}
       #portfolioDetailExpandModal .pdem-title{font-size:17px;font-weight:900;color:#0f172a}
       #portfolioDetailExpandModal .pdem-sub{font-size:10px;color:#64748b;margin-top:2px}
+      #portfolioDetailExpandModal .pdem-contact{display:grid;grid-template-columns:minmax(150px,1.1fr) minmax(145px,.9fr) minmax(190px,1.15fr);gap:7px;min-width:0}
+      #portfolioDetailExpandModal .pdem-contact-item{border:1px solid #dbe5f0;background:#f8fafc;border-radius:9px;padding:7px 9px;min-width:0}
+      #portfolioDetailExpandModal .pdem-contact-label{font-size:8px;font-weight:900;color:#64748b;margin-bottom:3px;text-transform:uppercase;letter-spacing:.2px}
+      #portfolioDetailExpandModal .pdem-contact-value{font-size:10px;font-weight:800;color:#0f172a;line-height:1.35;overflow-wrap:anywhere}
+      #portfolioDetailExpandModal .pdem-contact-value a{color:#1769f6;text-decoration:none}
       #portfolioDetailExpandModal .pdem-close{width:38px;height:38px;border:0;border-radius:9px;background:#eef2f7;color:#334155;font-size:22px;cursor:pointer}
       #portfolioDetailExpandModal .pdem-body{padding:12px;overflow:auto}
       #portfolioDetailExpandModal .detail{position:static!important;top:auto!important;width:100%!important;max-height:none!important;min-height:0!important;overflow:visible!important;border-radius:12px!important;box-shadow:none!important}
@@ -95,11 +100,17 @@
       #portfolioDetailExpandModal .portfolio-full-label{font-size:10px!important}
       #portfolioDetailExpandModal .portfolio-full-value{font-size:11px!important}
       #portfolioDetailExpandModal .portfolio-history-row{font-size:11px!important;padding:10px 11px!important}
+      #portfolioDetailExpandModal .portfolio-contact-section{display:none!important}
       @media(max-width:1200px){.portfolio-full-grid{grid-template-columns:1fr}.portfolio-full-item.wide{grid-column:auto}}
+      @media(max-width:980px){
+        #portfolioDetailExpandModal .pdem-head{grid-template-columns:1fr 38px}
+        #portfolioDetailExpandModal .pdem-contact{grid-column:1/-1;grid-row:2;grid-template-columns:repeat(3,minmax(0,1fr))}
+      }
       @media(max-width:760px){
         #portfolioDetailExpandModal{padding:6px}
         #portfolioDetailExpandModal .pdem-box{max-height:98vh;width:99vw}
         #portfolioDetailExpandModal .summary4,#portfolioDetailExpandModal .two-col,#portfolioDetailExpandModal .portfolio-full-grid{grid-template-columns:1fr!important}
+        #portfolioDetailExpandModal .pdem-contact{grid-template-columns:1fr}
       }
     `;
     document.head.appendChild(st);
@@ -192,8 +203,10 @@
 
     box.innerHTML=`
       <div class="portfolio-full-title"><span>📋 ${esc(c.company||'Müşteri')}</span><span style="font-size:9px;color:#64748b">Satış özeti</span></div>
-      <div class="portfolio-section-title first">İletişim</div>
-      <div class="portfolio-full-grid">${contactFields}</div>
+      <div class="portfolio-contact-section">
+        <div class="portfolio-section-title first">İletişim</div>
+        <div class="portfolio-full-grid">${contactFields}</div>
+      </div>
       <div class="portfolio-section-title">Potansiyel ve Takip</div>
       <div class="portfolio-full-grid">${salesFields}</div>
       <div class="portfolio-section-title">Görüşmeler ve Sonuçlar</div>
@@ -202,6 +215,24 @@
       <div class="portfolio-history">${offerRows(h)}</div>
       <div class="portfolio-section-title">Siparişler</div>
       <div class="portfolio-history">${orderRow(c)}</div>`;
+  }
+
+  function renderExpandContact(){
+    const host=document.getElementById('pdemContact');
+    if(!host)return;
+    const c=currentCustomer();
+    if(!c){host.innerHTML='';return;}
+    const contacts=allContacts(c);
+    const people=contacts.map(x=>[x.name||'Yetkili',x.role].filter(Boolean).join(' — '));
+    const phones=uniq([c.phone,...parseArray(c.phones_json),...contacts.map(x=>x.phone)]);
+    const emails=uniq([c.email,...parseArray(c.emails_json),...contacts.map(x=>x.email)]);
+    const peopleText=people.length?people.join(', '):'—';
+    const phoneHtml=phones.length?phones.map(p=>`<a href="tel:${esc(p)}">${esc(p)}</a>`).join('<br>'):'—';
+    const mailHtml=emails.length?emails.map(e=>`<a href="mailto:${esc(e)}">${esc(e)}</a>`).join('<br>'):'—';
+    host.innerHTML=`
+      <div class="pdem-contact-item"><div class="pdem-contact-label">Yetkili</div><div class="pdem-contact-value">${esc(peopleText)}</div></div>
+      <div class="pdem-contact-item"><div class="pdem-contact-label">Telefon</div><div class="pdem-contact-value">${phoneHtml}</div></div>
+      <div class="pdem-contact-item"><div class="pdem-contact-label">E-posta</div><div class="pdem-contact-value">${mailHtml}</div></div>`;
   }
 
   let detailMarker=null;
@@ -216,6 +247,7 @@
       <div class="pdem-box" role="dialog" aria-modal="true" aria-labelledby="pdemTitle">
         <div class="pdem-head">
           <div><div id="pdemTitle" class="pdem-title">Müşteri Kartı — Tam Görünüm</div><div class="pdem-sub">Sağdaki müşteri panosunun tamamı. Bilgileri burada inceleyebilir ve düzenleyebilirsiniz.</div></div>
+          <div id="pdemContact" class="pdem-contact"></div>
           <button type="button" class="pdem-close" aria-label="Kapat">×</button>
         </div>
         <div class="pdem-body"><div id="pdemMount"></div></div>
@@ -237,10 +269,11 @@
     }
     document.getElementById('pdemMount').appendChild(detail);
     try{if(typeof switchTab==='function')switchTab('general')}catch(_){}
+    renderExpandContact();
     oldBodyOverflow=document.body.style.overflow;
     document.body.style.overflow='hidden';
     modal.classList.add('show');
-    setTimeout(()=>{renderFullInfo();document.getElementById('dContact')?.focus()},60);
+    setTimeout(()=>{renderFullInfo();renderExpandContact()},60);
   }
 
   function closeExpandedPanel(){
@@ -275,7 +308,7 @@
     if(!c)return;
     const h=history();
     const key=[c.id,c.updated_at,c.follow_date,Array.isArray(h.meetings)?h.meetings.length:0,Array.isArray(h.offers)?h.offers.length:0].join('|');
-    if(key!==lastKey){lastKey=key;renderFullInfo()}
+    if(key!==lastKey){lastKey=key;renderFullInfo();renderExpandContact()}
   }
 
   function interceptCompanyClick(e){
@@ -291,7 +324,7 @@
       e.preventDefault();
       e.stopImmediatePropagation();
       if(typeof window.selectCustomer==='function')window.selectCustomer(c.id);
-      setTimeout(renderFullInfo,80);
+      setTimeout(()=>{renderFullInfo();renderExpandContact()},80);
     }catch(_){}
   }
 
