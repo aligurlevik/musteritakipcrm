@@ -2,7 +2,7 @@
   'use strict';
 
   const clean=v=>String(v??'').trim();
-  const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[ch]));
   const parseArray=v=>{try{const x=Array.isArray(v)?v:JSON.parse(v||'[]');return Array.isArray(x)?x:[]}catch{return[]}};
   const currentCustomer=()=>{try{return typeof selected!=='undefined'?selected:null}catch(_){return null}};
 
@@ -39,16 +39,19 @@
     const st=document.createElement('style');
     st.id='portfolioInlineEditorStyle';
     st.textContent=`
-      .pie-editor{border:2px solid #1769f6;border-radius:12px;background:#f8fbff;margin:10px 0 12px;padding:12px}
-      .pie-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
-      .pie-title{font-size:14px;font-weight:900;color:#0f172a}.pie-sub{font-size:11px;color:#64748b;margin-top:2px}
-      .pie-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.pie-field{min-width:0}.pie-field.wide{grid-column:1/-1}
-      .pie-field label{display:block;font-size:11px;font-weight:900;color:#64748b;margin-bottom:4px}
-      .pie-field input,.pie-field select,.pie-field textarea{width:100%;border:1px solid #cbd8e8;border-radius:8px;background:#fff;color:#0f172a;padding:9px 10px;font:inherit;font-size:13px;outline:none}
-      .pie-field textarea{min-height:70px;resize:vertical;line-height:1.45}.pie-field input:focus,.pie-field select:focus,.pie-field textarea:focus{border-color:#1769f6;box-shadow:0 0 0 3px rgba(23,105,246,.10)}
-      .pie-contact-head,.pie-contact-row{display:grid;grid-template-columns:28px 1.15fr .85fr .9fr 1.2fr;gap:6px;align-items:center;min-width:720px}.pie-contacts{overflow:auto}.pie-contact-head{font-size:10px;font-weight:900;color:#64748b;margin-bottom:4px}.pie-contact-row{margin-bottom:6px}.pie-contact-row input{width:100%;border:1px solid #cbd8e8;border-radius:7px;padding:8px;font-size:12px}.pie-no{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#e8f1ff;color:#1769f6;font-size:11px;font-weight:900}
-      .pie-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;margin-top:11px}.pie-save{border:0;border-radius:9px;background:#1769f6;color:#fff;padding:10px 16px;font-weight:900;cursor:pointer}.pie-save:disabled{opacity:.55;cursor:wait}.pie-status{font-size:12px;font-weight:800;margin-right:auto;color:#16a34a}.pie-status.err{color:#dc2626}
-      .pie-readonly-note{font-size:11px;color:#64748b;background:#fff;border:1px dashed #cbd8e8;border-radius:8px;padding:8px 10px;margin-top:9px}
+      .pie-editor{border:2px solid #1769f6;border-radius:12px;background:#f8fbff;margin:8px 0 10px;padding:10px}
+      .pie-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+      .pie-title{font-size:14px;font-weight:900;color:#0f172a}.pie-sub{font-size:10px;color:#64748b;margin-top:2px}
+      .pie-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.pie-field{min-width:0}.pie-field.wide{grid-column:1/-1}
+      .pie-field label{display:block;font-size:10px;font-weight:900;color:#64748b;margin-bottom:3px}
+      .pie-field input,.pie-field select,.pie-field textarea{width:100%;border:1px solid #cbd8e8;border-radius:8px;background:#fff;color:#0f172a;padding:8px 9px;font:inherit;font-size:12px;outline:none}
+      .pie-field textarea{min-height:58px;resize:vertical;line-height:1.4}.pie-field input:focus,.pie-field select:focus,.pie-field textarea:focus{border-color:#1769f6;box-shadow:0 0 0 3px rgba(23,105,246,.10)}
+      .pie-contact-toggle{width:100%;min-height:42px;border:1px solid #cbd8e8;border-radius:9px;background:#fff;padding:8px 10px;display:flex;align-items:center;gap:9px;text-align:left;cursor:pointer;color:#0f172a;font-weight:900}
+      .pie-contact-toggle:hover{border-color:#1769f6;background:#f8fbff}.pie-contact-summary{font-weight:700;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}.pie-contact-chevron{color:#1769f6;font-size:11px;transition:transform .15s ease}.pie-contact-toggle[aria-expanded="true"] .pie-contact-chevron{transform:rotate(180deg)}
+      .pie-contact-panel{margin-top:7px;border:1px solid #dbe5f0;border-radius:9px;background:#fff;padding:8px}.pie-contact-panel[hidden]{display:none!important}
+      .pie-contact-head,.pie-contact-row{display:grid;grid-template-columns:28px 1.15fr .85fr .9fr 1.2fr;gap:6px;align-items:center;min-width:720px}.pie-contacts{overflow:auto}.pie-contact-head{font-size:9px;font-weight:900;color:#64748b;margin-bottom:4px}.pie-contact-row{margin-bottom:5px}.pie-contact-row:last-child{margin-bottom:0}.pie-contact-row input{width:100%;border:1px solid #cbd8e8;border-radius:7px;padding:7px;font-size:11px}.pie-no{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#e8f1ff;color:#1769f6;font-size:10px;font-weight:900}
+      .pie-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:9px}.pie-save{border:0;border-radius:9px;background:#1769f6;color:#fff;padding:9px 14px;font-weight:900;cursor:pointer}.pie-save:disabled{opacity:.55;cursor:wait}.pie-status{font-size:11px;font-weight:800;margin-right:auto;color:#16a34a}.pie-status.err{color:#dc2626}
+      .pie-readonly-note{font-size:10px;color:#64748b;background:#fff;border:1px dashed #cbd8e8;border-radius:8px;padding:7px 9px;margin-top:7px}
       @media(max-width:800px){.pie-grid{grid-template-columns:1fr}.pie-field.wide{grid-column:auto}}
     `;
     document.head.appendChild(st);
@@ -57,7 +60,10 @@
   function option(value,label,current){return `<option value="${esc(value)}"${String(current)===String(value)?' selected':''}>${esc(label)}</option>`}
 
   function editorHtml(c){
-    const contacts=currentContacts(c);while(contacts.length<4)contacts.push({name:'',role:'',phone:'',email:''});
+    const originalContacts=currentContacts(c);
+    const contactCount=originalContacts.filter(x=>x.name||x.role||x.phone||x.email).length;
+    const contactSummary=originalContacts.filter(x=>x.name||x.phone||x.email).map(x=>x.name||x.phone||x.email).slice(0,3).join(' • ')||'Yetkili bilgisi ekle';
+    const contacts=originalContacts.slice();while(contacts.length<4)contacts.push({name:'',role:'',phone:'',email:''});
     const categories=clean(c.categories||c.sector);
     const priority=clean(c.priority||'NORMAL');
     const stage=clean(c.stage||'Yeni Lead');
@@ -68,7 +74,10 @@
       <div class="pie-grid">
         <div class="pie-field"><label>Firma Adı</label><input data-pie="company" value="${esc(c.company)}"></div>
         <div class="pie-field"><label>İl / Bölge</label><input data-pie="region" value="${esc(c.region)}"></div>
-        <div class="pie-field wide"><label>Yetkililer / Telefon / E-posta</label><div class="pie-contacts"><div class="pie-contact-head"><span></span><span>İsim Soyisim</span><span>Görevi</span><span>Telefon</span><span>E-posta</span></div>${contactRows}</div></div>
+        <div class="pie-field wide">
+          <button type="button" class="pie-contact-toggle" aria-expanded="false"><span>👥 Yetkililer (${contactCount})</span><span class="pie-contact-summary">${esc(contactSummary)}</span><span class="pie-contact-chevron">▼</span></button>
+          <div class="pie-contact-panel" hidden><div class="pie-contacts"><div class="pie-contact-head"><span></span><span>İsim Soyisim</span><span>Görevi</span><span>Telefon</span><span>E-posta</span></div>${contactRows}</div></div>
+        </div>
         <div class="pie-field"><label>Potansiyel</label><select data-pie="priority">${option('KRİTİK','Yüksek',priority)}${option('YÜKSEK','Orta',priority)}${option('NORMAL','Düşük',priority)}${option('DÜŞÜK','Çok Düşük',priority)}</select></div>
         <div class="pie-field"><label>Sonuç</label><select data-pie="result">${option('Sonuçlanmamış','Sonuçlanmamış',result)}${option('Beklemede','Beklemede',result)}${option('Olumlu','Olumlu',result)}${option('Olumsuz','Olumsuz',result)}</select></div>
         <div class="pie-field"><label>Aşama</label><select data-pie="stage">${['Yeni Lead','İlk Görüşme','Teklif','Pazarlık','Beklemede','Kazanıldı','Kaybedildi'].map(v=>option(v,v,stage)).join('')}</select></div>
@@ -144,6 +153,13 @@
     const result=getField(root,'result'),stage=getField(root,'stage');
     result?.addEventListener('change',()=>{stage.value=stageFromResult(result.value,stage.value)});
     stage?.addEventListener('change',()=>{result.value=resultFromStage(stage.value)});
+    root.querySelector('.pie-contact-toggle')?.addEventListener('click',e=>{
+      const button=e.currentTarget;
+      const panel=root.querySelector('.pie-contact-panel');
+      const open=button.getAttribute('aria-expanded')==='true';
+      button.setAttribute('aria-expanded',open?'false':'true');
+      if(panel)panel.hidden=open;
+    });
     root.querySelector('.pie-save')?.addEventListener('click',()=>saveEditor(root,c));
   }
 
