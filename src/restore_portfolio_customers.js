@@ -24,15 +24,20 @@ export async function restorePortfolioCustomers(env){
   if(restorePromise)return restorePromise;
   restorePromise=(async()=>{
     await env.DB.prepare("CREATE TABLE IF NOT EXISTS app_meta(key TEXT PRIMARY KEY,value TEXT DEFAULT '')").run();
-    const marker=await env.DB.prepare('SELECT value FROM app_meta WHERE key=?').bind('restore_ankara_portfolio_v2').first();
-    if(marker)return;
 
     const cols=await columns(env);
     if(!cols.has('company'))return;
     const followDate=todayIstanbul();
+
     for(const lead of LEADS){
-      const exists=await env.DB.prepare('SELECT id FROM customers WHERE company=? LIMIT 1').bind(lead.company).first();
-      if(exists)continue;
+      const exists=await env.DB.prepare('SELECT id,record_status FROM customers WHERE company=? LIMIT 1').bind(lead.company).first();
+      if(exists){
+        if(cols.has('record_status') && String(exists.record_status||'')==='Silindi'){
+          await env.DB.prepare("UPDATE customers SET record_status='Aktif',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(exists.id).run();
+        }
+        continue;
+      }
+
       const data={
         company:lead.company,
         contact_name:'',
@@ -59,7 +64,7 @@ export async function restorePortfolioCustomers(env){
     }
 
     await env.DB.prepare('INSERT OR REPLACE INTO app_meta(key,value) VALUES(?,?)')
-      .bind('restore_ankara_portfolio_v2',new Date().toISOString()).run();
+      .bind('restore_ankara_portfolio_v3',new Date().toISOString()).run();
   })().catch(error=>{restorePromise=null;throw error});
   return restorePromise;
 }
