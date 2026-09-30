@@ -10,7 +10,7 @@ function rebuildHtml(response,html){
 export default {
   async fetch(request,env,ctx){
     const url=new URL(request.url);
-    if(request.method==='GET'&&url.pathname==='/portfolio-inline-editor.js'){
+    if(request.method==='GET'&&['/portfolio-inline-editor.js','/portfolio-views.js'].includes(url.pathname)){
       const response=await env.ASSETS.fetch(request),headers=new Headers(response.headers);
       headers.set('content-type','application/javascript; charset=utf-8');
       headers.set('cache-control','no-cache, no-store, must-revalidate');
@@ -21,6 +21,7 @@ export default {
     if(request.method==='GET'&&url.pathname==='/musteri-portfoyu.html'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
       let html=await response.text();
       if(!html.includes('/portfolio-inline-editor.js'))html=html.replace(/<\/body>/i,'<script src="/portfolio-inline-editor.js?v=20260930-1518"></script>\n</body>');
+      if(!html.includes('/portfolio-views.js'))html=html.replace(/<\/body>/i,'<script src="/portfolio-views.js?v=20260930-1530"></script>\n</body>');
       return rebuildHtml(response,html);
     }
     return response;
