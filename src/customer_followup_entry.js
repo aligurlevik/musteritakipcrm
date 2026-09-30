@@ -39,6 +39,14 @@ const DASHBOARD_FOLLOWUP_PATCH=String.raw`
 export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url),path=url.pathname;
+
+    if(request.method==='GET'&&path==='/portfolio-section-layout.js'){
+      const asset=await env.ASSETS.fetch(request),headers=new Headers(asset.headers);
+      headers.set('content-type','application/javascript; charset=utf-8');
+      headers.set('cache-control','no-cache, no-store, must-revalidate');
+      return new Response(asset.body,{status:asset.status,statusText:asset.statusText,headers});
+    }
+
     const response=await worker.fetch(request,env,ctx);
 
     if(request.method==='GET'&&path==='/api/dashboard'&&response.ok){
@@ -47,6 +55,14 @@ export default{
         const rows=(await env.DB.prepare("SELECT * FROM customers WHERE record_status='Aktif' AND COALESCE(follow_date,'')<>'' AND stage NOT IN ('Kazanıldı','Kaybedildi') ORDER BY follow_date ASC, company COLLATE NOCASE ASC LIMIT 50").all()).results||[];
         return jsonResponse(response,{...data,due:rows});
       }catch(_){return response}
+    }
+
+    if(request.method==='GET'&&path==='/musteri-portfoyu.html'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
+      let html=await response.text();
+      html=html.replace(/<script[^>]*data-portfolio-section-layout[^>]*>[\s\S]*?<\/script>\s*/gi,'');
+      html=html.replace(/<script\s+src=["']\/portfolio-section-layout\.js[^>]*><\/script>\s*/gi,'');
+      html=html.replace(/<\/body>/i,'<script data-portfolio-section-layout="20260930-1805" src="/portfolio-section-layout.js?v=20260930-1805"></script>\n</body>');
+      return rebuildHtml(response,html);
     }
 
     if(request.method==='GET'&&['/','/index.html'].includes(path)&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
