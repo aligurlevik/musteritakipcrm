@@ -39,17 +39,17 @@ const DASHBOARD_FOLLOWUP_PATCH=String.raw`
 const PORTFOLIO_MODAL_CLEANUP=String.raw`
 (function(){
   if(window.__portfolioModalCleanupLoaded)return;
-  window.__portfolioModalCleanupLoaded='20260930-1832';
+  window.__portfolioModalCleanupLoaded='20260930-1835';
 
   var style=document.createElement('style');
   style.id='portfolioModalCleanupStyle';
-  style.textContent='\n#portfolioDetailExpandModal .pie-top-tabs{grid-template-columns:1fr 1.25fr 1.55fr 1fr 1.15fr .78fr .82fr .72fr!important;overflow:visible!important}\n#portfolioDetailExpandModal .pie-top-tab{font-size:14px!important;font-weight:900!important;color:#dc2626!important;padding:14px 5px 12px!important}\n#portfolioDetailExpandModal .pie-top-tab:hover{color:#991b1b!important;background:#fff7f7!important}\n#portfolioDetailExpandModal .pie-top-tab.active{color:#991b1b!important;border-bottom-color:#dc2626!important;background:#fff1f2!important}\n#portfolioDetailExpandModal .pie-title{font-size:17px!important;font-weight:900!important;color:#b91c1c!important}\n#portfolioDetailExpandModal .pie-legacy-extra-host{padding:12px 14px;background:#fff}\n#portfolioDetailExpandModal .pie-legacy-extra-host .tabpane{display:none!important}\n#portfolioDetailExpandModal .pie-legacy-extra-host .tabpane.pie-extra-active{display:block!important}\n#portfolioDetailExpandModal [data-hidden-duplicate-customer-panel="1"]{display:none!important}\n@media(max-width:1050px){#portfolioDetailExpandModal .pie-top-tabs{grid-template-columns:repeat(8,minmax(125px,1fr))!important;overflow-x:auto!important}#portfolioDetailExpandModal .pie-top-tab{font-size:13px!important}}';
+  style.textContent='\n#portfolioDetailExpandModal .pie-top-tabs{grid-template-columns:1fr 1.25fr 1.55fr 1fr 1.15fr .78fr .82fr!important;overflow:visible!important}\n#portfolioDetailExpandModal .pie-top-tab{font-size:14px!important;font-weight:900!important;color:#dc2626!important;padding:14px 5px 12px!important}\n#portfolioDetailExpandModal .pie-top-tab:hover{color:#991b1b!important;background:#fff7f7!important}\n#portfolioDetailExpandModal .pie-top-tab.active{color:#991b1b!important;border-bottom-color:#dc2626!important;background:#fff1f2!important}\n#portfolioDetailExpandModal .pie-title{font-size:17px!important;font-weight:900!important;color:#b91c1c!important}\n#portfolioDetailExpandModal .pie-legacy-extra-host{padding:12px 14px;background:#fff}\n#portfolioDetailExpandModal .pie-legacy-extra-host .tabpane{display:none!important}\n#portfolioDetailExpandModal .pie-legacy-extra-host .tabpane.pie-extra-active{display:block!important}\n#portfolioDetailExpandModal [data-hidden-duplicate-customer-panel="1"]{display:none!important}\n@media(max-width:1050px){#portfolioDetailExpandModal .pie-top-tabs{grid-template-columns:repeat(7,minmax(125px,1fr))!important;overflow-x:auto!important}#portfolioDetailExpandModal .pie-top-tab{font-size:13px!important}}';
   document.head.appendChild(style);
 
   function findLegacyTabs(modal){
     return Array.prototype.slice.call(modal.querySelectorAll('.tabs')).find(function(el){
       var text=String(el.innerText||el.textContent||'');
-      return text.indexOf('Genel')>=0&&text.indexOf('Teklifler')>=0&&text.indexOf('Siparişler')>=0&&text.indexOf('Analiz')>=0;
+      return text.indexOf('Genel')>=0&&text.indexOf('Teklifler')>=0&&text.indexOf('Siparişler')>=0;
     })||null;
   }
 
@@ -66,7 +66,7 @@ const PORTFOLIO_MODAL_CLEANUP=String.raw`
   function setExtraVisible(editor,index){
     var host=editor.querySelector('.pie-legacy-extra-host');
     if(!host)return;
-    var ids=['tabOffers','tabOrders','tabAnalysis'];
+    var ids=['tabOffers','tabOrders'];
     ids.forEach(function(id,i){
       var pane=host.querySelector('[data-pie-extra="'+id+'"]');
       if(pane)pane.classList.toggle('pie-extra-active',index===5+i);
@@ -80,7 +80,7 @@ const PORTFOLIO_MODAL_CLEANUP=String.raw`
 
   function addTopTabs(editor,tabs){
     if(!tabs)return;
-    var labels=['Teklifler','Siparişler','Analiz'];
+    var labels=['Teklifler','Siparişler'];
     labels.forEach(function(label,i){
       var index=5+i;
       if(tabs.querySelector('[data-tab-index="'+index+'"]'))return;
@@ -93,6 +93,8 @@ const PORTFOLIO_MODAL_CLEANUP=String.raw`
       button.textContent=label;
       tabs.appendChild(button);
     });
+    var stale=tabs.querySelector('[data-tab-index="7"]');
+    if(stale)stale.remove();
     if(tabs.dataset.extraWired==='1')return;
     tabs.dataset.extraWired='1';
     tabs.addEventListener('click',function(event){
@@ -120,7 +122,7 @@ const PORTFOLIO_MODAL_CLEANUP=String.raw`
       if(readOnly)readOnly.parentNode.insertBefore(host,readOnly);else editor.appendChild(host);
     }
 
-    [['tabOffers','Teklifler'],['tabOrders','Siparişler'],['tabAnalysis','Analiz']].forEach(function(pair){
+    [['tabOffers','Teklifler'],['tabOrders','Siparişler']].forEach(function(pair){
       var id=pair[0];
       if(host.querySelector('[data-pie-extra="'+id+'"]'))return;
       var pane=modal.querySelector('#'+id);
@@ -130,6 +132,9 @@ const PORTFOLIO_MODAL_CLEANUP=String.raw`
       pane.setAttribute('data-pie-extra',id);
       host.appendChild(pane);
     });
+
+    var analysis=modal.querySelector('#tabAnalysis');
+    if(analysis){analysis.classList.remove('pie-extra-active');analysis.style.display='none';}
 
     if(legacyRoot&&legacyRoot!==editor&&!legacyRoot.contains(editor)){
       legacyRoot.setAttribute('data-hidden-duplicate-customer-panel','1');
@@ -184,7 +189,7 @@ export default{
       html=html.replace(/<script[^>]*data-portfolio-section-layout[^>]*>[\s\S]*?<\/script>\s*/gi,'');
       html=html.replace(/<script\s+src=["']\/portfolio-section-layout\.js[^>]*><\/script>\s*/gi,'');
       html=html.replace(/<script[^>]*data-portfolio-modal-cleanup[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-      html=html.replace(/<\/body>/i,`<script data-portfolio-section-layout="20260930-1832" src="/portfolio-section-layout.js?v=20260930-1832"></script>\n<script data-portfolio-modal-cleanup="20260930-1832">\n${PORTFOLIO_MODAL_CLEANUP}\n</script>\n</body>`);
+      html=html.replace(/<\/body>/i,`<script data-portfolio-section-layout="20260930-1835" src="/portfolio-section-layout.js?v=20260930-1835"></script>\n<script data-portfolio-modal-cleanup="20260930-1835">\n${PORTFOLIO_MODAL_CLEANUP}\n</script>\n</body>`);
       return rebuildHtml(response,html);
     }
 
