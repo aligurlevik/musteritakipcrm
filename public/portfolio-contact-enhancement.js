@@ -89,6 +89,13 @@
       #portfolioDetailExpandModal .pdem-contact-value{font-size:13px;font-weight:800;color:#0f172a;line-height:1.4;overflow-wrap:anywhere}
       #portfolioDetailExpandModal .pdem-contact-value a{color:#1769f6;text-decoration:none}
       #portfolioDetailExpandModal .pdem-close{width:38px;height:38px;border:0;border-radius:9px;background:#eef2f7;color:#334155;font-size:22px;cursor:pointer}
+      #portfolioDetailExpandModal .pdem-quick-note{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:9px;align-items:center;padding:10px 14px;background:#fff;border-bottom:1px solid #dce5ef}
+      #portfolioDetailExpandModal .pdem-quick-note label{font-size:13px;font-weight:900;color:#0f172a;white-space:nowrap}
+      #portfolioDetailExpandModal .pdem-quick-note textarea{width:100%;min-height:42px;max-height:110px;resize:vertical;border:1px solid #cbd8e8;border-radius:9px;padding:10px 11px;font-size:13px;line-height:1.4;background:#fff;color:#0f172a;outline:none}
+      #portfolioDetailExpandModal .pdem-quick-note textarea:focus{border-color:#1769f6;box-shadow:0 0 0 3px rgba(23,105,246,.10)}
+      #portfolioDetailExpandModal .pdem-quick-note button{height:42px;border:0;border-radius:9px;background:#1769f6;color:#fff;font-size:13px;font-weight:900;padding:0 16px;cursor:pointer}
+      #portfolioDetailExpandModal .pdem-note-status{grid-column:2/-1;font-size:11px;font-weight:800;color:#16a34a;min-height:14px}
+      #portfolioDetailExpandModal .pdem-note-status.error{color:#dc2626}
       #portfolioDetailExpandModal .pdem-body{padding:12px;overflow:auto}
       #portfolioDetailExpandModal .detail{position:static!important;top:auto!important;width:100%!important;max-height:none!important;min-height:0!important;overflow:visible!important;border-radius:12px!important;box-shadow:none!important}
       #portfolioDetailExpandModal .detail-actions{display:none!important}
@@ -120,6 +127,8 @@
         #portfolioDetailExpandModal .pdem-box{max-height:98vh;width:99vw}
         #portfolioDetailExpandModal .summary4,#portfolioDetailExpandModal .two-col,#portfolioDetailExpandModal .portfolio-full-grid{grid-template-columns:1fr!important}
         #portfolioDetailExpandModal .pdem-contact{grid-template-columns:1fr}
+        #portfolioDetailExpandModal .pdem-quick-note{grid-template-columns:1fr}
+        #portfolioDetailExpandModal .pdem-note-status{grid-column:1}
       }
     `;
     document.head.appendChild(st);
@@ -244,6 +253,41 @@
       <div class="pdem-contact-item"><div class="pdem-contact-label">E-posta</div><div class="pdem-contact-value">${mailHtml}</div></div>`;
   }
 
+  function setNoteStatus(text,isError=false){
+    const el=document.getElementById('pdemQuickNoteStatus');
+    if(!el)return;
+    el.textContent=text||'';
+    el.classList.toggle('error',!!isError);
+  }
+
+  async function saveExpandQuickNote(){
+    const input=document.getElementById('pdemQuickNote');
+    const text=clean(input?.value);
+    if(!text){setNoteStatus('Önce bir not yazın.',true);input?.focus();return;}
+    if(!currentCustomer()){setNoteStatus('Müşteri seçili değil.',true);return;}
+    const original=document.getElementById('newNote');
+    if(!original||typeof addNote!=='function'||typeof saveCustomer!=='function'){
+      setNoteStatus('Not alanı yüklenemedi. Sayfayı yenileyin.',true);
+      return;
+    }
+    const btn=document.getElementById('pdemQuickNoteSave');
+    try{
+      if(btn){btn.disabled=true;btn.textContent='Kaydediliyor...'}
+      setNoteStatus('');
+      original.value=text;
+      addNote();
+      await saveCustomer();
+      if(input)input.value='';
+      setNoteStatus('Not kaydedildi.');
+      setTimeout(()=>{renderFullInfo();renderExpandContact()},120);
+    }catch(err){
+      console.error(err);
+      setNoteStatus('Not kaydedilemedi. Tekrar deneyin.',true);
+    }finally{
+      if(btn){btn.disabled=false;btn.textContent='Notu Kaydet'}
+    }
+  }
+
   let detailMarker=null;
   let oldBodyOverflow='';
 
@@ -259,9 +303,19 @@
           <div id="pdemContact" class="pdem-contact"></div>
           <button type="button" class="pdem-close" aria-label="Kapat">×</button>
         </div>
+        <div class="pdem-quick-note">
+          <label for="pdemQuickNote">Yeni Not</label>
+          <textarea id="pdemQuickNote" placeholder="Bu müşteri için yeni not yazın..."></textarea>
+          <button type="button" id="pdemQuickNoteSave">Notu Kaydet</button>
+          <div id="pdemQuickNoteStatus" class="pdem-note-status"></div>
+        </div>
         <div class="pdem-body"><div id="pdemMount"></div></div>
       </div>`;
     modal.addEventListener('click',e=>{if(e.target===modal||e.target.closest('.pdem-close'))closeExpandedPanel()});
+    modal.querySelector('#pdemQuickNoteSave')?.addEventListener('click',saveExpandQuickNote);
+    modal.querySelector('#pdemQuickNote')?.addEventListener('keydown',e=>{
+      if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();saveExpandQuickNote()}
+    });
     document.body.appendChild(modal);
     return modal;
   }
@@ -279,10 +333,11 @@
     document.getElementById('pdemMount').appendChild(detail);
     try{if(typeof switchTab==='function')switchTab('general')}catch(_){}
     renderExpandContact();
+    setNoteStatus('');
     oldBodyOverflow=document.body.style.overflow;
     document.body.style.overflow='hidden';
     modal.classList.add('show');
-    setTimeout(()=>{renderFullInfo();renderExpandContact()},60);
+    setTimeout(()=>{renderFullInfo();renderExpandContact();document.getElementById('pdemQuickNote')?.focus()},60);
   }
 
   function closeExpandedPanel(){
