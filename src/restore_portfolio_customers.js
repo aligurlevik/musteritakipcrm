@@ -24,7 +24,7 @@ export async function restorePortfolioCustomers(env){
   if(restorePromise)return restorePromise;
   restorePromise=(async()=>{
     await env.DB.prepare("CREATE TABLE IF NOT EXISTS app_meta(key TEXT PRIMARY KEY,value TEXT DEFAULT '')").run();
-    const marker=await env.DB.prepare('SELECT value FROM app_meta WHERE key=?').bind('restore_ankara_portfolio_v1').first();
+    const marker=await env.DB.prepare('SELECT value FROM app_meta WHERE key=?').bind('restore_ankara_portfolio_v2').first();
     if(marker)return;
 
     const cols=await columns(env);
@@ -59,7 +59,7 @@ export async function restorePortfolioCustomers(env){
     }
 
     await env.DB.prepare('INSERT OR REPLACE INTO app_meta(key,value) VALUES(?,?)')
-      .bind('restore_ankara_portfolio_v1',new Date().toISOString()).run();
+      .bind('restore_ankara_portfolio_v2',new Date().toISOString()).run();
   })().catch(error=>{restorePromise=null;throw error});
   return restorePromise;
 }
