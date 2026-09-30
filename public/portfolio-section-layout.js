@@ -17,6 +17,10 @@
     return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   }
 
+  function isTrue(v){
+    return v===true||v===1||v==='1'||String(v||'').toLowerCase()==='true';
+  }
+
   function ensureStyle(){
     if(document.getElementById('portfolioSectionTabsStyle'))return;
     const style=document.createElement('style');
@@ -39,17 +43,20 @@
       .pie-general-contact{margin:0 0 10px!important;padding:0!important;background:transparent!important;border:0!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;width:100%!important}
       .pie-general-contact .pdem-contact-item{background:#f8fafc!important}
       .pie-tab-quick-note{margin:0 0 12px!important;padding:10px!important;border:1px solid #dbe5f0!important;border-radius:10px!important;background:#f8fbff!important}
-      .pie-cari-card{margin-top:12px;border:1px solid #dbe5f0;border-radius:10px;background:#f8fafc;padding:11px}
-      .pie-cari-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;font-weight:900;color:#0f172a;margin-bottom:9px}
+      .pie-hidden-contact-editor{display:none!important}
+      .pie-cari-card,.pie-extra-card{margin-top:12px;border:1px solid #dbe5f0;border-radius:10px;background:#f8fafc;padding:11px}
+      .pie-cari-head,.pie-extra-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;font-weight:900;color:#0f172a;margin-bottom:9px}
       .pie-cari-badge{display:inline-flex;align-items:center;border-radius:999px;background:#dcfce7;color:#15803d;padding:4px 9px;font-size:10px;font-weight:900}
-      .pie-cari-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-      .pie-cari-field{min-width:0}.pie-cari-field.wide{grid-column:1/-1}
-      .pie-cari-field label{display:block;font-size:10px;font-weight:900;color:#64748b;margin-bottom:3px}
-      .pie-cari-field input,.pie-cari-field textarea{width:100%;border:1px solid #cbd8e8;border-radius:8px;background:#fff;color:#0f172a;padding:8px 9px;font:inherit;font-size:12px;outline:none}
-      .pie-cari-field textarea{min-height:62px;resize:vertical;line-height:1.4}
-      .pie-cari-field input:focus,.pie-cari-field textarea:focus{border-color:#1769f6;box-shadow:0 0 0 3px rgba(23,105,246,.10)}
-      .pie-cari-note{margin-top:7px;font-size:10px;color:#64748b}
-      @media(max-width:900px){.pie-top-tabs{grid-template-columns:repeat(5,minmax(120px,1fr));overflow-x:auto}.pie-top-tab{font-size:10px}.pie-general-contact{grid-template-columns:1fr!important}.pie-cari-grid{grid-template-columns:1fr}.pie-cari-field.wide{grid-column:auto}}
+      .pie-cari-grid,.pie-extra-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+      .pie-cari-field,.pie-extra-field{min-width:0}.pie-cari-field.wide,.pie-extra-field.wide{grid-column:1/-1}
+      .pie-cari-field label,.pie-extra-field label{display:block;font-size:10px;font-weight:900;color:#64748b;margin-bottom:3px}
+      .pie-cari-field input,.pie-cari-field textarea,.pie-extra-field input,.pie-extra-field textarea{width:100%;border:1px solid #cbd8e8;border-radius:8px;background:#fff;color:#0f172a;padding:8px 9px;font:inherit;font-size:12px;outline:none}
+      .pie-cari-field textarea,.pie-extra-field textarea{min-height:62px;resize:vertical;line-height:1.4}
+      .pie-cari-field input:focus,.pie-cari-field textarea:focus,.pie-extra-field input:focus,.pie-extra-field textarea:focus{border-color:#1769f6;box-shadow:0 0 0 3px rgba(23,105,246,.10)}
+      .pie-cari-note,.pie-extra-note{margin-top:7px;font-size:10px;color:#64748b}
+      .pie-checkline{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:900;color:#334155;margin-bottom:7px}.pie-checkline input{width:auto!important}
+      .pie-subbox{border:1px solid #e2e8f0;border-radius:9px;background:#fff;padding:9px}.pie-subbox-title{font-size:11px;font-weight:900;color:#0f172a;margin-bottom:7px}
+      @media(max-width:900px){.pie-top-tabs{grid-template-columns:repeat(5,minmax(120px,1fr));overflow-x:auto}.pie-top-tab{font-size:10px}.pie-general-contact{grid-template-columns:1fr!important}.pie-cari-grid,.pie-extra-grid{grid-template-columns:1fr}.pie-cari-field.wide,.pie-extra-field.wide{grid-column:auto}}
     `;
     document.head.appendChild(style);
   }
@@ -84,6 +91,14 @@
     }
   }
 
+  function hideDuplicateContactEditor(sections){
+    const generalBody=sections[0]&&sections[0].querySelector('.pie-section-body');
+    if(!generalBody)return;
+    const toggle=generalBody.querySelector('.pie-contact-toggle');
+    const holder=toggle&&toggle.closest('.pie-field');
+    if(holder)holder.classList.add('pie-hidden-contact-editor');
+  }
+
   function mountCariCard(sections){
     const c=currentCustomer();
     const generalBody=sections[0]&&sections[0].querySelector('.pie-section-body');
@@ -112,7 +127,7 @@
         <div class="pie-cari-field"><label>İlçe</label><input data-cari-field="district" value="${esc(c.district||'')}" placeholder="İlçe"></div>
         <div class="pie-cari-field wide"><label>Cari / Fatura Adresi</label><textarea data-cari-field="invoice_address" placeholder="Cari veya fatura adresi">${esc(c.invoice_address||'')}</textarea></div>
       </div>
-      <div class="pie-cari-note">Bu bilgiler canlı ve düzenlenebilir. Değişiklikler alttaki “Değişiklikleri Kaydet” düğmesiyle müşteri kartına kaydedilir.</div>
+      <div class="pie-cari-note">Yeni müşteri kaydında girilen cari bilgiler burada otomatik görünür ve düzenlenebilir.</div>
     `;
 
     card.querySelectorAll('[data-cari-field]').forEach(input=>{
@@ -121,6 +136,54 @@
         if(field)c[field]=input.value;
       };
       input.addEventListener('input',sync);
+      input.addEventListener('change',sync);
+    });
+  }
+
+  function mountInitialExtraFields(sections){
+    const c=currentCustomer();
+    const technicalBody=sections[4]&&sections[4].querySelector('.pie-section-body');
+    if(!c||!technicalBody)return;
+
+    let card=technicalBody.querySelector('.pie-extra-card');
+    if(!card){
+      card=document.createElement('section');
+      card.className='pie-extra-card';
+      technicalBody.appendChild(card);
+    }
+
+    const identity=String(c.id||'')+'|'+String(c.updated_at||'');
+    if(card.dataset.customerIdentity===identity)return;
+    card.dataset.customerIdentity=identity;
+
+    card.innerHTML=`
+      <div class="pie-extra-head"><span>📦 İlk Kayıttan Gelen Sevkiyat / Servis Bilgileri</span></div>
+      <div class="pie-extra-grid">
+        <div class="pie-subbox">
+          <div class="pie-subbox-title">Kargo Bilgileri</div>
+          <label class="pie-checkline"><input type="checkbox" data-extra-check="cargo_enabled" ${isTrue(c.cargo_enabled)?'checked':''}> Anlaşmalı kargo var</label>
+          <div class="pie-extra-field"><label>Kargo Firması</label><input data-extra-field="cargo_company" value="${esc(c.cargo_company||'')}" placeholder="Kargo firması"></div>
+          <div class="pie-extra-field" style="margin-top:7px"><label>Müşteri / Anlaşma Kodu</label><input data-extra-field="cargo_code" value="${esc(c.cargo_code||'')}" placeholder="Anlaşma kodu"></div>
+          <div class="pie-extra-field" style="margin-top:7px"><label>Kargo Notu</label><textarea data-extra-field="cargo_note" placeholder="Kargo notu">${esc(c.cargo_note||'')}</textarea></div>
+        </div>
+        <div class="pie-subbox">
+          <div class="pie-subbox-title">Servis Bilgileri</div>
+          <label class="pie-checkline"><input type="checkbox" data-extra-check="service_requested" ${isTrue(c.service_requested)?'checked':''}> Servis talebi var</label>
+          <div class="pie-extra-field"><label>Servis Türü</label><input data-extra-field="service_type" value="${esc(c.service_type||'')}" placeholder="Servis türü"></div>
+          <div class="pie-extra-field" style="margin-top:7px"><label>İstenen Tarih</label><input type="date" data-extra-field="service_date" value="${esc(String(c.service_date||'').slice(0,10))}"></div>
+          <div class="pie-extra-field" style="margin-top:7px"><label>Servis Açıklaması</label><textarea data-extra-field="service_description" placeholder="Servis açıklaması">${esc(c.service_description||'')}</textarea></div>
+        </div>
+      </div>
+      <div class="pie-extra-note">Yeni müşteri açarken girilen kargo ve servis bilgileri burada otomatik gelir.</div>
+    `;
+
+    card.querySelectorAll('[data-extra-field]').forEach(input=>{
+      const sync=()=>{const field=input.dataset.extraField;if(field)c[field]=input.value;};
+      input.addEventListener('input',sync);
+      input.addEventListener('change',sync);
+    });
+    card.querySelectorAll('[data-extra-check]').forEach(input=>{
+      const sync=()=>{const field=input.dataset.extraCheck;if(field)c[field]=input.checked;};
       input.addEventListener('change',sync);
     });
   }
@@ -147,16 +210,18 @@
 
     updateCustomerTitle(modal);
     moveHeaderContent(modal,sections);
+    hideDuplicateContactEditor(sections);
     mountCariCard(sections);
+    mountInitialExtraFields(sections);
 
-    if(editor.dataset.sectionLayoutReady==='tabs-v4')return;
-    editor.dataset.sectionLayoutReady='tabs-v4';
+    if(editor.dataset.sectionLayoutReady==='tabs-v5')return;
+    editor.dataset.sectionLayoutReady='tabs-v5';
     editor.classList.add('pie-tabs-mode');
 
     const title=editor.querySelector('.pie-title');
     if(title)title.textContent='Müşteri Bilgileri';
     const sub=editor.querySelector('.pie-sub');
-    if(sub)sub.textContent='Genel bölümünde aktif cari kart ve iletişim bilgilerini düzenleyebilirsiniz.';
+    if(sub)sub.textContent='Yeni müşteri kaydında girilen bilgiler ilgili sekmelerde otomatik gösterilir.';
 
     let tabs=editor.querySelector('.pie-top-tabs');
     if(!tabs){
