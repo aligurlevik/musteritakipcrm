@@ -76,7 +76,31 @@
       .portfolio-history-row.order{border-left-color:#16a34a;background:#f2fbf6}
       .portfolio-history-row.empty{border-left-color:#cbd5e1;color:#64748b}
       .portfolio-history-head{font-weight:900;color:#172033;margin-bottom:3px}
+
+      #portfolioDetailExpandModal{position:fixed;inset:0;z-index:120000;background:rgba(15,23,42,.58);display:none;align-items:center;justify-content:center;padding:18px}
+      #portfolioDetailExpandModal.show{display:flex}
+      #portfolioDetailExpandModal .pdem-box{width:min(1180px,97vw);max-height:94vh;background:#f4f7fb;border-radius:16px;box-shadow:0 30px 90px rgba(15,23,42,.34);display:flex;flex-direction:column;overflow:hidden}
+      #portfolioDetailExpandModal .pdem-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 16px;background:#fff;border-bottom:1px solid #dce5ef}
+      #portfolioDetailExpandModal .pdem-title{font-size:17px;font-weight:900;color:#0f172a}
+      #portfolioDetailExpandModal .pdem-sub{font-size:10px;color:#64748b;margin-top:2px}
+      #portfolioDetailExpandModal .pdem-close{width:38px;height:38px;border:0;border-radius:9px;background:#eef2f7;color:#334155;font-size:22px;cursor:pointer}
+      #portfolioDetailExpandModal .pdem-body{padding:12px;overflow:auto}
+      #portfolioDetailExpandModal .detail{position:static!important;top:auto!important;width:100%!important;max-height:none!important;min-height:0!important;overflow:visible!important;border-radius:12px!important;box-shadow:none!important}
+      #portfolioDetailExpandModal .detail-actions{display:none!important}
+      #portfolioDetailExpandModal .detail-body{padding:14px 16px 18px!important}
+      #portfolioDetailExpandModal .summary4{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+      #portfolioDetailExpandModal .two-col{grid-template-columns:1fr 1fr!important}
+      #portfolioDetailExpandModal .portfolio-full-grid{grid-template-columns:1fr 1fr!important}
+      #portfolioDetailExpandModal .portfolio-full-info{padding:14px!important}
+      #portfolioDetailExpandModal .portfolio-full-label{font-size:10px!important}
+      #portfolioDetailExpandModal .portfolio-full-value{font-size:11px!important}
+      #portfolioDetailExpandModal .portfolio-history-row{font-size:11px!important;padding:10px 11px!important}
       @media(max-width:1200px){.portfolio-full-grid{grid-template-columns:1fr}.portfolio-full-item.wide{grid-column:auto}}
+      @media(max-width:760px){
+        #portfolioDetailExpandModal{padding:6px}
+        #portfolioDetailExpandModal .pdem-box{max-height:98vh;width:99vw}
+        #portfolioDetailExpandModal .summary4,#portfolioDetailExpandModal .two-col,#portfolioDetailExpandModal .portfolio-full-grid{grid-template-columns:1fr!important}
+      }
     `;
     document.head.appendChild(st);
   }
@@ -180,6 +204,71 @@
       <div class="portfolio-history">${orderRow(c)}</div>`;
   }
 
+  let detailMarker=null;
+  let oldBodyOverflow='';
+
+  function ensureExpandModal(){
+    let modal=document.getElementById('portfolioDetailExpandModal');
+    if(modal)return modal;
+    modal=document.createElement('div');
+    modal.id='portfolioDetailExpandModal';
+    modal.innerHTML=`
+      <div class="pdem-box" role="dialog" aria-modal="true" aria-labelledby="pdemTitle">
+        <div class="pdem-head">
+          <div><div id="pdemTitle" class="pdem-title">Müşteri Kartı — Tam Görünüm</div><div class="pdem-sub">Sağdaki müşteri panosunun tamamı. Bilgileri burada inceleyebilir ve düzenleyebilirsiniz.</div></div>
+          <button type="button" class="pdem-close" aria-label="Kapat">×</button>
+        </div>
+        <div class="pdem-body"><div id="pdemMount"></div></div>
+      </div>`;
+    modal.addEventListener('click',e=>{if(e.target===modal||e.target.closest('.pdem-close'))closeExpandedPanel()});
+    document.body.appendChild(modal);
+    return modal;
+  }
+
+  function openExpandedPanel(){
+    const detail=document.querySelector('.workspace > .detail')||document.querySelector('#portfolioDetailExpandModal .detail');
+    if(!detail)return;
+    addStyles();
+    renderFullInfo();
+    const modal=ensureExpandModal();
+    if(!detailMarker){
+      detailMarker=document.createComment('portfolio-detail-home');
+      detail.parentNode.insertBefore(detailMarker,detail);
+    }
+    document.getElementById('pdemMount').appendChild(detail);
+    try{if(typeof switchTab==='function')switchTab('general')}catch(_){}
+    oldBodyOverflow=document.body.style.overflow;
+    document.body.style.overflow='hidden';
+    modal.classList.add('show');
+    setTimeout(()=>{renderFullInfo();document.getElementById('dContact')?.focus()},60);
+  }
+
+  function closeExpandedPanel(){
+    const modal=document.getElementById('portfolioDetailExpandModal');
+    const detail=modal?.querySelector('.detail');
+    if(detail&&detailMarker?.parentNode){
+      detailMarker.parentNode.insertBefore(detail,detailMarker);
+      detailMarker.remove();
+      detailMarker=null;
+    }
+    modal?.classList.remove('show');
+    document.body.style.overflow=oldBodyOverflow;
+  }
+
+  function interceptEditForExpand(e){
+    const btn=e.target?.closest?.('button');
+    if(!btn)return;
+    if(!btn.closest('.detail-actions')||!btn.textContent.includes('Düzenle'))return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    openExpandedPanel();
+  }
+
+  function onEscape(e){
+    if(e.key==='Escape'&&document.getElementById('portfolioDetailExpandModal')?.classList.contains('show'))closeExpandedPanel();
+  }
+
   let lastKey='';
   function sync(){
     const c=currentCustomer();
@@ -208,7 +297,10 @@
 
   function startFullInfo(){
     addStyles();
+    ensureExpandModal();
+    window.addEventListener('click',interceptEditForExpand,true);
     window.addEventListener('click',interceptCompanyClick,true);
+    document.addEventListener('keydown',onEscape);
     document.addEventListener('click',()=>setTimeout(sync,60),true);
     setInterval(sync,350);
     setTimeout(sync,250);
