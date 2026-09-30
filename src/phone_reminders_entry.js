@@ -3,6 +3,7 @@ import {pushApi,pushHealth,deliverDueReminders,sendPush,sendWakePush} from './ph
 import {applyCrmBranding} from './crm_branding.js';
 import {nativeAlarmApi} from './native_alarm_api.js';
 import {ensureCustomerExtendedFields,persistCustomerExtendedFields} from './customer_extended_fields.js';
+import {restorePortfolioCustomers} from './restore_portfolio_customers.js';
 
 let demoCleanupPromise;
 const sessionEncoder=new TextEncoder();
@@ -136,6 +137,7 @@ async function simplifyCrmMenu(response,request){
 export default{
   async fetch(request,env,ctx){
     try{await cleanupDemoCustomers(env)}catch(_){}
+    try{await restorePortfolioCustomers(env)}catch(error){console.error('Portfolio restore failed',error?.message||error)}
     const requestUrl=new URL(request.url),path=requestUrl.pathname;
 
     if(request.method==='GET'&&path==='/musteri-portfoyu.html'){
