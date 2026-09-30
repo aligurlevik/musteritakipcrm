@@ -1,29 +1,183 @@
 (function(){
-'use strict';
-const $=id=>document.getElementById(id), clean=v=>String(v??'').trim(), arr=v=>{try{let x=Array.isArray(v)?v:JSON.parse(v||'[]');return Array.isArray(x)?x:[]}catch{return[]}}, esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function current(){try{return typeof selected!=='undefined'?selected:null}catch{return null}}
-function resultOf(c){if(c?.stage==='Kazanıldı')return'positive';if(c?.stage==='Kaybedildi'||c?.record_status==='Pasif')return'negative';if(c?.stage==='Beklemede')return'waiting';return'open'}
-function contacts(c){if(!c)return[];let d=arr(c.contacts_json).map(x=>({name:clean(x?.name),role:clean(x?.role),phone:clean(x?.phone),email:clean(x?.email)})).filter(x=>x.name||x.role||x.phone||x.email);if(d.length)return d;let n=clean(c.contact_name).split(/\r?\n/).filter(Boolean),p=arr(c.phones_json),e=arr(c.emails_json),k=Math.max(n.length,p.length,e.length,c.phone?1:0,c.email?1:0),r=[];for(let i=0;i<k;i++){let x={name:n[i]||'',role:'',phone:p[i]||(!i?clean(c.phone):''),email:e[i]||(!i?clean(c.email):'')};if(x.name||x.phone||x.email)r.push(x)}return r}
-function style(){if($('portfolioContactEnhancementStyle'))return;let s=document.createElement('style');s.id='portfolioContactEnhancementStyle';s.textContent=`
-.datebox{display:none!important}.workspace{grid-template-columns:minmax(0,2.45fr) minmax(360px,.78fr)!important}.table-card table{width:100%!important;min-width:0!important;table-layout:fixed!important}.table-card th:nth-child(2),.table-card td:nth-child(2),.table-card th:nth-child(3),.table-card td:nth-child(3),.table-card th:nth-child(4),.table-card td:nth-child(4){display:none!important}.table-card th:nth-child(1),.table-card td:nth-child(1){width:23%!important}.table-card th:nth-child(5),.table-card td:nth-child(5){width:18%!important}.table-card th:nth-child(6),.table-card td:nth-child(6){width:12%!important}.table-card th:nth-child(7),.table-card td:nth-child(7){width:11%!important}.table-card th:nth-child(8),.table-card td:nth-child(8){width:11%!important}.table-card th:nth-child(9),.table-card td:nth-child(9){width:13%!important}.table-card th:nth-child(10),.table-card td:nth-child(10){width:5%!important;text-align:center}.table-card th:nth-child(11),.table-card td:nth-child(11){width:7%!important;text-align:center}.table-card th,.table-card td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.company{color:#1769f6!important;text-decoration:underline;text-underline-offset:2px;cursor:pointer!important}.portfolio-contact-summary{display:grid;gap:7px;margin:7px 0 9px}.portfolio-contact-card{border:1px solid #dce5ef;border-radius:8px;padding:8px;background:#f8fafc}.portfolio-contact-name{font-weight:900;font-size:11px}.portfolio-contact-role{font-size:10px;color:#64748b;margin-top:2px}.portfolio-contact-meta{display:grid;gap:3px;margin-top:6px;font-size:10px}.portfolio-contact-meta a{color:#1769f6;text-decoration:none}
-#portfolioContactModal,#portfolioEditModal{position:fixed;inset:0;background:rgba(15,23,42,.52);z-index:99999;display:none;align-items:center;justify-content:center;padding:18px}#portfolioContactModal.show,#portfolioEditModal.show{display:flex}#portfolioContactModal .box{width:min(720px,96vw);max-height:84vh;overflow:auto;background:#fff;border-radius:14px;box-shadow:0 24px 70px #0f172a47}.mh{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #dce5ef}.mx{border:0;background:#eef2f7;border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:20px}.mb{padding:14px 16px}.cr{display:grid;grid-template-columns:1.15fr .9fr 1fr 1.25fr;gap:9px;padding:10px;border:1px solid #dce5ef;border-radius:9px;margin-bottom:8px;font-size:11px}.cr.head{font-size:10px;font-weight:900;color:#64748b;background:#f8fafc}.empty{padding:18px;text-align:center;color:#64748b;background:#f8fafc;border-radius:9px}
-#portfolioEditModal{z-index:100000;padding:22px}#portfolioEditModal .ebox{width:min(1040px,97vw);max-height:92vh;display:flex;flex-direction:column;background:#fff;border-radius:16px;box-shadow:0 28px 90px #0f172a52;overflow:hidden}#portfolioEditModal .etitle{font-size:20px;font-weight:900}.esub{font-size:11px;color:#64748b;margin-top:3px}.ebody{padding:16px 20px 8px;overflow:auto;background:#f8fafc}.sec{background:#fff;border:1px solid #dce5ef;border-radius:12px;padding:14px;margin-bottom:12px}.sec h3{font-size:13px;margin:0 0 11px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.field{display:grid;gap:5px;min-width:0}.field.span2{grid-column:span 2}.field.span3{grid-column:1/-1}.field label{font-size:10px;font-weight:900;color:#475569}#portfolioEditModal input,#portfolioEditModal select,#portfolioEditModal textarea{width:100%;border:1px solid #cfd9e5;border-radius:8px;background:#fff;padding:9px 10px;font-size:12px;outline:none}#portfolioEditModal input,#portfolioEditModal select{height:38px}#portfolioEditModal textarea{min-height:100px;resize:vertical}.ea{display:flex;justify-content:flex-end;gap:9px;padding:13px 20px 16px;border-top:1px solid #dce5ef}.eb{border:1px solid #dce5ef;border-radius:9px;padding:10px 16px;font-weight:900;cursor:pointer;background:#fff}.eb.primary{background:#1769f6;color:#fff;border-color:#1769f6}.estatus{margin-right:auto;align-self:center;font-size:11px;font-weight:800;color:#64748b}.estatus.err{color:#b42335}
-@media(max-width:1000px){.workspace{grid-template-columns:1fr!important}.table-card table{min-width:760px!important}.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){#portfolioEditModal{padding:8px}.grid{grid-template-columns:1fr}.field.span2,.field.span3{grid-column:auto}.cr{grid-template-columns:1fr}.cr.head{display:none}.table-card table{min-width:720px!important}}
-`;document.head.appendChild(s)}
-function contactModal(){let m=$('portfolioContactModal');if(m)return m;m=document.createElement('div');m.id='portfolioContactModal';m.innerHTML='<div class="box"><div class="mh"><b id="pcmTitle">Yetkili Kişiler</b><button class="mx">×</button></div><div class="mb" id="pcmContent"></div></div>';m.onclick=e=>{if(e.target===m||e.target.closest('.mx'))m.classList.remove('show')};document.body.appendChild(m);return m}
-function showContacts(c){let m=contactModal(),r=contacts(c);$('pcmTitle').textContent=(c.company||'Müşteri')+' — Yetkili Kişiler';$('pcmContent').innerHTML=r.length?'<div class="cr head"><span>Yetkili</span><span>Görevi</span><span>Telefon</span><span>Mail</span></div>'+r.map(x=>`<div class="cr"><b>${esc(x.name||'—')}</b><span>${esc(x.role||'—')}</span><span>${x.phone?`<a href="tel:${esc(x.phone)}">${esc(x.phone)}</a>`:'—'}</span><span>${x.email?`<a href="mailto:${esc(x.email)}">${esc(x.email)}</a>`:'—'}</span></div>`).join(''):'<div class="empty">Yetkili kişi bilgisi girilmemiş.</div>';m.classList.add('show')}
-function renderSummary(c){let ps=[...document.querySelectorAll('#tabGeneral .panel')],p=ps.find(x=>(x.querySelector('h3')?.textContent||'').includes('İletişim Bilgileri'));if(!p||!c)return;let z=p.querySelector('.portfolio-contact-summary');if(!z){z=document.createElement('div');z.className='portfolio-contact-summary';p.querySelector('h3').insertAdjacentElement('afterend',z);[...p.querySelectorAll('.info-row')].slice(0,3).forEach(x=>x.style.display='none')}let r=contacts(c);z.innerHTML=r.length?r.map(x=>`<div class="portfolio-contact-card"><div class="portfolio-contact-name">${esc(x.name||'Yetkili')}</div><div class="portfolio-contact-role">${esc(x.role||'Görev belirtilmemiş')}</div><div class="portfolio-contact-meta"><span>☎ ${x.phone?`<a href="tel:${esc(x.phone)}">${esc(x.phone)}</a>`:'—'}</span><span>✉ ${x.email?`<a href="mailto:${esc(x.email)}">${esc(x.email)}</a>`:'—'}</span></div></div>`).join(''):'<div class="empty">Yetkili kişi bilgisi girilmemiş.</div>'}
-function editModal(){let m=$('portfolioEditModal');if(m)return m;m=document.createElement('div');m.id='portfolioEditModal';m.innerHTML=`<div class="ebox"><div class="mh"><div><div id="pemTitle" class="etitle">Müşteri Düzenle</div><div class="esub">Bilgileri geniş ekranda düzenleyin. Kaydettiğinizde sağdaki özet yenilenir.</div></div><button class="mx">×</button></div><div class="ebody">
-<div class="sec"><h3>Firma Bilgileri</h3><div class="grid"><div class="field span2"><label>Firma Adı</label><input id="pemCompany"></div><div class="field"><label>İl / Bölge</label><input id="pemRegion"></div><div class="field span2"><label>İş Alanı</label><input id="pemCategories"></div><div class="field"><label>Potansiyel</label><select id="pemPriority"><option>KRİTİK</option><option>YÜKSEK</option><option>NORMAL</option></select></div><div class="field"><label>Sonuç</label><select id="pemResult"><option value="open">Sonuçlanmamış</option><option value="waiting">Beklemede</option><option value="positive">Olumlu</option><option value="negative">Olumsuz</option></select></div><div class="field"><label>Sonraki İşlem Tarihi</label><input id="pemFollow" type="date"></div><div class="field"><label>Makine / Teknik Bilgi</label><input id="pemMachine"></div></div></div>
-<div class="sec"><h3>İletişim Bilgileri</h3><div class="grid"><div class="field"><label>Yetkili Kişi</label><input id="pemContact"></div><div class="field"><label>Telefon</label><input id="pemPhone"></div><div class="field"><label>E-posta</label><input id="pemEmail" type="email"></div></div></div>
-<div class="sec"><h3>Fatura / Ticari Bilgiler</h3><div class="grid"><div class="field span2"><label>Fatura Ünvanı</label><input id="pemInvoiceTitle"></div><div class="field"><label>Vergi Dairesi</label><input id="pemTaxOffice"></div><div class="field"><label>Vergi Numarası</label><input id="pemTaxNumber"></div><div class="field span2"><label>Fatura Adresi</label><input id="pemInvoiceAddress"></div></div></div>
-<div class="sec"><h3>Notlar / Açıklamalar</h3><div class="field"><label>Müşteri Notları</label><textarea id="pemNotes"></textarea></div></div></div><div class="ea"><div id="pemStatus" class="estatus"></div><button class="eb cancel">İptal</button><button id="pemSave" class="eb primary">Kaydet</button></div></div>`;m.onclick=e=>{if(e.target===m||e.target.closest('.mx')||e.target.closest('.cancel'))m.classList.remove('show')};document.body.appendChild(m);$('pemSave').addEventListener('click',saveEdit);return m}
-function val(id,v){let e=$(id);if(e)e.value=v??''}
-function openEdit(c){c=c||current();if(!c)return;let m=editModal(),f=contacts(c)[0]||{};$('pemTitle').textContent=(c.company||'Müşteri')+' — Düzenle';val('pemCompany',c.company);val('pemRegion',c.region);val('pemCategories',c.categories||c.sector);val('pemPriority',c.priority||'NORMAL');val('pemResult',resultOf(c));val('pemFollow',c.follow_date);val('pemMachine',c.machine_info);val('pemContact',f.name||c.contact_name);val('pemPhone',f.phone||c.phone||arr(c.phones_json)[0]);val('pemEmail',f.email||c.email||arr(c.emails_json)[0]);val('pemInvoiceTitle',c.invoice_title);val('pemTaxOffice',c.tax_office);val('pemTaxNumber',c.tax_number);val('pemInvoiceAddress',c.invoice_address);val('pemNotes',c.special_notes);$('pemStatus').textContent='';$('pemStatus').classList.remove('err');$('pemSave').disabled=false;m.dataset.id=String(c.id);m.classList.add('show');setTimeout(()=>$('pemCompany')?.focus(),30)}
-async function saveEdit(){let c=current(),m=$('portfolioEditModal'),b=$('pemSave'),st=$('pemStatus');if(!c||!m||String(c.id)!==m.dataset.id)return;b.disabled=true;st.classList.remove('err');st.textContent='Kaydediliyor...';try{let desired=$('pemResult').value,p=arr(c.phones_json),e=arr(c.emails_json),ph=clean($('pemPhone').value),em=clean($('pemEmail').value);if(ph)p[0]=ph;else if(p.length)p.shift();if(em)e[0]=em;else if(e.length)e.shift();let stage=c.stage||'Yeni Lead';if(desired==='waiting')stage='Beklemede';else if(desired==='open'&&['Kazanıldı','Kaybedildi','Beklemede'].includes(stage))stage='İlk Görüşme';let payload={company:clean($('pemCompany').value)||c.company,contact_name:clean($('pemContact').value),phones:p,emails:e,region:clean($('pemRegion').value),categories:clean($('pemCategories').value).split(',').map(x=>x.trim()).filter(Boolean),priority:$('pemPriority').value,stage,follow_date:$('pemFollow').value,invoice_title:clean($('pemInvoiceTitle').value),tax_office:clean($('pemTaxOffice').value),tax_number:clean($('pemTaxNumber').value),invoice_address:clean($('pemInvoiceAddress').value),special_notes:$('pemNotes').value||'',machine_info:clean($('pemMachine').value)};await api('/api/customers/'+c.id,{method:'PUT',body:JSON.stringify(payload)});if(desired==='positive'||desired==='negative')await api('/api/customers/'+c.id+'/result',{method:'PUT',body:JSON.stringify({result:desired==='positive'?'Olumlu':'Olumsuz'})});if(typeof loadAll==='function')await loadAll(c.id);m.classList.remove('show')}catch(x){console.error(x);st.textContent='Kaydedilemedi: '+(x?.message||'Hata');st.classList.add('err');b.disabled=false}}
-function rowCustomer(row){let b=$('rows');if(!b||!row)return null;let i=[...b.children].indexOf(row);try{return typeof visibleRows!=='undefined'?visibleRows[i]:null}catch{return null}}
-async function recover(){try{let cs;try{cs=await api('/api/customers?status=T%C3%BCm%C3%BC')}catch{cs=await api('/api/customers')}let ms=[];try{ms=await api('/api/meetings?status=T%C3%BCm%C3%BC')}catch{try{ms=await api('/api/meetings')}catch{}};if(!Array.isArray(cs))throw Error('Müşteri listesi alınamadı');customers=cs.filter(c=>c.record_status!=='Silindi');meetings=Array.isArray(ms)?ms:[];fillFilters();counts();render();let id=(selected&&selected.id)||(visibleRows[0]&&visibleRows[0].id);if(id)await selectCustomer(id)}catch(x){console.error('Portfolio recovery failed',x)}}
-let last='';function sync(){style();contactModal();editModal();let c=current();if(c){let k=String(c.id||c.company||'');if(k!==last){last=k;renderSummary(c)}}}
-function start(){style();contactModal();editModal();document.addEventListener('click',e=>{let co=e.target.closest('.company');if(co){let c=rowCustomer(co.closest('tr'));if(c){e.preventDefault();e.stopPropagation();showContacts(c);return}}let bt=e.target.closest('.detail-actions .btn');if(bt&&String(bt.textContent).includes('Düzenle')){let c=current();if(c){e.preventDefault();e.stopImmediatePropagation();openEdit(c)}}},true);sync();setInterval(sync,350);setTimeout(recover,180)}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+  'use strict';
+
+  const byId=id=>document.getElementById(id);
+  const clean=v=>String(v??'').trim();
+  const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const parseArray=v=>{try{const x=Array.isArray(v)?v:JSON.parse(v||'[]');return Array.isArray(x)?x:[]}catch{return[]}};
+
+  function contactsOf(customer){
+    if(!customer)return [];
+    const direct=parseArray(customer.contacts_json).map(x=>({
+      name:clean(x?.name),role:clean(x?.role),phone:clean(x?.phone),email:clean(x?.email)
+    })).filter(x=>x.name||x.role||x.phone||x.email);
+    if(direct.length)return direct;
+
+    const names=clean(customer.contact_name).split(/\r?\n/).map(clean).filter(Boolean);
+    const phones=parseArray(customer.phones_json).map(clean);
+    const emails=parseArray(customer.emails_json).map(clean);
+    const count=Math.max(names.length,phones.length,emails.length,customer.phone?1:0,customer.email?1:0);
+    const rows=[];
+    for(let i=0;i<count;i++){
+      const row={name:names[i]||'',role:'',phone:phones[i]||(!i?clean(customer.phone):''),email:emails[i]||(!i?clean(customer.email):'')};
+      if(row.name||row.phone||row.email)rows.push(row);
+    }
+    return rows;
+  }
+
+  function addStyles(){
+    if(byId('portfolioContactEnhancementStyle'))return;
+    const style=document.createElement('style');
+    style.id='portfolioContactEnhancementStyle';
+    style.textContent=`
+      .workspace{grid-template-columns:minmax(0,2.45fr) minmax(360px,.78fr)!important}
+      .table-card table{width:100%!important;min-width:0!important;table-layout:fixed!important}
+      .table-card th:nth-child(2),.table-card td:nth-child(2),
+      .table-card th:nth-child(3),.table-card td:nth-child(3),
+      .table-card th:nth-child(4),.table-card td:nth-child(4){display:none!important}
+      .table-card th:nth-child(1),.table-card td:nth-child(1){width:23%!important}
+      .table-card th:nth-child(5),.table-card td:nth-child(5){width:18%!important}
+      .table-card th:nth-child(6),.table-card td:nth-child(6){width:12%!important}
+      .table-card th:nth-child(7),.table-card td:nth-child(7){width:11%!important}
+      .table-card th:nth-child(8),.table-card td:nth-child(8){width:11%!important}
+      .table-card th:nth-child(9),.table-card td:nth-child(9){width:13%!important}
+      .table-card th:nth-child(10),.table-card td:nth-child(10){width:5%!important;text-align:center}
+      .table-card th:nth-child(11),.table-card td:nth-child(11){width:7%!important;text-align:center}
+      .table-card th,.table-card td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .company{color:#1769f6!important;text-decoration:underline;text-underline-offset:2px;cursor:pointer!important}
+      .portfolio-contact-summary{display:grid;gap:7px;margin:7px 0 9px}
+      .portfolio-contact-card{border:1px solid #dce5ef;border-radius:8px;padding:8px;background:#f8fafc}
+      .portfolio-contact-name{font-weight:900;font-size:11px;color:#0f172a}
+      .portfolio-contact-role{font-size:10px;color:#64748b;margin-top:2px}
+      .portfolio-contact-meta{display:grid;gap:3px;margin-top:6px;font-size:10px}
+      .portfolio-contact-meta a{color:#1769f6;text-decoration:none}
+      #portfolioContactModal{position:fixed;inset:0;background:rgba(15,23,42,.48);z-index:99999;display:none;align-items:center;justify-content:center;padding:18px}
+      #portfolioContactModal.show{display:flex}
+      #portfolioContactModal .pcm-box{width:min(720px,96vw);max-height:84vh;overflow:auto;background:#fff;border-radius:14px;box-shadow:0 24px 70px rgba(15,23,42,.28)}
+      #portfolioContactModal .pcm-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #dce5ef}
+      #portfolioContactModal .pcm-head b{font-size:17px}
+      #portfolioContactModal .pcm-close{border:0;background:#eef2f7;border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:20px}
+      #portfolioContactModal .pcm-body{padding:14px 16px}
+      #portfolioContactModal .pcm-grid{display:grid;gap:9px}
+      #portfolioContactModal .pcm-row{display:grid;grid-template-columns:minmax(140px,1.15fr) minmax(120px,.9fr) minmax(135px,1fr) minmax(180px,1.25fr);gap:9px;padding:10px;border:1px solid #dce5ef;border-radius:9px;align-items:center}
+      #portfolioContactModal .pcm-labels{font-size:10px;font-weight:900;color:#64748b;background:#f8fafc}
+      #portfolioContactModal .pcm-row a{color:#1769f6;text-decoration:none}
+      #portfolioContactModal .pcm-empty{padding:20px;text-align:center;color:#64748b;background:#f8fafc;border-radius:9px}
+      .portfolio-load-error{color:#b42335!important;font-weight:800!important}
+      @media(max-width:1380px){.workspace{grid-template-columns:minmax(0,1.75fr) minmax(350px,.75fr)!important}}
+      @media(max-width:1000px){.workspace{grid-template-columns:1fr!important}.table-card table{min-width:760px!important}}
+      @media(max-width:700px){#portfolioContactModal .pcm-labels{display:none}#portfolioContactModal .pcm-row{grid-template-columns:1fr}.table-card table{min-width:720px!important}}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function ensureModal(){
+    let modal=byId('portfolioContactModal');
+    if(modal)return modal;
+    modal=document.createElement('div');
+    modal.id='portfolioContactModal';
+    modal.innerHTML='<div class="pcm-box"><div class="pcm-head"><b id="pcmTitle">Yetkili Kişiler</b><button type="button" class="pcm-close" aria-label="Kapat">×</button></div><div class="pcm-body"><div id="pcmContent"></div></div></div>';
+    modal.addEventListener('click',e=>{if(e.target===modal||e.target.closest('.pcm-close'))modal.classList.remove('show')});
+    document.body.appendChild(modal);
+    return modal;
+  }
+
+  function contactCards(customer){
+    const rows=contactsOf(customer);
+    if(!rows.length)return '<div class="pcm-empty">Bu müşteri için henüz yetkili kişi bilgisi girilmemiş.</div>';
+    return '<div class="pcm-grid"><div class="pcm-row pcm-labels"><span>Yetkili</span><span>Görevi</span><span>Telefon</span><span>Mail</span></div>'+rows.map(x=>`<div class="pcm-row"><div><b>${esc(x.name||'—')}</b></div><div>${esc(x.role||'—')}</div><div>${x.phone?`<a href="tel:${esc(x.phone)}">${esc(x.phone)}</a>`:'—'}</div><div>${x.email?`<a href="mailto:${esc(x.email)}">${esc(x.email)}</a>`:'—'}</div></div>`).join('')+'</div>';
+  }
+
+  function openContacts(customer){
+    if(!customer)return;
+    const modal=ensureModal();
+    byId('pcmTitle').textContent=(customer.company||'Müşteri')+' — Yetkili Kişiler';
+    byId('pcmContent').innerHTML=contactCards(customer);
+    modal.classList.add('show');
+  }
+
+  function renderRightPanel(customer){
+    const panels=[...document.querySelectorAll('#tabGeneral .panel')];
+    const panel=panels.find(p=>(p.querySelector('h3')?.textContent||'').includes('İletişim Bilgileri'));
+    if(!panel||!customer)return;
+    let summary=panel.querySelector('.portfolio-contact-summary');
+    if(!summary){
+      summary=document.createElement('div');
+      summary.className='portfolio-contact-summary';
+      const h=panel.querySelector('h3');
+      h.insertAdjacentElement('afterend',summary);
+      [...panel.querySelectorAll('.info-row')].slice(0,3).forEach(row=>row.style.display='none');
+    }
+    const rows=contactsOf(customer);
+    summary.innerHTML=rows.length?rows.map(x=>`<div class="portfolio-contact-card"><div class="portfolio-contact-name">${esc(x.name||'Yetkili')}</div><div class="portfolio-contact-role">${esc(x.role||'Görev belirtilmemiş')}</div><div class="portfolio-contact-meta"><span>☎ ${x.phone?`<a href="tel:${esc(x.phone)}">${esc(x.phone)}</a>`:'—'}</span><span>✉ ${x.email?`<a href="mailto:${esc(x.email)}">${esc(x.email)}</a>`:'—'}</span></div></div>`).join(''):'<div class="pcm-empty">Yetkili kişi bilgisi girilmemiş.</div>';
+  }
+
+  function customerForRow(row){
+    const body=byId('rows');
+    if(!body||!row)return null;
+    const index=[...body.children].indexOf(row);
+    try{return typeof visibleRows!=='undefined'&&visibleRows[index]?visibleRows[index]:null}catch{return null}
+  }
+
+  function handleCompanyClick(event){
+    const company=event.target.closest('.company');
+    if(!company)return;
+    const row=company.closest('tr');
+    const customer=customerForRow(row);
+    if(!customer)return;
+    event.preventDefault();
+    event.stopPropagation();
+    openContacts(customer);
+  }
+
+  async function recoverPortfolioData(){
+    try{
+      let customerRows;
+      try{customerRows=await api('/api/customers?status=T%C3%BCm%C3%BC')}catch(_){customerRows=await api('/api/customers')}
+      if(!Array.isArray(customerRows))throw new Error('Müşteri listesi alınamadı');
+
+      let meetingRows=[];
+      try{meetingRows=await api('/api/meetings?status=T%C3%BCm%C3%BC')}catch(_){try{meetingRows=await api('/api/meetings')}catch(__){meetingRows=[]}}
+      if(!Array.isArray(meetingRows))meetingRows=[];
+
+      customers=customerRows.filter(c=>c.record_status!=='Silindi');
+      meetings=meetingRows;
+      fillFilters();
+      counts();
+      render();
+
+      const targetId=(selected&&selected.id)||(visibleRows[0]&&visibleRows[0].id);
+      if(targetId)await selectCustomer(targetId);
+      else{
+        const empty=byId('detailEmpty');
+        if(empty)empty.textContent='Henüz kayıtlı müşteri yok.';
+      }
+    }catch(error){
+      const count=byId('rowCount');
+      if(count){count.textContent='Müşteri listesi yüklenemedi';count.classList.add('portfolio-load-error')}
+      const reminder=byId('sideReminders');
+      if(reminder){reminder.textContent='Veri bağlantısı kontrol ediliyor.';reminder.classList.add('portfolio-load-error')}
+      console.error('Portfolio recovery failed',error);
+    }
+  }
+
+  let lastSelected='';
+  function sync(){
+    addStyles();ensureModal();
+    let current=null;
+    try{current=typeof selected!=='undefined'?selected:null}catch(_){}
+    if(current){
+      const key=String(current.id||current.company||'');
+      if(key!==lastSelected){lastSelected=key;renderRightPanel(current)}
+    }
+  }
+
+  function start(){
+    addStyles();ensureModal();
+    document.addEventListener('click',handleCompanyClick,true);
+    sync();
+    setInterval(sync,350);
+    setTimeout(recoverPortfolioData,180);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
