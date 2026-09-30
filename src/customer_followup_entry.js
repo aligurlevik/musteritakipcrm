@@ -39,45 +39,122 @@ const DASHBOARD_FOLLOWUP_PATCH=String.raw`
 const PORTFOLIO_MODAL_CLEANUP=String.raw`
 (function(){
   if(window.__portfolioModalCleanupLoaded)return;
-  window.__portfolioModalCleanupLoaded='20260930-1825';
+  window.__portfolioModalCleanupLoaded='20260930-1832';
 
   var style=document.createElement('style');
   style.id='portfolioModalCleanupStyle';
-  style.textContent='\n#portfolioDetailExpandModal .pie-top-tab{font-size:15px!important;font-weight:900!important;color:#dc2626!important;padding:13px 8px 11px!important}\n#portfolioDetailExpandModal .pie-top-tab:hover{color:#b91c1c!important;background:#fff7f7!important}\n#portfolioDetailExpandModal .pie-top-tab.active{color:#b91c1c!important;border-bottom-color:#dc2626!important;background:#fff7f7!important}\n#portfolioDetailExpandModal .pie-title{font-size:17px!important;font-weight:900!important;color:#b91c1c!important}\n@media(max-width:900px){#portfolioDetailExpandModal .pie-top-tab{font-size:13px!important}}';
+  style.textContent='\n#portfolioDetailExpandModal .pie-top-tabs{grid-template-columns:1fr 1.25fr 1.55fr 1fr 1.15fr .78fr .82fr .72fr!important;overflow:visible!important}\n#portfolioDetailExpandModal .pie-top-tab{font-size:14px!important;font-weight:900!important;color:#dc2626!important;padding:14px 5px 12px!important}\n#portfolioDetailExpandModal .pie-top-tab:hover{color:#991b1b!important;background:#fff7f7!important}\n#portfolioDetailExpandModal .pie-top-tab.active{color:#991b1b!important;border-bottom-color:#dc2626!important;background:#fff1f2!important}\n#portfolioDetailExpandModal .pie-title{font-size:17px!important;font-weight:900!important;color:#b91c1c!important}\n#portfolioDetailExpandModal .pie-legacy-extra-host{padding:12px 14px;background:#fff}\n#portfolioDetailExpandModal .pie-legacy-extra-host .tabpane{display:none!important}\n#portfolioDetailExpandModal .pie-legacy-extra-host .tabpane.pie-extra-active{display:block!important}\n#portfolioDetailExpandModal [data-hidden-duplicate-customer-panel="1"]{display:none!important}\n@media(max-width:1050px){#portfolioDetailExpandModal .pie-top-tabs{grid-template-columns:repeat(8,minmax(125px,1fr))!important;overflow-x:auto!important}#portfolioDetailExpandModal .pie-top-tab{font-size:13px!important}}';
   document.head.appendChild(style);
 
-  function hasLegacyTabs(el){
-    if(!el)return false;
-    var text=String(el.innerText||el.textContent||'');
-    return text.indexOf('Genel')>=0&&text.indexOf('Görüşmeler & Notlar')>=0&&text.indexOf('Teklifler')>=0&&text.indexOf('Siparişler')>=0&&text.indexOf('Analiz')>=0;
+  function findLegacyTabs(modal){
+    return Array.prototype.slice.call(modal.querySelectorAll('.tabs')).find(function(el){
+      var text=String(el.innerText||el.textContent||'');
+      return text.indexOf('Genel')>=0&&text.indexOf('Teklifler')>=0&&text.indexOf('Siparişler')>=0&&text.indexOf('Analiz')>=0;
+    })||null;
   }
 
-  function hideDuplicatePanel(){
+  function findLegacyRoot(body,editor,tabs){
+    if(!tabs)return null;
+    var root=tabs.closest('.detail')||tabs.closest('#detailContent')||tabs.parentElement;
+    while(root&&root.parentElement&&root.parentElement!==body&&!root.parentElement.contains(editor)){
+      var p=root.parentElement;
+      if(p.querySelector&&p.querySelector('.tabs')===tabs)root=p;else break;
+    }
+    return root;
+  }
+
+  function setExtraVisible(editor,index){
+    var host=editor.querySelector('.pie-legacy-extra-host');
+    if(!host)return;
+    var ids=['tabOffers','tabOrders','tabAnalysis'];
+    ids.forEach(function(id,i){
+      var pane=host.querySelector('[data-pie-extra="'+id+'"]');
+      if(pane)pane.classList.toggle('pie-extra-active',index===5+i);
+    });
+    var extra=index>=5;
+    var note=editor.querySelector('.pie-readonly-note');
+    var actions=editor.querySelector('.pie-actions');
+    if(note)note.style.display=extra?'none':'';
+    if(actions)actions.style.display=extra?'none':'';
+  }
+
+  function addTopTabs(editor,tabs){
+    if(!tabs)return;
+    var labels=['Teklifler','Siparişler','Analiz'];
+    labels.forEach(function(label,i){
+      var index=5+i;
+      if(tabs.querySelector('[data-tab-index="'+index+'"]'))return;
+      var button=document.createElement('button');
+      button.type='button';
+      button.className='pie-top-tab';
+      button.setAttribute('role','tab');
+      button.setAttribute('aria-selected','false');
+      button.setAttribute('data-tab-index',String(index));
+      button.textContent=label;
+      tabs.appendChild(button);
+    });
+    if(tabs.dataset.extraWired==='1')return;
+    tabs.dataset.extraWired='1';
+    tabs.addEventListener('click',function(event){
+      var button=event.target.closest('.pie-top-tab');
+      if(!button)return;
+      var index=Number(button.getAttribute('data-tab-index')||0);
+      setTimeout(function(){setExtraVisible(editor,index);},0);
+    });
+  }
+
+  function moveLegacyPanels(modal,body,editor){
+    var topTabs=editor.querySelector('.pie-top-tabs');
+    if(!topTabs)return;
+    addTopTabs(editor,topTabs);
+
+    var legacyTabs=findLegacyTabs(modal);
+    if(!legacyTabs)return;
+    var legacyRoot=findLegacyRoot(body,editor,legacyTabs);
+
+    var host=editor.querySelector('.pie-legacy-extra-host');
+    if(!host){
+      host=document.createElement('div');
+      host.className='pie-legacy-extra-host';
+      var readOnly=editor.querySelector('.pie-readonly-note');
+      if(readOnly)readOnly.parentNode.insertBefore(host,readOnly);else editor.appendChild(host);
+    }
+
+    [['tabOffers','Teklifler'],['tabOrders','Siparişler'],['tabAnalysis','Analiz']].forEach(function(pair){
+      var id=pair[0];
+      if(host.querySelector('[data-pie-extra="'+id+'"]'))return;
+      var pane=modal.querySelector('#'+id);
+      if(!pane)return;
+      pane.classList.remove('hidden');
+      pane.classList.remove('pie-extra-active');
+      pane.setAttribute('data-pie-extra',id);
+      host.appendChild(pane);
+    });
+
+    if(legacyRoot&&legacyRoot!==editor&&!legacyRoot.contains(editor)){
+      legacyRoot.setAttribute('data-hidden-duplicate-customer-panel','1');
+      legacyRoot.style.display='none';
+    }else{
+      legacyTabs.style.display='none';
+      var general=modal.querySelector('#tabGeneral');if(general&&!editor.contains(general))general.style.display='none';
+      var notes=modal.querySelector('#tabNotes');if(notes&&!editor.contains(notes))notes.style.display='none';
+    }
+    setExtraVisible(editor,0);
+  }
+
+  function cleanup(){
     var modal=document.getElementById('portfolioDetailExpandModal');
     if(!modal||!modal.classList.contains('show'))return;
     var body=modal.querySelector('.pdem-body');
     var editor=body&&body.querySelector('.pie-editor');
     if(!body||!editor)return;
-
-    var nodes=Array.prototype.slice.call(body.querySelectorAll('div,section,article'));
-    var matches=nodes.filter(function(el){
-      return el!==editor&&!el.contains(editor)&&!editor.contains(el)&&hasLegacyTabs(el);
-    });
-    if(!matches.length)return;
-
-    matches.sort(function(a,b){return (a.innerText||'').length-(b.innerText||'').length;});
-    var target=matches[0];
-    while(target.parentElement&&target.parentElement!==body&&!target.parentElement.contains(editor)&&hasLegacyTabs(target.parentElement)){
-      target=target.parentElement;
-    }
-    target.style.display='none';
-    target.setAttribute('data-hidden-duplicate-customer-panel','1');
+    moveLegacyPanels(modal,body,editor);
   }
 
-  var observer=new MutationObserver(function(){setTimeout(hideDuplicatePanel,0);});
+  var observer=new MutationObserver(function(){setTimeout(cleanup,0);});
   observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
-  document.addEventListener('click',function(){setTimeout(hideDuplicatePanel,40);},true);
-  setInterval(hideDuplicatePanel,700);
+  document.addEventListener('click',function(){setTimeout(cleanup,35);},true);
+  setInterval(cleanup,600);
 })();
 `;
 
@@ -107,7 +184,7 @@ export default{
       html=html.replace(/<script[^>]*data-portfolio-section-layout[^>]*>[\s\S]*?<\/script>\s*/gi,'');
       html=html.replace(/<script\s+src=["']\/portfolio-section-layout\.js[^>]*><\/script>\s*/gi,'');
       html=html.replace(/<script[^>]*data-portfolio-modal-cleanup[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-      html=html.replace(/<\/body>/i,`<script data-portfolio-section-layout="20260930-1825" src="/portfolio-section-layout.js?v=20260930-1825"></script>\n<script data-portfolio-modal-cleanup="20260930-1825">\n${PORTFOLIO_MODAL_CLEANUP}\n</script>\n</body>`);
+      html=html.replace(/<\/body>/i,`<script data-portfolio-section-layout="20260930-1832" src="/portfolio-section-layout.js?v=20260930-1832"></script>\n<script data-portfolio-modal-cleanup="20260930-1832">\n${PORTFOLIO_MODAL_CLEANUP}\n</script>\n</body>`);
       return rebuildHtml(response,html);
     }
 
