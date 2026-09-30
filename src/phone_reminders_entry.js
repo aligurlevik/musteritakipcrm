@@ -79,9 +79,10 @@ async function servePortfolioDirect(request,env){
   const response=await env.ASSETS.fetch(new Request(assetUrl.toString(),{method:'GET',headers:request.headers}));
   if(!response.ok)return response;
   let html=await response.text();
-  html=html.replace(/href=["']\/\?page=customers["'](?=[^>]*>\s*＋?\s*Yeni Müşteri)/gi,'href="/yeni-musteri.html?v=20260930-1"');
-  html=html.replace(/href=["']\/\?page=customers(?:&amp;|&)newCustomer=1["']/gi,'href="/yeni-musteri.html?v=20260930-1"');
-  html=html.replace(/location\.href=["']\/\?page=customers(?:&amp;|&)newCustomer=1["'];?/gi,"location.href='/yeni-musteri.html?v=20260930-1';");
+  html=html.replace(/href=["']\/\?page=customers["'](?=[^>]*>\s*＋?\s*Yeni Müşteri)/gi,'href="/yeni-musteri.html?v=20260930-2"');
+  html=html.replace(/href=["']\/\?page=customers(?:&amp;|&)newCustomer=1["']/gi,'href="/yeni-musteri.html?v=20260930-2"');
+  html=html.replace(/location\.href=["']\/\?page=customers(?:&amp;|&)newCustomer=1["'];?/gi,"location.href='/yeni-musteri.html?v=20260930-2';");
+  if(!html.includes('/portfolio-contact-enhancement.js'))html=html.replace(/<\/body>/i,'<script src="/portfolio-contact-enhancement.js?v=20260930-2"></script>\n</body>');
   return rebuildHtml(response,html);
 }
 
@@ -95,7 +96,7 @@ async function simplifyCrmMenu(response,request){
   let html=await response.text();
   html=html.replace(/<div class="customer-folder-group">[\s\S]*?<\/div>/,'');
   html=html.replace(/<button data-page="meetings">Görüşmeler<\/button>/,'');
-  html=html.replace('<button class="btn primary" onclick="openCustomer()">+ Yeni Müşteri</button>','<button class="btn primary" type="button" onclick="location.href=\'/yeni-musteri.html?v=20260930-1\'">+ Yeni Müşteri</button>');
+  html=html.replace('<button class="btn primary" onclick="openCustomer()">+ Yeni Müşteri</button>','<button class="btn primary" type="button" onclick="location.href=\'/yeni-musteri.html?v=20260930-2\'">+ Yeni Müşteri</button>');
   if(!html.includes('/customer-card-extended.js'))html=html.replace(/<\/body>/i,'<script src="/customer-card-extended.js?v=20260930-1"></script>\n</body>');
   return rebuildHtml(response,html);
 }
@@ -112,7 +113,7 @@ export default{
     }
 
     if(request.method==='GET'&&['/','/index.html'].includes(path)&&requestUrl.searchParams.get('newCustomer')==='1'){
-      return Response.redirect(new URL('/yeni-musteri.html?v=20260930-1',request.url).toString(),302);
+      return Response.redirect(new URL('/yeni-musteri.html?v=20260930-2',request.url).toString(),302);
     }
 
     if(path.startsWith('/api/customers')){
@@ -127,7 +128,7 @@ export default{
     if(path.startsWith('/api/push/')){
       try{return await pushApi(request,env)}catch(error){console.error('Phone reminder API failed',error?.name);return new Response(JSON.stringify({error:'Telefon bildirimi kurulamadı. Tekrar deneyin.'}),{status:500,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}
     }
-    if(['/agenda-sw.js','/agenda-sw-silent.js','/agenda.webmanifest','/crm.webmanifest','/agenda-icon-192.png','/agenda-icon-512.png','/phone-reminders.js','/phone-notification-controls.js','/agenda-visual-alert.js','/note-color-palette.js','/customer-card-extended.js','/yeni-musteri.html'].includes(path)){
+    if(['/agenda-sw.js','/agenda-sw-silent.js','/agenda.webmanifest','/crm.webmanifest','/agenda-icon-192.png','/agenda-icon-512.png','/phone-reminders.js','/phone-notification-controls.js','/agenda-visual-alert.js','/note-color-palette.js','/customer-card-extended.js','/portfolio-contact-enhancement.js','/yeni-musteri.html'].includes(path)){
       const response=await env.ASSETS.fetch(request),headers=new Headers(response.headers);
       headers.set('cache-control','no-cache, no-store, must-revalidate');
       if(path==='/agenda-sw.js'||path==='/agenda-sw-silent.js'){headers.set('content-type','application/javascript');headers.set('service-worker-allowed','/')}
