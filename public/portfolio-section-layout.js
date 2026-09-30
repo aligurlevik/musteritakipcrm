@@ -9,11 +9,17 @@
     'Teknik & Notlar'
   ];
 
+  function currentCustomer(){
+    try{return typeof selected!=='undefined'?selected:null}catch(_){return null}
+  }
+
   function ensureStyle(){
     if(document.getElementById('portfolioSectionTabsStyle'))return;
     const style=document.createElement('style');
     style.id='portfolioSectionTabsStyle';
     style.textContent=`
+      #portfolioDetailExpandModal .pdem-head{grid-template-columns:minmax(260px,1fr) 38px!important}
+      #portfolioDetailExpandModal .pdem-head>.pdem-close{grid-column:2!important}
       .pie-editor.pie-tabs-mode{background:#fff;border:1px solid #dce5ef;border-radius:12px;padding:0;overflow:hidden}
       .pie-editor.pie-tabs-mode .pie-head{padding:12px 14px 8px;margin:0;background:#fff}
       .pie-top-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid #e5edf6;border-bottom:1px solid #dce5ef;background:#fff;position:sticky;top:0;z-index:3}
@@ -26,7 +32,10 @@
       .pie-editor.pie-tabs-mode .pie-section-body{padding:12px 14px}
       .pie-editor.pie-tabs-mode .pie-readonly-note{margin:0 14px 8px}
       .pie-editor.pie-tabs-mode .pie-actions{padding:0 14px 12px;margin-top:8px}
-      @media(max-width:900px){.pie-top-tabs{grid-template-columns:repeat(5,minmax(120px,1fr));overflow-x:auto}.pie-top-tab{font-size:10px}}
+      .pie-general-contact{margin:0 0 10px!important;padding:0!important;background:transparent!important;border:0!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;width:100%!important}
+      .pie-general-contact .pdem-contact-item{background:#f8fafc!important}
+      .pie-tab-quick-note{margin:0 0 12px!important;padding:10px!important;border:1px solid #dbe5f0!important;border-radius:10px!important;background:#f8fbff!important}
+      @media(max-width:900px){.pie-top-tabs{grid-template-columns:repeat(5,minmax(120px,1fr));overflow-x:auto}.pie-top-tab{font-size:10px}.pie-general-contact{grid-template-columns:1fr!important}}
     `;
     document.head.appendChild(style);
   }
@@ -44,24 +53,54 @@
     });
   }
 
+  function moveHeaderContent(modal,sections){
+    const generalBody=sections[0]&&sections[0].querySelector('.pie-section-body');
+    const meetingsBody=sections[2]&&sections[2].querySelector('.pie-section-body');
+
+    const contact=modal.querySelector('.pdem-contact');
+    if(contact&&generalBody&&contact.parentNode!==generalBody){
+      contact.classList.add('pie-general-contact');
+      generalBody.insertBefore(contact,generalBody.firstChild);
+    }
+
+    const quickNote=modal.querySelector('.pdem-quick-note');
+    if(quickNote&&meetingsBody&&quickNote.parentNode!==meetingsBody){
+      quickNote.classList.add('pie-tab-quick-note');
+      meetingsBody.insertBefore(quickNote,meetingsBody.firstChild);
+    }
+  }
+
+  function updateCustomerTitle(modal){
+    const c=currentCustomer();
+    const company=String(c&&c.company||'').trim();
+    const title=modal.querySelector('.pdem-title');
+    if(title)title.textContent=company?'Müşteri Kartı — '+company:'Müşteri Kartı';
+    const sub=modal.querySelector('.pdem-sub');
+    if(sub)sub.textContent='Firma bilgileri, görüşmeler ve yapılacak işlemler.';
+  }
+
   function applyLayout(){
     const modal=document.getElementById('portfolioDetailExpandModal');
     if(!modal||!modal.classList.contains('show'))return;
     const body=modal.querySelector('.pdem-body');
     const editor=body&&body.querySelector('.pie-editor');
-    if(!body||!editor||editor.dataset.sectionLayoutReady==='tabs-v2')return;
+    if(!body||!editor)return;
 
     ensureStyle();
     const sections=Array.from(editor.querySelectorAll('.pie-section')).slice(0,5);
     if(sections.length<5)return;
 
-    editor.dataset.sectionLayoutReady='tabs-v2';
+    updateCustomerTitle(modal);
+    moveHeaderContent(modal,sections);
+
+    if(editor.dataset.sectionLayoutReady==='tabs-v3')return;
+    editor.dataset.sectionLayoutReady='tabs-v3';
     editor.classList.add('pie-tabs-mode');
 
     const title=editor.querySelector('.pie-title');
-    if(title)title.textContent='✏️ Müşteri Bilgilerini Düzenle';
+    if(title)title.textContent='Müşteri Bilgileri';
     const sub=editor.querySelector('.pie-sub');
-    if(sub)sub.textContent='Aşağıdaki sekmelerden istediğiniz bölüme geçebilirsiniz.';
+    if(sub)sub.textContent='Bölüm seçerek bilgileri görüntüleyebilir ve düzenleyebilirsiniz.';
 
     let tabs=editor.querySelector('.pie-top-tabs');
     if(!tabs){
