@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/main_menu_cleanup_entry.js",
+  "main": "src/portfolio_data_guard_entry.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -33,3 +33,4 @@
 // portfolio-list-contact-columns-2026-10-01
 // hide-customers-mail-main-menu-2026-10-01
 // sales-followup-satisfaction-center-disabled-after-homepage-regression-2026-10-01
+// portfolio-data-guard-self-healing-2026-10-01
