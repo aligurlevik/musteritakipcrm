@@ -3,7 +3,7 @@ import worker from './customer_followup_entry.js';
 const CONTACT_DETAILS_PATCH=String.raw`
 (function(){
   if(window.__crmContactDetailsPatch)return;
-  window.__crmContactDetailsPatch='20261001-contact-v3-stable';
+  window.__crmContactDetailsPatch='20261001-contact-v3-1-stable';
 
   var style=document.createElement('style');
   style.id='crmContactDetailsStyle';
@@ -33,7 +33,7 @@ const CONTACT_DETAILS_PATCH=String.raw`
     if(input&&!clean(input.value)&&clean(value))input.value=clean(value);
   }
 
-  function bindMirror(top,row){
+  function bindMirror(top,row,key){
     if(!top||!row)return;
     if(top.dataset.mirrorBound!=='1'){
       top.dataset.mirrorBound='1';
@@ -41,9 +41,12 @@ const CONTACT_DETAILS_PATCH=String.raw`
       top.addEventListener('input',toRow);
       top.addEventListener('change',toRow);
     }
-    if(row.dataset.primaryMirrorBound!=='1'){
-      row.dataset.primaryMirrorBound='1';
-      var toTop=function(){if(document.activeElement!==top)top.value=row.value};
+    if(row.dataset['primaryMirror'+key]!=='1'){
+      row.dataset['primaryMirror'+key]='1';
+      var toTop=function(){
+        var current=document.querySelector('#portfolioDetailExpandModal [data-primary-contact="'+key+'"]');
+        if(current&&document.activeElement!==current)current.value=row.value;
+      };
       row.addEventListener('input',toTop);
       row.addEventListener('change',toTop);
     }
@@ -83,7 +86,7 @@ const CONTACT_DETAILS_PATCH=String.raw`
     var host=modal.querySelector('.pdem-contact');
     if(!host)return;
     var identity=String(c.id||'');
-    if(host.dataset.crmPrimaryContactId!==identity){
+    if(host.dataset.crmPrimaryContactId!==identity||!host.querySelector('[data-primary-contact="name"]')){
       host.dataset.crmPrimaryContactId=identity;
       host.innerHTML='\n        <div class="pdem-contact-item"><div class="pdem-contact-label">Yetkili Adı</div><input class="crm-primary-contact-input" data-primary-contact="name" placeholder="Yetkili adı"></div>\n        <div class="pdem-contact-item"><div class="pdem-contact-label">Telefon</div><input class="crm-primary-contact-input" data-primary-contact="phone" placeholder="Telefon"></div>\n        <div class="pdem-contact-item"><div class="pdem-contact-label">E-posta</div><input class="crm-primary-contact-input" data-primary-contact="email" type="email" placeholder="E-posta"></div>';
     }
@@ -91,12 +94,12 @@ const CONTACT_DETAILS_PATCH=String.raw`
     var topName=host.querySelector('[data-primary-contact="name"]');
     var topPhone=host.querySelector('[data-primary-contact="phone"]');
     var topEmail=host.querySelector('[data-primary-contact="email"]');
-    if(document.activeElement!==topName)topName.value=rowName?rowName.value:first.name;
-    if(document.activeElement!==topPhone)topPhone.value=rowPhone?rowPhone.value:first.phone;
-    if(document.activeElement!==topEmail)topEmail.value=rowEmail?rowEmail.value:first.email;
-    bindMirror(topName,rowName);
-    bindMirror(topPhone,rowPhone);
-    bindMirror(topEmail,rowEmail);
+    if(topName&&document.activeElement!==topName)topName.value=rowName?rowName.value:first.name;
+    if(topPhone&&document.activeElement!==topPhone)topPhone.value=rowPhone?rowPhone.value:first.phone;
+    if(topEmail&&document.activeElement!==topEmail)topEmail.value=rowEmail?rowEmail.value:first.email;
+    bindMirror(topName,rowName,'name');
+    bindMirror(topPhone,rowPhone,'phone');
+    bindMirror(topEmail,rowEmail,'email');
   }
 
   var observer=new MutationObserver(function(){setTimeout(showContactDetails,0)});
@@ -120,7 +123,7 @@ export default{
     if(request.method==='GET'&&url.pathname==='/musteri-portfoyu.html'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
       let html=await response.text();
       html=html.replace(/<script[^>]*data-contact-details-patch[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-      html=html.replace(/<\/body>/i,`<script data-contact-details-patch="20261001-contact-v3-stable">${CONTACT_DETAILS_PATCH}</script>\n</body>`);
+      html=html.replace(/<\/body>/i,`<script data-contact-details-patch="20261001-contact-v3-1-stable">${CONTACT_DETAILS_PATCH}</script>\n</body>`);
       return rebuild(response,html);
     }
     return response;
