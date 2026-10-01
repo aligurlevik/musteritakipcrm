@@ -2,10 +2,10 @@ import worker from './new_customer_cache_entry.js';
 
 const LIST_COLUMNS_PATCH=String.raw`
 (function(){
-  if(window.__crmPortfolioListColumnsVisibilityV2)return;
-  window.__crmPortfolioListColumnsVisibilityV2='20261001-list-columns-visibility-v2';
+  if(window.__crmPortfolioListColumnsVisibilityV3)return;
+  window.__crmPortfolioListColumnsVisibilityV3='20261001-list-columns-visibility-v3';
 
-  var PROVINCES=['Adana','Adıyaman','Afyonkarahisar','Ağrı','Amasya','Ankara','Antalya','Artvin','Aydın','Balıkesir','Bilecik','Bingöl','Bitlis','Bolu','Burdur','Bursa','Çanakkale','Çankırı','Çorum','Denizli','Diyarbakır','Edirne','Elazığ','Erzincan','Erzurum','Eskişehir','Gaziantep','Giresun','Gümüşhane','Hakkari','Hatay','Isparta','Mersin','İstanbul','İzmir','Kars','Kastamonu','Kayseri','Kırklareli','Kırşehir','Kocaeli','Konya','Kütahya','Malatya','Manisa','Kahramanmaraş','Mardin','Muğla','Muş','Nevşehir','Niğde','Ordu','Rize','Sakarya','Samsun','Siirt','Sinop','Sivas','Tekirdağ','Tokat','Trabzon','Tunceli','Şanlıurfa','Uşak','Van','Yozgat','Zonguldak','Aksaray','Bayburt','Karaman','Kırıkkale','Batman','Şırnak','Bartın','Ardahan','Iğdır','Yalova','Karabük','Kilis','Osmaniye','Düzce'];
+  var PROVINCES=['Adana','Adıyaman','Afyonkarahisar','Ağrı','Amasya','Ankara','Antalya','Artvin','Aydın','Balıkesir','Bilecik','Bingöl','Bitlis','Burdur','Bursa','Çanakkale','Çankırı','Çorum','Denizli','Diyarbakır','Edirne','Elazığ','Erzincan','Erzurum','Eskişehir','Gaziantep','Giresun','Gümüşhane','Hakkari','Hatay','Isparta','Mersin','İstanbul','İzmir','Kars','Kastamonu','Kayseri','Kırklareli','Kırşehir','Kocaeli','Konya','Kütahya','Malatya','Manisa','Kahramanmaraş','Mardin','Muğla','Muş','Nevşehir','Ordu','Rize','Sakarya','Samsun','Siirt','Sinop','Sivas','Tekirdağ','Tokat','Trabzon','Tunceli','Şanlıurfa','Uşak','Van','Yozgat','Zonguldak','Aksaray','Bayburt','Karaman','Kırıkkale','Batman','Şırnak','Bartın','Ardahan','Iğdır','Yalova','Karabük','Kilis','Osmaniye','Düzce'];
   var AREA_CODES={
     '312':'Ankara','224':'Bursa','212':'İstanbul','216':'İstanbul','232':'İzmir','322':'Adana','416':'Adıyaman','272':'Afyonkarahisar','472':'Ağrı','358':'Amasya','242':'Antalya','466':'Artvin','256':'Aydın','266':'Balıkesir','228':'Bilecik','426':'Bingöl','434':'Bitlis','374':'Bolu','248':'Burdur','286':'Çanakkale','376':'Çankırı','364':'Çorum','258':'Denizli','412':'Diyarbakır','284':'Edirne','424':'Elazığ','446':'Erzincan','442':'Erzurum','222':'Eskişehir','342':'Gaziantep','454':'Giresun','456':'Gümüşhane','438':'Hakkari','326':'Hatay','246':'Isparta','324':'Mersin','474':'Kars','366':'Kastamonu','352':'Kayseri','288':'Kırklareli','386':'Kırşehir','262':'Kocaeli','332':'Konya','274':'Kütahya','422':'Malatya','236':'Manisa','344':'Kahramanmaraş','482':'Mardin','252':'Muğla','436':'Muş','384':'Nevşehir','388':'Niğde','452':'Ordu','464':'Rize','264':'Sakarya','362':'Samsun','484':'Siirt','368':'Sinop','346':'Sivas','282':'Tekirdağ','356':'Tokat','462':'Trabzon','428':'Tunceli','414':'Şanlıurfa','276':'Uşak','432':'Van','354':'Yozgat','372':'Zonguldak','382':'Aksaray','458':'Bayburt','338':'Karaman','318':'Kırıkkale','488':'Batman','486':'Şırnak','378':'Bartın','478':'Ardahan','476':'Iğdır','226':'Yalova','370':'Karabük','348':'Kilis','328':'Osmaniye','380':'Düzce'
   };
@@ -38,6 +38,32 @@ const LIST_COLUMNS_PATCH=String.raw`
     return region||'—';
   }
 
+  function stageText(customer){
+    var stage=clean(customer&&customer.stage);
+    if(!stage||stage==='Yeni Lead')return 'Yeni Müşteri';
+    if(stage==='İlk Görüşme')return 'Arandı';
+    if(stage==='Teklif')return 'Teklif Verildi';
+    return stage;
+  }
+
+  function stageClass(customer){
+    var s=normalize(stageText(customer));
+    if(s.indexOf('kazan')>=0||s==='olumlu')return 'pos';
+    if(s.indexOf('kaybed')>=0||s==='olumsuz')return 'neg';
+    if(s.indexOf('bekle')>=0)return 'wait';
+    if(s.indexOf('mail')>=0||s.indexOf('teklif')>=0)return 'offer';
+    return 'open';
+  }
+
+  function showStage(cell,customer){
+    if(!cell)return;
+    cell.innerHTML='';
+    var badge=document.createElement('span');
+    badge.className='badge '+stageClass(customer);
+    badge.textContent=stageText(customer);
+    cell.appendChild(badge);
+  }
+
   function enforce(){
     var table=document.querySelector('.table-card table');
     if(!table)return;
@@ -61,7 +87,9 @@ const LIST_COLUMNS_PATCH=String.raw`
         else cell.style.setProperty('display','table-cell','important');
         if(widths[index])cell.style.setProperty('width',widths[index],'important');
       });
-      if(row.children[3])row.children[3].textContent=provinceOnly(data[rowIndex]);
+      var customer=data[rowIndex]||null;
+      if(row.children[3])row.children[3].textContent=provinceOnly(customer);
+      if(row.children[6])showStage(row.children[6],customer);
     });
   }
 
@@ -92,7 +120,7 @@ export default{
     if(request.method==='GET'&&url.pathname==='/musteri-portfoyu.html'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
       let html=await response.text();
       html=html.replace(/<script[^>]*data-list-columns-visibility[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-      html=html.replace(/<\/body>/i,`<script data-list-columns-visibility="v2">${LIST_COLUMNS_PATCH}</script>\n</body>`);
+      html=html.replace(/<\/body>/i,`<script data-list-columns-visibility="v3">${LIST_COLUMNS_PATCH}</script>\n</body>`);
       return rebuild(response,html);
     }
     return response;
