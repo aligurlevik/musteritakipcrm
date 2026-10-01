@@ -2,8 +2,8 @@ import worker from './new_customer_cache_entry.js';
 
 const LIST_COLUMNS_PATCH=String.raw`
 (function(){
-  if(window.__crmPortfolioListColumnsVisibilityV3)return;
-  window.__crmPortfolioListColumnsVisibilityV3='20261001-list-columns-visibility-v3';
+  if(window.__crmPortfolioListColumnsVisibilityV4)return;
+  window.__crmPortfolioListColumnsVisibilityV4='20261001-list-columns-visibility-v4';
 
   var PROVINCES=['Adana','Adıyaman','Afyonkarahisar','Ağrı','Amasya','Ankara','Antalya','Artvin','Aydın','Balıkesir','Bilecik','Bingöl','Bitlis','Burdur','Bursa','Çanakkale','Çankırı','Çorum','Denizli','Diyarbakır','Edirne','Elazığ','Erzincan','Erzurum','Eskişehir','Gaziantep','Giresun','Gümüşhane','Hakkari','Hatay','Isparta','Mersin','İstanbul','İzmir','Kars','Kastamonu','Kayseri','Kırklareli','Kırşehir','Kocaeli','Konya','Kütahya','Malatya','Manisa','Kahramanmaraş','Mardin','Muğla','Muş','Nevşehir','Ordu','Rize','Sakarya','Samsun','Siirt','Sinop','Sivas','Tekirdağ','Tokat','Trabzon','Tunceli','Şanlıurfa','Uşak','Van','Yozgat','Zonguldak','Aksaray','Bayburt','Karaman','Kırıkkale','Batman','Şırnak','Bartın','Ardahan','Iğdır','Yalova','Karabük','Kilis','Osmaniye','Düzce'];
   var AREA_CODES={
@@ -14,6 +14,15 @@ const LIST_COLUMNS_PATCH=String.raw`
   function rowsData(){try{return Array.isArray(visibleRows)?visibleRows:[]}catch(_){return []}}
   function parseArray(v){if(Array.isArray(v))return v;try{var a=JSON.parse(v||'[]');return Array.isArray(a)?a:[]}catch(_){return []}}
   function normalize(v){return clean(v).toLocaleLowerCase('tr-TR')}
+  function pad(v){return String(v).padStart(2,'0')}
+
+  function ensureStyle(){
+    if(document.getElementById('crmMeetingTimeColumnStyle'))return;
+    var style=document.createElement('style');
+    style.id='crmMeetingTimeColumnStyle';
+    style.textContent='\n.table-card th:nth-child(11),.table-card td:nth-child(11){white-space:normal!important;overflow:visible!important;text-overflow:clip!important}\n.crm-meeting-time{display:grid;gap:2px;line-height:1.25;font-size:9px;color:#334155}\n.crm-meeting-time b{font-size:9px;color:#0f172a}\n.crm-meeting-warning{display:inline-flex;width:max-content;max-width:100%;align-items:center;border-radius:999px;padding:3px 6px;font-size:8px;font-weight:950;margin-top:2px;white-space:nowrap}\n.crm-meeting-warning.future{background:#e9f9f0;color:#15803d}\n.crm-meeting-warning.soon{background:#fff7df;color:#a16207}\n.crm-meeting-warning.today{background:#ffedd5;color:#c2410c}\n.crm-meeting-warning.overdue{background:#ffe4e6;color:#be123c}\n.crm-meeting-warning.none{background:#eef2f7;color:#64748b}\n';
+    document.head.appendChild(style);
+  }
 
   function provinceOnly(customer){
     if(!customer)return '—';
@@ -64,20 +73,80 @@ const LIST_COLUMNS_PATCH=String.raw`
     cell.appendChild(badge);
   }
 
+  function ymd(value){
+    var s=clean(value);
+    var m=s.match(/(20\d{2})-(\d{2})-(\d{2})/);
+    return m?m[1]+'-'+m[2]+'-'+m[3]:'';
+  }
+
+  function trDate(value){
+    var d=ymd(value);
+    if(!d)return '—';
+    var p=d.split('-');
+    return p[2]+'.'+p[1]+'.'+p[0];
+  }
+
+  function mailSentDate(customer){
+    if(!customer)return '';
+    var notes=clean(customer.special_notes);
+    var marker=notes.match(/\[MAIL_ATILDI:(20\d{2}-\d{2}-\d{2})\]/i);
+    if(marker)return marker[1];
+    var human=notes.match(/(\d{2})\.(\d{2})\.(20\d{2})[^\n]{0,40}mail\s*at[ıi]ld[ıi]/i);
+    if(human)return human[3]+'-'+human[2]+'-'+human[1];
+    if(normalize(stageText(customer)).indexOf('mail')>=0){
+      return ymd(customer.updated_at)||ymd(customer.created_at);
+    }
+    return '';
+  }
+
+  function todayKey(){
+    var d=new Date();
+    return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  }
+
+  function dateSerial(value){
+    var d=ymd(value);
+    if(!d)return null;
+    var p=d.split('-').map(Number);
+    return Date.UTC(p[0],p[1]-1,p[2]);
+  }
+
+  function warningInfo(followDate){
+    var target=dateSerial(followDate),today=dateSerial(todayKey());
+    if(target==null)return {cls:'none',text:'⚪ Takip tarihi yok'};
+    var diff=Math.round((target-today)/86400000);
+    if(diff<0)return {cls:'overdue',text:'🔴 '+Math.abs(diff)+' gün gecikti'};
+    if(diff===0)return {cls:'today',text:'🟠 BUGÜN GÖRÜŞ'};
+    if(diff===1)return {cls:'soon',text:'🟡 YARIN GÖRÜŞ'};
+    if(diff<=3)return {cls:'soon',text:'⏰ '+diff+' gün kaldı'};
+    return {cls:'future',text:'✓ '+diff+' gün kaldı'};
+  }
+
+  function showMeetingTime(cell,customer){
+    if(!cell)return;
+    var mailDate=mailSentDate(customer),follow=clean(customer&&customer.follow_date),warning=warningInfo(follow);
+    cell.innerHTML='';
+    var box=document.createElement('div');
+    box.className='crm-meeting-time';
+    box.innerHTML='<div>✉ Mail: <b>'+trDate(mailDate)+'</b></div><div>📅 Görüşme: <b>'+trDate(follow)+'</b></div><span class="crm-meeting-warning '+warning.cls+'">'+warning.text+'</span>';
+    cell.appendChild(box);
+  }
+
   function enforce(){
+    ensureStyle();
     var table=document.querySelector('.table-card table');
     if(!table)return;
     var headers=table.querySelectorAll('thead th');
     if(headers.length<11)return;
 
-    var titles=['Firma Adı','Yetkili','Telefon','İl','İş Alanı','Potansiyel','Durum','Son Görüşme Tarihi','','','Detay'];
+    var titles=['Firma Adı','Yetkili','Telefon','İl','İş Alanı','Potansiyel','Durum','Son Görüşme Tarihi','','','Görüşme Zamanı'];
     headers.forEach(function(cell,index){
       if(titles[index])cell.textContent=titles[index];
       if(index===8||index===9)cell.style.setProperty('display','none','important');
       else cell.style.setProperty('display','table-cell','important');
     });
 
-    var widths=['17%','13%','12%','9%','14%','9%','9%','10%','','','7%'];
+    var widths=['15%','11%','10%','8%','13%','8%','9%','9%','','','17%'];
     headers.forEach(function(cell,index){if(widths[index])cell.style.setProperty('width',widths[index],'important')});
 
     var data=rowsData();
@@ -90,6 +159,7 @@ const LIST_COLUMNS_PATCH=String.raw`
       var customer=data[rowIndex]||null;
       if(row.children[3])row.children[3].textContent=provinceOnly(customer);
       if(row.children[6])showStage(row.children[6],customer);
+      if(row.children[10])showMeetingTime(row.children[10],customer);
     });
   }
 
@@ -120,7 +190,7 @@ export default{
     if(request.method==='GET'&&url.pathname==='/musteri-portfoyu.html'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
       let html=await response.text();
       html=html.replace(/<script[^>]*data-list-columns-visibility[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-      html=html.replace(/<\/body>/i,`<script data-list-columns-visibility="v3">${LIST_COLUMNS_PATCH}</script>\n</body>`);
+      html=html.replace(/<\/body>/i,`<script data-list-columns-visibility="v4">${LIST_COLUMNS_PATCH}</script>\n</body>`);
       return rebuild(response,html);
     }
     return response;
