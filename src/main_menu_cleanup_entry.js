@@ -9,6 +9,9 @@ const MENU_CLEANUP=String.raw`
 .nav a[href="/?page=mails"]{display:none!important}
 </style>`;
 
+const OLD_CUMULATIVE_QUERY="req('/api/graphic-jobs?created_from=2000-01-01&created_to='+encodeURIComponent(localDateKey()))";
+const MONTHLY_CUMULATIVE_QUERY="req('/api/graphic-jobs?created_from='+encodeURIComponent(monthFrom)+'&created_to='+encodeURIComponent(monthTo))";
+
 function rebuild(response,html){
   const headers=new Headers(response.headers);
   for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
@@ -25,6 +28,9 @@ export default{
       let html=await response.text();
       html=html.replace(/<style[^>]*data-main-menu-cleanup[^>]*>[\s\S]*?<\/style>\s*/gi,'');
       html=html.replace(/<\/head>/i,`${MENU_CLEANUP}\n</head>`);
+      if(url.pathname==='/'||url.pathname==='/index.html'){
+        html=html.split(OLD_CUMULATIVE_QUERY).join(MONTHLY_CUMULATIVE_QUERY);
+      }
       return rebuild(response,html);
     }
     return response;
