@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/customer_button_modal_fix_entry.js",
+  "main": "src/sales_care_bridge_entry.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -35,3 +35,4 @@
 // sales-followup-satisfaction-center-disabled-after-homepage-regression-2026-10-01
 // portfolio-data-guard-self-healing-2026-10-01
 // customer-button-opens-full-editor-2026-10-01
+// sales-care-safe-bridge-enabled-2026-10-01
