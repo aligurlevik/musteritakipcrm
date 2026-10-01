@@ -9,6 +9,15 @@ function rebuild(response,html){
   return new Response(html,{status:response.status,statusText:response.statusText,headers});
 }
 
+function stripScript(html,dataAttr,srcName=''){
+  html=html.replace(new RegExp('<script[^>]*'+dataAttr+'[^>]*>[\\s\\S]*?<\\/script>\\s*','gi'),'');
+  if(srcName){
+    const escaped=srcName.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    html=html.replace(new RegExp('<script\\s+[^>]*src=["\']\\/'+escaped+'(?:\\?[^"\']*)?["\'][^>]*><\\/script>\\s*','gi'),'');
+  }
+  return html;
+}
+
 export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url);
@@ -22,7 +31,7 @@ export default{
       return mailTransportWorker.fetch(request,env,ctx);
     }
 
-    if(request.method==='GET'&&(path==='/sales-care-ui.js'||path==='/mail-transport-v2-ui.js'||path==='/portfolio-tab-hotfix.js')){
+    if(request.method==='GET'&&['/sales-care-ui.js','/mail-transport-v2-ui.js','/customer-card-tabs-controller.js'].includes(path)){
       const asset=await env.ASSETS.fetch(request);
       const headers=new Headers(asset.headers);
       headers.set('content-type','application/javascript; charset=utf-8');
@@ -33,13 +42,24 @@ export default{
     const response=await stableWorker.fetch(request,env,ctx);
     if(request.method==='GET'&&path==='/musteri-portfoyu.html'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
       let html=await response.text();
-      html=html.replace(/<script[^>]*data-sales-care-safe-ui[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-      html=html.replace(/<script\s+[^>]*src=["']\/sales-care-ui\.js[^>]*><\/script>\s*/gi,'');
-      html=html.replace(/<script[^>]*data-mail-transport-v2-ui[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-      html=html.replace(/<script\s+[^>]*src=["']\/mail-transport-v2-ui\.js[^>]*><\/script>\s*/gi,'');
-      html=html.replace(/<script[^>]*data-portfolio-tab-hotfix[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-      html=html.replace(/<script\s+[^>]*src=["']\/portfolio-tab-hotfix\.js[^>]*><\/script>\s*/gi,'');
-      html=html.replace(/<\/body>/i,'<script data-sales-care-safe-ui="20261001-v1" src="/sales-care-ui.js?v=20261001-1"></script>\n<script data-mail-transport-v2-ui="20261001-v3" src="/mail-transport-v2-ui.js?v=20261001-3"></script>\n<script data-portfolio-tab-hotfix="20261001-v3" src="/portfolio-tab-hotfix.js?v=20261001-3"></script>\n</body>');
+
+      // Müşteri kartındaki sekmeleri geçmişte birden fazla script yönetiyordu.
+      // Hepsini son yanıttan çıkarıyoruz; sekmelerin tek sahibi aşağıdaki root controller.
+      html=stripScript(html,'data-portfolio-section-layout','portfolio-section-layout.js');
+      html=stripScript(html,'data-portfolio-modal-cleanup');
+      html=stripScript(html,'data-sales-meetings-merge');
+      html=stripScript(html,'data-customer-mail-tab-fix');
+      html=stripScript(html,'data-portfolio-tab-hotfix','portfolio-tab-hotfix.js');
+      html=stripScript(html,'data-customer-card-tabs-controller','customer-card-tabs-controller.js');
+
+      html=stripScript(html,'data-sales-care-safe-ui','sales-care-ui.js');
+      html=stripScript(html,'data-mail-transport-v2-ui','mail-transport-v2-ui.js');
+
+      html=html.replace(/<\/body>/i,
+        '<script data-sales-care-safe-ui="20261001-v1" src="/sales-care-ui.js?v=20261001-1"></script>\n'+
+        '<script data-mail-transport-v2-ui="20261001-v3" src="/mail-transport-v2-ui.js?v=20261001-3"></script>\n'+
+        '<script data-customer-card-tabs-controller="20261001-root-v1" src="/customer-card-tabs-controller.js?v=20261001-root-1"></script>\n'+
+        '</body>');
       return rebuild(response,html);
     }
     return response;
