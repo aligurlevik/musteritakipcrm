@@ -2,8 +2,8 @@ import worker from './new_customer_cache_entry.js';
 
 const LIST_COLUMNS_PATCH=String.raw`
 (function(){
-  if(window.__crmPortfolioListColumnsVisibilityV4)return;
-  window.__crmPortfolioListColumnsVisibilityV4='20261001-list-columns-visibility-v4';
+  if(window.__crmPortfolioListColumnsVisibilityV5)return;
+  window.__crmPortfolioListColumnsVisibilityV5='20261001-list-columns-visibility-v5';
 
   var PROVINCES=['Adana','Adıyaman','Afyonkarahisar','Ağrı','Amasya','Ankara','Antalya','Artvin','Aydın','Balıkesir','Bilecik','Bingöl','Bitlis','Burdur','Bursa','Çanakkale','Çankırı','Çorum','Denizli','Diyarbakır','Edirne','Elazığ','Erzincan','Erzurum','Eskişehir','Gaziantep','Giresun','Gümüşhane','Hakkari','Hatay','Isparta','Mersin','İstanbul','İzmir','Kars','Kastamonu','Kayseri','Kırklareli','Kırşehir','Kocaeli','Konya','Kütahya','Malatya','Manisa','Kahramanmaraş','Mardin','Muğla','Muş','Nevşehir','Ordu','Rize','Sakarya','Samsun','Siirt','Sinop','Sivas','Tekirdağ','Tokat','Trabzon','Tunceli','Şanlıurfa','Uşak','Van','Yozgat','Zonguldak','Aksaray','Bayburt','Karaman','Kırıkkale','Batman','Şırnak','Bartın','Ardahan','Iğdır','Yalova','Karabük','Kilis','Osmaniye','Düzce'];
   var AREA_CODES={
@@ -88,6 +88,8 @@ const LIST_COLUMNS_PATCH=String.raw`
 
   function mailSentDate(customer){
     if(!customer)return '';
+    var direct=ymd(customer.last_outgoing_mail_date);
+    if(direct)return direct;
     var notes=clean(customer.special_notes);
     var marker=notes.match(/\[MAIL_ATILDI:(20\d{2}-\d{2}-\d{2})\]/i);
     if(marker)return marker[1];
@@ -190,7 +192,7 @@ export default{
     if(request.method==='GET'&&url.pathname==='/musteri-portfoyu.html'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
       let html=await response.text();
       html=html.replace(/<script[^>]*data-list-columns-visibility[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-      html=html.replace(/<\/body>/i,`<script data-list-columns-visibility="v4">${LIST_COLUMNS_PATCH}</script>\n</body>`);
+      html=html.replace(/<\/body>/i,`<script data-list-columns-visibility="v5">${LIST_COLUMNS_PATCH}</script>\n</body>`);
       return rebuild(response,html);
     }
     return response;
