@@ -43,7 +43,7 @@
       .pie-general-contact{margin:0 0 10px!important;padding:0!important;background:transparent!important;border:0!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;width:100%!important}
       .pie-general-contact .pdem-contact-item{background:#f8fafc!important}
       .pie-tab-quick-note{margin:0 0 12px!important;padding:10px!important;border:1px solid #dbe5f0!important;border-radius:10px!important;background:#f8fbff!important}
-      .pie-hidden-contact-editor{display:none!important}
+      .pie-hidden-contact-editor{display:block!important}
       .pie-cari-card,.pie-extra-card{margin-top:12px;border:1px solid #dbe5f0;border-radius:10px;background:#f8fafc;padding:11px}
       .pie-cari-head,.pie-extra-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;font-weight:900;color:#0f172a;margin-bottom:9px}
       .pie-cari-badge{display:inline-flex;align-items:center;border-radius:999px;background:#dcfce7;color:#15803d;padding:4px 9px;font-size:10px;font-weight:900}
@@ -89,14 +89,6 @@
       quickNote.classList.add('pie-tab-quick-note');
       meetingsBody.insertBefore(quickNote,meetingsBody.firstChild);
     }
-  }
-
-  function hideDuplicateContactEditor(sections){
-    const generalBody=sections[0]&&sections[0].querySelector('.pie-section-body');
-    if(!generalBody)return;
-    const toggle=generalBody.querySelector('.pie-contact-toggle');
-    const holder=toggle&&toggle.closest('.pie-field');
-    if(holder)holder.classList.add('pie-hidden-contact-editor');
   }
 
   function mountCariCard(sections){
@@ -207,15 +199,13 @@
     ensureStyle();
     const sections=Array.from(editor.querySelectorAll('.pie-section')).slice(0,5);
     if(sections.length<5)return;
+    if(editor.dataset.sectionLayoutReady==='tabs-v6-stable')return;
+    editor.dataset.sectionLayoutReady='tabs-v6-stable';
 
     updateCustomerTitle(modal);
     moveHeaderContent(modal,sections);
-    hideDuplicateContactEditor(sections);
     mountCariCard(sections);
     mountInitialExtraFields(sections);
-
-    if(editor.dataset.sectionLayoutReady==='tabs-v5')return;
-    editor.dataset.sectionLayoutReady='tabs-v5';
     editor.classList.add('pie-tabs-mode');
 
     const title=editor.querySelector('.pie-title');
@@ -251,7 +241,6 @@
   }
 
   const observer=new MutationObserver(()=>setTimeout(applyLayout,0));
-  observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
-  document.addEventListener('click',()=>setTimeout(applyLayout,60),true);
-  setInterval(applyLayout,800);
+  observer.observe(document.documentElement,{subtree:true,childList:true});
+  document.addEventListener('click',()=>setTimeout(applyLayout,80),true);
 })();
