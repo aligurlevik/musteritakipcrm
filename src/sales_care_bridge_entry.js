@@ -37,7 +37,7 @@ export default{
       html=html.replace(/<script\s+[^>]*src=["']\/sales-care-ui\.js[^>]*><\/script>\s*/gi,'');
       html=html.replace(/<script[^>]*data-mail-transport-v2-ui[^>]*>[\s\S]*?<\/script>\s*/gi,'');
       html=html.replace(/<script\s+[^>]*src=["']\/mail-transport-v2-ui\.js[^>]*><\/script>\s*/gi,'');
-      html=html.replace(/<\/body>/i,'<script data-sales-care-safe-ui="20261001-v1" src="/sales-care-ui.js?v=20261001-1"></script>\n<script data-mail-transport-v2-ui="20261001-v2" src="/mail-transport-v2-ui.js?v=20261001-2"></script>\n</body>');
+      html=html.replace(/<\/body>/i,'<script data-sales-care-safe-ui="20261001-v1" src="/sales-care-ui.js?v=20261001-1"></script>\n<script data-mail-transport-v2-ui="20261001-v3" src="/mail-transport-v2-ui.js?v=20261001-3"></script>\n</body>');
       return rebuild(response,html);
     }
     return response;
