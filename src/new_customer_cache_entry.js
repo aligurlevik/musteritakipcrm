@@ -4,12 +4,12 @@ const NEW_CUSTOMER_VERSION='20261001-1108';
 
 const PORTFOLIO_SAFE_LAYOUT=String.raw`
 (function(){
-  if(window.__crmPortfolioSafeLayoutV2)return;
-  window.__crmPortfolioSafeLayoutV2='20261001-safe-layout-v2';
+  if(window.__crmPortfolioSafeLayoutV3)return;
+  window.__crmPortfolioSafeLayoutV3='20261001-safe-layout-v3';
 
   var style=document.createElement('style');
   style.id='crmPortfolioSafeLayoutStyle';
-  style.textContent='\n.table-card table{min-width:0!important;table-layout:fixed!important}\n.table-card th,.table-card td{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}\n.table-card th:nth-child(1),.table-card td:nth-child(1){display:table-cell!important;width:20%!important}\n.table-card th:nth-child(2),.table-card td:nth-child(2){display:table-cell!important;width:15%!important}\n.table-card th:nth-child(3),.table-card td:nth-child(3){display:table-cell!important;width:10%!important}\n.table-card th:nth-child(4),.table-card td:nth-child(4){display:none!important}\n.table-card th:nth-child(5),.table-card td:nth-child(5){display:table-cell!important;width:17%!important}\n.table-card th:nth-child(6),.table-card td:nth-child(6){display:table-cell!important;width:11%!important}\n.table-card th:nth-child(7),.table-card td:nth-child(7){display:table-cell!important;width:11%!important}\n.table-card th:nth-child(8),.table-card td:nth-child(8){display:table-cell!important;width:12%!important}\n.table-card th:nth-child(9),.table-card td:nth-child(9),.table-card th:nth-child(10),.table-card td:nth-child(10){display:none!important}\n.table-card th:nth-child(11),.table-card td:nth-child(11){display:table-cell!important;width:7%!important;text-align:center!important}\n.detail-actions button.crm-customer-button{background:#dc2626!important;border-color:#dc2626!important;color:#fff!important;font-weight:950!important}\n#portfolioEditorModal .crm-meeting-notes-field textarea{min-height:130px!important;background:#f8fafc!important}\n';
+  style.textContent='\n#rangeBox{display:none!important}\n.table-card table{min-width:0!important;table-layout:fixed!important}\n.table-card th,.table-card td{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}\n.table-card th:nth-child(1),.table-card td:nth-child(1){display:table-cell!important;width:17%!important}\n.table-card th:nth-child(2),.table-card td:nth-child(2){display:table-cell!important;width:13%!important}\n.table-card th:nth-child(3),.table-card td:nth-child(3){display:table-cell!important;width:12%!important}\n.table-card th:nth-child(4),.table-card td:nth-child(4){display:table-cell!important;width:9%!important}\n.table-card th:nth-child(5),.table-card td:nth-child(5){display:table-cell!important;width:14%!important}\n.table-card th:nth-child(6),.table-card td:nth-child(6){display:table-cell!important;width:9%!important}\n.table-card th:nth-child(7),.table-card td:nth-child(7){display:table-cell!important;width:9%!important}\n.table-card th:nth-child(8),.table-card td:nth-child(8){display:table-cell!important;width:10%!important}\n.table-card th:nth-child(9),.table-card td:nth-child(9),.table-card th:nth-child(10),.table-card td:nth-child(10){display:none!important}\n.table-card th:nth-child(11),.table-card td:nth-child(11){display:table-cell!important;width:7%!important;text-align:center!important}\n.detail-actions button.crm-customer-button{background:#dc2626!important;border-color:#dc2626!important;color:#fff!important;font-weight:950!important}\n#portfolioEditorModal .crm-meeting-notes-field textarea{min-height:130px!important;background:#f8fafc!important}\n';
   document.head.appendChild(style);
 
   function clean(v){return String(v==null?'':v).trim()}
@@ -21,7 +21,8 @@ const PORTFOLIO_SAFE_LAYOUT=String.raw`
     if(cells.length<11)return;
     cells[0].textContent='Firma Adı';
     cells[1].textContent='Yetkili';
-    cells[2].textContent='İl';
+    cells[2].textContent='Telefon';
+    cells[3].textContent='İl';
     cells[4].textContent='İş Alanı';
     cells[5].textContent='Potansiyel';
     cells[6].textContent='Durum';
@@ -33,15 +34,15 @@ const PORTFOLIO_SAFE_LAYOUT=String.raw`
     setHeaders();
     var rows=document.querySelectorAll('#rows > tr'),data=visible();
     rows.forEach(function(row,index){
-      if(row.dataset.crmSafeLayout==='v2')return;
+      if(row.dataset.crmSafeLayout==='v3')return;
       var cells=row.children;if(cells.length<11)return;
       var customer=data[index]||null;
       var oldLast=cells[5].innerHTML,oldPotential=cells[6].innerHTML,oldStatus=cells[7].innerHTML;
-      cells[2].textContent=clean(customer&&customer.region)||'—';
+      cells[3].textContent=clean(customer&&customer.region)||'—';
       cells[5].innerHTML=oldPotential;
       cells[6].innerHTML=oldStatus;
       cells[7].innerHTML=oldLast;
-      row.dataset.crmSafeLayout='v2';
+      row.dataset.crmSafeLayout='v3';
     });
   }
 
@@ -137,7 +138,7 @@ export default{
       html=html.replace(/\/yeni-musteri\.html(?:\?v=[^"'\s<]*)?/g,'/yeni-musteri.html?v='+NEW_CUSTOMER_VERSION);
       if(url.pathname==='/musteri-portfoyu.html'){
         html=html.replace(/<script[^>]*data-portfolio-safe-layout[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-        html=html.replace(/<\/body>/i,`<script data-portfolio-safe-layout="v2">${PORTFOLIO_SAFE_LAYOUT}</script>\n</body>`);
+        html=html.replace(/<\/body>/i,`<script data-portfolio-safe-layout="v3">${PORTFOLIO_SAFE_LAYOUT}</script>\n</body>`);
       }
       return rebuild(response,html);
     }
