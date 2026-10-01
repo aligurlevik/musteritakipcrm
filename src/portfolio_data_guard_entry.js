@@ -37,9 +37,12 @@ async function portfolioRole(request,env){
   return '';
 }
 
-async function responseHasArray(response){
-  if(!response.ok)return false;
-  try{return Array.isArray(await response.clone().json())}catch{return false}
+async function responseArray(response){
+  if(!response.ok)return null;
+  try{
+    const data=await response.clone().json();
+    return Array.isArray(data)?data:null;
+  }catch{return null}
 }
 
 async function fallbackCustomers(url,env){
@@ -100,8 +103,15 @@ export default{
     }
 
     if(downstream){
-      if(isCustomerList||isMeetings){
-        if(await responseHasArray(downstream))return downstream;
+      if(isCustomerList){
+        const rows=await responseArray(downstream);
+        // Boş listeyi sağlıklı cevap sayma. Portföyün ana ekranı status=Tümü ile
+        // bazı eski worker katmanlarında [] dönebiliyor. Bu durumda D1 fallback'i
+        // çalışsın ve kayıtlı müşterileri/8 Ankara lead'ini geri getirsin.
+        if(rows&&rows.length>0)return downstream;
+      }else if(isMeetings){
+        const rows=await responseArray(downstream);
+        if(rows)return downstream;
       }else if(downstream.ok){
         try{const data=await downstream.clone().json();if(data&&typeof data==='object'&&Array.isArray(data.meetings))return downstream}catch{}
       }
