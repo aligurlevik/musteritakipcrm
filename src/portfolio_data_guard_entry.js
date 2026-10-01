@@ -4,7 +4,7 @@ import {restorePortfolioCustomers} from './restore_portfolio_customers.js';
 const encoder=new TextEncoder();
 
 function json(data,status=200){
-  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-guard':'1'}});
+  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-guard':'direct-d1-safe-v1'}});
 }
 
 async function hmacHex(secret,value){
@@ -20,8 +20,7 @@ function cookieValue(request,name){
 }
 
 function dayKey(offsetDays=0){
-  const d=new Date(Date.now()+offsetDays*86400000);
-  return d.toISOString().slice(0,10);
+  return new Date(Date.now()+offsetDays*86400000).toISOString().slice(0,10);
 }
 
 async function portfolioRole(request,env){
@@ -37,46 +36,44 @@ async function portfolioRole(request,env){
   return '';
 }
 
-async function responseArray(response){
-  if(!response.ok)return null;
-  try{
-    const data=await response.clone().json();
-    return Array.isArray(data)?data:null;
-  }catch{return null}
-}
-
-async function fallbackCustomers(url,env){
+async function directCustomers(url,env){
   await restorePortfolioCustomers(env);
   const status=url.searchParams.get('status')||'Aktif';
   const q=String(url.searchParams.get('q')||'').trim();
   const category=String(url.searchParams.get('category')||'').trim();
   const result=String(url.searchParams.get('result')||'').trim();
   const where=[],vals=[];
-  if(!result&&status!=='Tümü'){where.push('record_status=?');vals.push(status)}
+
+  if(!result&&status!=='Tümü'){where.push("COALESCE(record_status,'Aktif')=?");vals.push(status)}
   if(result==='Olumlu')where.push("stage='Kazanıldı'");
   else if(result==='Olumsuz')where.push("stage='Kaybedildi'");
   else if(result==='Beklemede')where.push("stage='Beklemede'");
+  else if(result==='Sonuçlanmadı')where.push("COALESCE(stage,'') NOT IN ('Kazanıldı','Kaybedildi')");
+
   if(category){where.push('(categories LIKE ? OR sector LIKE ?)');vals.push('%'+category+'%','%'+category+'%')}
   if(q){
-    where.push('(company LIKE ? OR contact_name LIKE ? OR phone LIKE ? OR email LIKE ? OR phones_json LIKE ? OR emails_json LIKE ?)');
-    const like='%'+q+'%';vals.push(like,like,like,like,like,like);
+    where.push('(company LIKE ? OR contact_name LIKE ? OR phone LIKE ? OR email LIKE ? OR sector LIKE ? OR phones_json LIKE ? OR emails_json LIKE ?)');
+    const like='%'+q+'%';
+    vals.push(like,like,like,like,like,like,like);
   }
+
   const sql=`SELECT * FROM customers ${where.length?'WHERE '+where.join(' AND '):''} ORDER BY CASE priority WHEN 'KRİTİK' THEN 1 WHEN 'YÜKSEK' THEN 2 WHEN 'NORMAL' THEN 3 ELSE 4 END, company COLLATE NOCASE`;
-  return (await env.DB.prepare(sql).bind(...vals).all()).results||[];
+  const rows=(await env.DB.prepare(sql).bind(...vals).all()).results||[];
+  return rows.filter(x=>x&&String(x.record_status||'Aktif')!=='Silindi');
 }
 
-async function fallbackMeetings(url,env){
+async function directMeetings(url,env){
   await restorePortfolioCustomers(env);
   const status=url.searchParams.get('status')||'Aktif';
-  let where=" WHERE c.record_status<>'Silindi'";
-  if(status==='Aktif')where=" WHERE c.record_status='Aktif' AND COALESCE(m.result,'Beklemede') IN ('Olumlu','Tekrar Görüşülecek')";
-  else if(status==='Bekleyen')where=" WHERE c.record_status<>'Silindi' AND COALESCE(m.result,'Beklemede')='Beklemede'";
+  let where=" WHERE COALESCE(c.record_status,'Aktif')<>'Silindi'";
+  if(status==='Aktif')where=" WHERE COALESCE(c.record_status,'Aktif')='Aktif' AND COALESCE(m.result,'Beklemede') IN ('Olumlu','Tekrar Görüşülecek')";
+  else if(status==='Bekleyen')where=" WHERE COALESCE(c.record_status,'Aktif')<>'Silindi' AND COALESCE(m.result,'Beklemede')='Beklemede'";
   else if(status==='Pasif')where=" WHERE c.record_status='Pasif' OR COALESCE(m.result,'')='Olumsuz'";
   const rows=await env.DB.prepare(`SELECT m.*,c.company,c.contact_name,c.phone,c.email,c.phones_json,c.emails_json,c.record_status FROM meetings m JOIN customers c ON c.id=m.customer_id ${where} ORDER BY COALESCE(m.meeting_date,m.created_at) DESC`).all();
   return rows.results||[];
 }
 
-async function fallbackHistory(customerId,env){
+async function directHistory(customerId,env){
   await restorePortfolioCustomers(env);
   const customer=await env.DB.prepare('SELECT * FROM customers WHERE id=?').bind(customerId).first();
   if(!customer)return null;
@@ -95,38 +92,21 @@ export default{
     const isMeetings=request.method==='GET'&&path==='/api/meetings';
     const historyMatch=request.method==='GET'?path.match(/^\/api\/customers\/(\d+)\/history$/):null;
 
-    if(!isCustomerList&&!isMeetings&&!historyMatch)return worker.fetch(request,env,ctx);
-
-    let downstream;
-    try{downstream=await worker.fetch(request,env,ctx)}catch(error){
-      console.error('portfolio downstream read failed',error?.message||error);
-    }
-
-    if(downstream){
-      if(isCustomerList){
-        const rows=await responseArray(downstream);
-        if(rows&&rows.length>0)return downstream;
-      }else if(isMeetings){
-        const rows=await responseArray(downstream);
-        if(rows)return downstream;
-      }else if(downstream.ok){
-        try{const data=await downstream.clone().json();if(data&&typeof data==='object'&&Array.isArray(data.meetings))return downstream}catch{}
+    if(isCustomerList||isMeetings||historyMatch){
+      const role=await portfolioRole(request,env);
+      if(!role)return worker.fetch(request,env,ctx);
+      try{
+        if(isCustomerList)return json(await directCustomers(url,env));
+        if(isMeetings)return json(await directMeetings(url,env));
+        const data=await directHistory(Number(historyMatch[1]),env);
+        return data?json(data):json({error:'Müşteri bulunamadı'},404);
+      }catch(error){
+        console.error('portfolio direct D1 read failed',error?.message||error);
+        return json({error:'Müşteri verileri yüklenemedi.'},500);
       }
-      if([401,403].includes(downstream.status)&&!(await portfolioRole(request,env)))return downstream;
     }
 
-    const role=await portfolioRole(request,env);
-    if(!role)return downstream||json({error:'Oturum gerekli.'},401);
-
-    try{
-      if(isCustomerList)return json(await fallbackCustomers(url,env));
-      if(isMeetings)return json(await fallbackMeetings(url,env));
-      const data=await fallbackHistory(Number(historyMatch[1]),env);
-      return data?json(data):json({error:'Müşteri bulunamadı'},404);
-    }catch(error){
-      console.error('portfolio data fallback failed',error?.message||error);
-      return downstream||json({error:'Müşteri verileri yüklenemedi.'},500);
-    }
+    return worker.fetch(request,env,ctx);
   },
   async scheduled(controller,env,ctx){
     if(typeof worker.scheduled==='function')return worker.scheduled(controller,env,ctx);
