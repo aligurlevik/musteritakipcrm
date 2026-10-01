@@ -4,7 +4,7 @@ import {restorePortfolioCustomers} from './restore_portfolio_customers.js';
 const encoder=new TextEncoder();
 
 function json(data,status=200){
-  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-guard':'direct-d1-safe-v1'}});
+  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-guard':'direct-d1-safe-v2'}});
 }
 
 async function hmacHex(secret,value){
@@ -57,7 +57,14 @@ async function directCustomers(url,env){
     vals.push(like,like,like,like,like,like,like);
   }
 
-  const sql=`SELECT * FROM customers ${where.length?'WHERE '+where.join(' AND '):''} ORDER BY CASE priority WHEN 'KRİTİK' THEN 1 WHEN 'YÜKSEK' THEN 2 WHEN 'NORMAL' THEN 3 ELSE 4 END, company COLLATE NOCASE`;
+  const sql=`SELECT c.*,(
+      SELECT MAX(COALESCE(m.mail_date,m.created_at))
+      FROM mails m
+      WHERE m.customer_id=c.id AND LOWER(COALESCE(m.direction,''))='giden'
+    ) AS last_outgoing_mail_date
+    FROM customers c
+    ${where.length?'WHERE '+where.join(' AND '):''}
+    ORDER BY CASE priority WHEN 'KRİTİK' THEN 1 WHEN 'YÜKSEK' THEN 2 WHEN 'NORMAL' THEN 3 ELSE 4 END, company COLLATE NOCASE`;
   const rows=(await env.DB.prepare(sql).bind(...vals).all()).results||[];
   return rows.filter(x=>x&&String(x.record_status||'Aktif')!=='Silindi');
 }
