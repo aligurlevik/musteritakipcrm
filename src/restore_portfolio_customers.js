@@ -52,16 +52,18 @@ async function columns(env){
 }
 
 export async function restorePortfolioCustomers(env){
+  // Aynı anda gelen istekleri tek restore işleminde birleştir; fakat başarılı işlemden
+  // sonra Promise'i kalıcı cache'leme. Böylece sonraki portföy açılışında kayıtlar
+  // gerçekten hâlâ var mı yeniden doğrulanır. Eski kod resolved Promise'i ömür boyu
+  // tuttuğu için kayıtlar sonradan kaybolduğunda restore bir daha çalışmıyordu.
   if(restorePromise)return restorePromise;
+
   restorePromise=(async()=>{
     await env.DB.prepare("CREATE TABLE IF NOT EXISTS app_meta(key TEXT PRIMARY KEY,value TEXT DEFAULT '')").run();
     await ensureCustomerTable(env);
 
     const cols=await columns(env);
 
-    // Marker tek başına yeterli değil. Kayıtlar sonradan silinmiş/pasife alınmışsa
-    // eski marker yüzünden restore tamamen atlanıyordu ve portföy 0 firma görünüyordu.
-    // Önce 8 portföy müşterisinin gerçekten hâlâ aktif olduğunu tek sorguda doğrula.
     try{
       const marker=await env.DB.prepare('SELECT value FROM app_meta WHERE key=?').bind('restore_ankara_portfolio_v4').first();
       if(marker){
@@ -69,7 +71,7 @@ export async function restorePortfolioCustomers(env){
         const activeClause=cols.has('record_status')?" AND COALESCE(record_status,'Aktif')<>'Silindi'":'';
         const row=await env.DB.prepare(`SELECT COUNT(DISTINCT company) AS n FROM customers WHERE company IN (${marks})${activeClause}`)
           .bind(...LEADS.map(x=>x.company)).first();
-        if(Number(row?.n||0)===LEADS.length)return;
+        if(Number(row?.n||0)===LEADS.length)return {ok:true,verified:true,count:LEADS.length};
       }
     }catch(_){}
 
@@ -111,6 +113,12 @@ export async function restorePortfolioCustomers(env){
 
     await env.DB.prepare('INSERT OR REPLACE INTO app_meta(key,value) VALUES(?,?)')
       .bind('restore_ankara_portfolio_v4',new Date().toISOString()).run();
-  })().catch(error=>{restorePromise=null;throw error});
-  return restorePromise;
+    return {ok:true,restored:true,count:LEADS.length};
+  })();
+
+  try{
+    return await restorePromise;
+  }finally{
+    restorePromise=null;
+  }
 }
