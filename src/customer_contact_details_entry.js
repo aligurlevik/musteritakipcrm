@@ -3,7 +3,7 @@ import worker from './customer_followup_entry.js';
 const CONTACT_DETAILS_PATCH=String.raw`
 (function(){
   if(window.__crmContactDetailsPatch)return;
-  window.__crmContactDetailsPatch='20261001-contact-v1';
+  window.__crmContactDetailsPatch='20261001-contact-v2-stable';
 
   var style=document.createElement('style');
   style.id='crmContactDetailsStyle';
@@ -20,12 +20,9 @@ const CONTACT_DETAILS_PATCH=String.raw`
     var panel=holder&&holder.querySelector('.pie-contact-panel');
     if(!holder||!panel)return;
 
-    holder.classList.remove('pie-hidden-contact-editor');
-    holder.style.display='block';
-    panel.hidden=false;
-    panel.removeAttribute('hidden');
-    panel.style.display='block';
-    toggle.setAttribute('aria-expanded','true');
+    if(holder.classList.contains('pie-hidden-contact-editor'))holder.classList.remove('pie-hidden-contact-editor');
+    if(panel.hasAttribute('hidden'))panel.removeAttribute('hidden');
+    if(toggle.getAttribute('aria-expanded')!=='true')toggle.setAttribute('aria-expanded','true');
 
     if(!holder.querySelector('.crm-contact-title')){
       var title=document.createElement('div');
@@ -36,9 +33,8 @@ const CONTACT_DETAILS_PATCH=String.raw`
   }
 
   var observer=new MutationObserver(function(){setTimeout(showContactDetails,0)});
-  observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden']});
-  document.addEventListener('click',function(){setTimeout(showContactDetails,30)},true);
-  setInterval(showContactDetails,700);
+  observer.observe(document.documentElement,{subtree:true,childList:true});
+  document.addEventListener('click',function(){setTimeout(showContactDetails,40)},true);
   showContactDetails();
 })();
 `;
@@ -57,7 +53,7 @@ export default{
     if(request.method==='GET'&&url.pathname==='/musteri-portfoyu.html'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
       let html=await response.text();
       html=html.replace(/<script[^>]*data-contact-details-patch[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-      html=html.replace(/<\/body>/i,`<script data-contact-details-patch="20261001-contact-v1">${CONTACT_DETAILS_PATCH}</script>\n</body>`);
+      html=html.replace(/<\/body>/i,`<script data-contact-details-patch="20261001-contact-v2-stable">${CONTACT_DETAILS_PATCH}</script>\n</body>`);
       return rebuild(response,html);
     }
     return response;
