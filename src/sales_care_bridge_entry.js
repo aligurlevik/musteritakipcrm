@@ -1,5 +1,6 @@
 import stableWorker from './customer_button_modal_fix_entry.js';
 import salesCareWorker from './sales_care_entry.js';
+import mailTransportWorker from './customer_mail_transport_entry.js';
 
 function rebuild(response,html){
   const headers=new Headers(response.headers);
@@ -17,7 +18,11 @@ export default{
       return salesCareWorker.fetch(request,env,ctx);
     }
 
-    if(request.method==='GET'&&path==='/sales-care-ui.js'){
+    if(path.startsWith('/api/customer-mail/')){
+      return mailTransportWorker.fetch(request,env,ctx);
+    }
+
+    if(request.method==='GET'&&(path==='/sales-care-ui.js'||path==='/mail-transport-v2-ui.js')){
       const asset=await env.ASSETS.fetch(request);
       const headers=new Headers(asset.headers);
       headers.set('content-type','application/javascript; charset=utf-8');
@@ -30,7 +35,9 @@ export default{
       let html=await response.text();
       html=html.replace(/<script[^>]*data-sales-care-safe-ui[^>]*>[\s\S]*?<\/script>\s*/gi,'');
       html=html.replace(/<script\s+[^>]*src=["']\/sales-care-ui\.js[^>]*><\/script>\s*/gi,'');
-      html=html.replace(/<\/body>/i,'<script data-sales-care-safe-ui="20261001-v1" src="/sales-care-ui.js?v=20261001-1"></script>\n</body>');
+      html=html.replace(/<script[^>]*data-mail-transport-v2-ui[^>]*>[\s\S]*?<\/script>\s*/gi,'');
+      html=html.replace(/<script\s+[^>]*src=["']\/mail-transport-v2-ui\.js[^>]*><\/script>\s*/gi,'');
+      html=html.replace(/<\/body>/i,'<script data-sales-care-safe-ui="20261001-v1" src="/sales-care-ui.js?v=20261001-1"></script>\n<script data-mail-transport-v2-ui="20261001-v2" src="/mail-transport-v2-ui.js?v=20261001-2"></script>\n</body>');
       return rebuild(response,html);
     }
     return response;
