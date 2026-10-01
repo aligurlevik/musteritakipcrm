@@ -1,12 +1,11 @@
 (function(){
   'use strict';
 
-  const TAB_LABELS=[
-    'Genel',
-    'Satış & Potansiyel',
-    'Görüşmeler & Notlar',
-    'Yapılacaklar',
-    'Teknik & Notlar'
+  const TAB_DEFS=[
+    {index:0,label:'Genel'},
+    {index:1,label:'Satış & Görüşmeler'},
+    {index:3,label:'Yapılacaklar'},
+    {index:4,label:'Teknik & Notlar'}
   ];
 
   function currentCustomer(){
@@ -14,7 +13,7 @@
   }
 
   function esc(v){
-    return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[ch]));
   }
 
   function isTrue(v){
@@ -30,7 +29,7 @@
       #portfolioDetailExpandModal .pdem-head>.pdem-close{grid-column:2!important}
       .pie-editor.pie-tabs-mode{background:#fff;border:1px solid #dce5ef;border-radius:12px;padding:0;overflow:hidden}
       .pie-editor.pie-tabs-mode .pie-head{padding:12px 14px 8px;margin:0;background:#fff}
-      .pie-top-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid #e5edf6;border-bottom:1px solid #dce5ef;background:#fff;position:sticky;top:0;z-index:3}
+      .pie-top-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid #e5edf6;border-bottom:1px solid #dce5ef;background:#fff;position:sticky;top:0;z-index:3}
       .pie-top-tab{border:0;background:#fff;padding:11px 7px 9px;font-size:11px;font-weight:900;color:#475569;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .pie-top-tab:hover{background:#f8fbff;color:#1769f6}
       .pie-top-tab.active{color:#1769f6;border-bottom-color:#1769f6;background:#fff}
@@ -38,6 +37,9 @@
       .pie-editor.pie-tabs-mode .pie-section.active-tab-panel{display:block}
       .pie-editor.pie-tabs-mode .pie-section>summary{display:none!important}
       .pie-editor.pie-tabs-mode .pie-section-body{padding:12px 14px}
+      .pie-editor.pie-tabs-mode .pie-sales-panel .pie-section-body:before,.pie-editor.pie-tabs-mode .pie-meetings-panel .pie-section-body:before{display:block;font-size:12px;font-weight:950;color:#991b1b;margin:0 0 10px;padding-bottom:7px;border-bottom:1px solid #e5edf6}
+      .pie-editor.pie-tabs-mode .pie-sales-panel .pie-section-body:before{content:'Satış & Potansiyel'}
+      .pie-editor.pie-tabs-mode .pie-meetings-panel .pie-section-body:before{content:'Görüşmeler & Notlar'}
       .pie-editor.pie-tabs-mode .pie-readonly-note{margin:0 14px 8px}
       .pie-editor.pie-tabs-mode .pie-actions{padding:0 14px 12px;margin-top:8px}
       .pie-general-contact{margin:0 0 10px!important;padding:0!important;background:transparent!important;border:0!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;width:100%!important}
@@ -56,21 +58,22 @@
       .pie-cari-note,.pie-extra-note{margin-top:7px;font-size:10px;color:#64748b}
       .pie-checkline{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:900;color:#334155;margin-bottom:7px}.pie-checkline input{width:auto!important}
       .pie-subbox{border:1px solid #e2e8f0;border-radius:9px;background:#fff;padding:9px}.pie-subbox-title{font-size:11px;font-weight:900;color:#0f172a;margin-bottom:7px}
-      @media(max-width:900px){.pie-top-tabs{grid-template-columns:repeat(5,minmax(120px,1fr));overflow-x:auto}.pie-top-tab{font-size:10px}.pie-general-contact{grid-template-columns:1fr!important}.pie-cari-grid,.pie-extra-grid{grid-template-columns:1fr}.pie-cari-field.wide,.pie-extra-field.wide{grid-column:auto}}
+      @media(max-width:900px){.pie-top-tabs{grid-template-columns:repeat(4,minmax(135px,1fr));overflow-x:auto}.pie-top-tab{font-size:10px}.pie-general-contact{grid-template-columns:1fr!important}.pie-cari-grid,.pie-extra-grid{grid-template-columns:1fr}.pie-cari-field.wide,.pie-extra-field.wide{grid-column:auto}}
     `;
     document.head.appendChild(style);
   }
 
   function activate(editor,sections,index){
     sections.forEach((section,i)=>{
-      const active=i===index;
+      const active=index===1?(i===1||i===2):i===index;
       section.classList.toggle('active-tab-panel',active);
       if(active)section.setAttribute('open','');
       else section.removeAttribute('open');
     });
-    editor.querySelectorAll('.pie-top-tab').forEach((button,i)=>{
-      button.classList.toggle('active',i===index);
-      button.setAttribute('aria-selected',i===index?'true':'false');
+    editor.querySelectorAll('.pie-top-tab').forEach(button=>{
+      const active=Number(button.dataset.tabIndex)===index;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-selected',active?'true':'false');
     });
   }
 
@@ -186,7 +189,7 @@
     const title=modal.querySelector('.pdem-title');
     if(title)title.textContent=company?'Müşteri Kartı — '+company:'Müşteri Kartı';
     const sub=modal.querySelector('.pdem-sub');
-    if(sub)sub.textContent='Firma bilgileri, cari kart, görüşmeler ve yapılacak işlemler.';
+    if(sub)sub.textContent='Firma bilgileri, satış, görüşmeler ve yapılacak işlemler.';
   }
 
   function applyLayout(){
@@ -199,28 +202,33 @@
     ensureStyle();
     const sections=Array.from(editor.querySelectorAll('.pie-section')).slice(0,5);
     if(sections.length<5)return;
-    if(editor.dataset.sectionLayoutReady==='tabs-v6-stable')return;
-    editor.dataset.sectionLayoutReady='tabs-v6-stable';
+    if(editor.dataset.sectionLayoutReady==='tabs-v7-sales-meetings')return;
+    editor.dataset.sectionLayoutReady='tabs-v7-sales-meetings';
 
     updateCustomerTitle(modal);
     moveHeaderContent(modal,sections);
     mountCariCard(sections);
     mountInitialExtraFields(sections);
+    sections[1].classList.add('pie-sales-panel');
+    sections[2].classList.add('pie-meetings-panel');
     editor.classList.add('pie-tabs-mode');
 
     const title=editor.querySelector('.pie-title');
     if(title)title.textContent='Müşteri Bilgileri';
     const sub=editor.querySelector('.pie-sub');
-    if(sub)sub.textContent='Yeni müşteri kaydında girilen bilgiler ilgili sekmelerde otomatik gösterilir.';
+    if(sub)sub.textContent='Satış bilgileri ve görüşme notları aynı sekmede birlikte gösterilir.';
 
     let tabs=editor.querySelector('.pie-top-tabs');
     if(!tabs){
       tabs=document.createElement('div');
       tabs.className='pie-top-tabs';
       tabs.setAttribute('role','tablist');
-      tabs.innerHTML=TAB_LABELS.map((label,i)=>`<button type="button" class="pie-top-tab${i===0?' active':''}" role="tab" aria-selected="${i===0?'true':'false'}" data-tab-index="${i}">${label}</button>`).join('');
       const firstSection=sections[0];
       firstSection.parentNode.insertBefore(tabs,firstSection);
+    }
+    tabs.innerHTML=TAB_DEFS.map(tab=>`<button type="button" class="pie-top-tab${tab.index===0?' active':''}" role="tab" aria-selected="${tab.index===0?'true':'false'}" data-tab-index="${tab.index}">${tab.label}</button>`).join('');
+    if(tabs.dataset.mergedWired!=='1'){
+      tabs.dataset.mergedWired='1';
       tabs.addEventListener('click',event=>{
         const button=event.target.closest('.pie-top-tab');
         if(!button)return;
