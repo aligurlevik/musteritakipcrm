@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/customer_sales_meetings_entry.js",
+  "main": "src/mail_pool_entry.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -26,3 +26,4 @@
 // contact-details-general-tab-2026-10-01
 // portfolio-blank-recovery-2026-10-01
 // sales-meetings-merged-2026-10-01
+// mail-pool-page-fix-2026-10-01
