@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/new_customer_cache_entry.js",
+  "main": "src/portfolio_list_columns_visibility_entry.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -30,3 +30,4 @@
 // stable-customer-mail-panel-v2-2026-10-01
 // force-fresh-new-customer-page-2026-10-01
 // stable-portfolio-safe-layout-v2-2026-10-01
+// portfolio-list-contact-columns-2026-10-01
