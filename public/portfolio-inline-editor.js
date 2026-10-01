@@ -46,7 +46,7 @@
       .pie-field input,.pie-field select,.pie-field textarea{width:100%;border:1px solid #cbd8e8;border-radius:8px;background:#fff;color:#0f172a;padding:7px 8px;font:inherit;font-size:12px;outline:none}.pie-field textarea{min-height:50px;resize:vertical;line-height:1.35}.pie-field input:focus,.pie-field select:focus,.pie-field textarea:focus{border-color:#1769f6;box-shadow:0 0 0 3px rgba(23,105,246,.10)}
       .pie-contact-toggle{width:100%;min-height:38px;border:1px solid #cbd8e8;border-radius:9px;background:#fff;padding:7px 9px;display:flex;align-items:center;gap:9px;text-align:left;cursor:pointer;color:#0f172a;font-weight:900}.pie-contact-toggle:hover{border-color:#1769f6;background:#f8fbff}.pie-contact-summary{font-weight:700;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}.pie-contact-chevron{color:#1769f6;font-size:11px;transition:transform .15s ease}.pie-contact-toggle[aria-expanded="true"] .pie-contact-chevron{transform:rotate(180deg)}
       .pie-contact-panel{margin-top:6px;border:1px solid #dbe5f0;border-radius:9px;background:#fff;padding:7px}.pie-contact-panel[hidden]{display:none!important}.pie-contact-head,.pie-contact-row{display:grid;grid-template-columns:28px 1.15fr .85fr .9fr 1.2fr;gap:6px;align-items:center;min-width:720px}.pie-contacts{overflow:auto}.pie-contact-head{font-size:9px;font-weight:900;color:#64748b;margin-bottom:4px}.pie-contact-row{margin-bottom:5px}.pie-contact-row:last-child{margin-bottom:0}.pie-contact-row input{width:100%;border:1px solid #cbd8e8;border-radius:7px;padding:7px;font-size:11px}.pie-no{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#e8f1ff;color:#1769f6;font-size:10px;font-weight:900}
-      .pie-meetings{display:grid;gap:6px}.pie-meeting{border-left:4px solid #1769f6;background:#f8fafc;border-radius:8px;padding:8px 10px}.pie-meeting-head{display:flex;justify-content:space-between;gap:10px;font-size:11px;font-weight:900}.pie-meeting-note{font-size:11px;margin-top:4px;white-space:pre-wrap}.pie-meeting-note strong{color:#991b1b}.pie-meeting-meta{font-size:10px;color:#64748b;margin-top:4px}.pie-empty{font-size:11px;color:#64748b;border:1px dashed #cbd8e8;border-radius:8px;padding:9px}
+      .pie-meetings{display:grid;gap:6px}.pie-meeting{border-left:4px solid #1769f6;background:#f8fafc;border-radius:8px;padding:8px 10px}.pie-meeting-head{display:flex;justify-content:space-between;gap:10px;font-size:11px;font-weight:900}.pie-meeting-note{font-size:11px;margin-top:4px;white-space:pre-wrap}.pie-meeting-meta{font-size:10px;color:#64748b;margin-top:4px}.pie-empty{font-size:11px;color:#64748b;border:1px dashed #cbd8e8;border-radius:8px;padding:9px}
       .pie-reminder-row{display:grid;grid-template-columns:1fr 1.35fr auto;gap:7px;align-items:end}.pie-reminder-btn{border:0;border-radius:9px;background:#f59e0b;color:#fff;padding:8px 12px;font-weight:900;cursor:pointer;white-space:nowrap}.pie-reminder-btn:disabled{opacity:.55;cursor:wait}.pie-reminder-status{font-size:10px;font-weight:800;color:#059669;margin-top:6px}.pie-reminder-status.err{color:#dc2626}
       .pie-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:9px}.pie-save{border:0;border-radius:9px;background:#1769f6;color:#fff;padding:9px 14px;font-weight:900;cursor:pointer}.pie-save:disabled{opacity:.55;cursor:wait}.pie-status{font-size:11px;font-weight:800;margin-right:auto;color:#16a34a}.pie-status.err{color:#dc2626}.pie-readonly-note{font-size:10px;color:#64748b;background:#fff;border:1px dashed #cbd8e8;border-radius:8px;padding:7px 9px;margin-top:7px}
       @media(max-width:800px){.pie-grid,.pie-reminder-row{grid-template-columns:1fr}.pie-field.wide{grid-column:auto}}
@@ -121,21 +121,13 @@
   }
 
   function meetingDate(m){return clean(m?.meeting_date||m?.created_at).slice(0,10)}
-  function meetingDateLabel(m){
-    const raw=meetingDate(m);
-    const parts=raw.split('-');
-    return parts.length===3?`${parts[2]}.${parts[1]}.${parts[0]}`:(raw||'Tarih yok');
-  }
   function renderMeetings(root,data){
     const box=root.querySelector('[data-pie-meetings]'),items=Array.isArray(data?.meetings)?data.meetings:[];
     root._pieHistory=data||{};
     if(!box)return;
     const ordered=[...items].sort((a,b)=>clean(b.meeting_date||b.created_at).localeCompare(clean(a.meeting_date||a.created_at)));
     if(!ordered.length){box.innerHTML='<div class="pie-empty">Henüz görüşme kaydı yok. İlk görüşmeden sonra geçmiş burada tarih sırasıyla görünecek.</div>';return}
-    box.innerHTML=ordered.slice(0,8).map(m=>{
-      const dateLabel=meetingDateLabel(m);
-      return `<div class="pie-meeting"><div class="pie-meeting-head"><span>${esc(m.meeting_no||'')}. Görüşme</span><span>${esc(dateLabel)}</span></div><div class="pie-meeting-note"><strong>${esc(dateLabel)}</strong> — ${esc(m.note||'Not yazılmamış')}</div><div class="pie-meeting-meta">Sonuç: ${esc(m.result||'Beklemede')}${m.next_follow_date?' • Sonraki takip: '+esc(m.next_follow_date):''}${m.remind_at?' • 🔔 '+esc(String(m.remind_at).replace('T',' ').slice(0,16)):''}</div></div>`;
-    }).join('');
+    box.innerHTML=ordered.slice(0,8).map(m=>`<div class="pie-meeting"><div class="pie-meeting-head"><span>${esc(m.meeting_no||'')}. Görüşme</span><span>${esc(meetingDate(m)||'Tarih yok')}</span></div><div class="pie-meeting-note">${esc(m.note||'Not yazılmamış')}</div><div class="pie-meeting-meta">Sonuç: ${esc(m.result||'Beklemede')}${m.next_follow_date?' • Sonraki takip: '+esc(m.next_follow_date):''}${m.remind_at?' • 🔔 '+esc(String(m.remind_at).replace('T',' ').slice(0,16)):''}</div></div>`).join('');
     const latest=ordered[0];
     if(latest?.remind_at&&!getField(root,'remind_at').value)getField(root,'remind_at').value=String(latest.remind_at).slice(0,16);
     if(latest?.remind_note&&!getField(root,'remind_note').value)getField(root,'remind_note').value=latest.remind_note;
