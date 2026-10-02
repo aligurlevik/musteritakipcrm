@@ -1,7 +1,7 @@
 (function(){
   'use strict';
   if(window.__crmAutoLastContact)return;
-  window.__crmAutoLastContact='20261002-v3';
+  window.__crmAutoLastContact='20261002-v4';
 
   var contacts=new Map();
   window.__crmAutoLastContactMap=contacts;
@@ -49,6 +49,21 @@
     var row=document.querySelector('#rows tr.selected');
     return customerIdFromRow(row);
   }
+
+  var originalLastMeeting=window.lastMeeting;
+  if(typeof originalLastMeeting==='function'){
+    window.lastMeeting=function(c){
+      var base=originalLastMeeting(c);
+      var auto=c&&c.id?contacts.get(String(c.id)):'';
+      var baseAt=base&&(base.meeting_date||base.created_at)||'';
+      var best=newer(baseAt,auto);
+      if(auto&&isoKey(best)===isoKey(auto)&&(!baseAt||isoKey(auto)>isoKey(baseAt))){
+        return {customer_id:c.id,meeting_date:isoKey(auto),created_at:auto,source:'auto-contact'};
+      }
+      return base;
+    };
+  }
+
   function patchDates(){
     try{
       var idx=lastContactColumn();
@@ -58,14 +73,14 @@
           if(!cell)return;
           var auto=id?contacts.get(id):'';
           var best=newer(cell.textContent,auto);
-          cell.textContent=trDate(best);
+          if(isoKey(best))cell.textContent=trDate(best);
         });
       }
       var selectedId=selectedCustomerId();
       var last=document.getElementById('dLastMeeting');
       if(last){
         var bestSelected=newer(last.textContent,selectedId?contacts.get(selectedId):'');
-        last.textContent=trDate(bestSelected);
+        if(isoKey(bestSelected))last.textContent=trDate(bestSelected);
       }
     }catch(_){}
   }
@@ -92,15 +107,22 @@
     };
   }
 
+  function refreshView(){
+    try{if(typeof window.render==='function')window.render()}catch(_){}
+    try{if(typeof window.loadSelected==='function')window.loadSelected()}catch(_){}
+    delayedPatch();
+  }
+
   async function load(){
     try{
       var r=await fetch('/api/sales-care-contacts',{credentials:'same-origin',cache:'no-store',headers:{'cache-control':'no-cache'}});
       if(!r.ok)return;
       var d=await r.json();
+      contacts.clear();
       (d.contacts||[]).forEach(function(x){
         if(x&&x.customer_id&&x.last_contact_at)contacts.set(String(x.customer_id),x.last_contact_at);
       });
-      delayedPatch();
+      refreshView();
     }catch(_){}
   }
 
@@ -108,7 +130,7 @@
     var d=event&&event.detail||{};
     if(!d.customer_id||!d.last_contact_at)return;
     contacts.set(String(d.customer_id),d.last_contact_at);
-    delayedPatch();
+    refreshView();
   });
 
   document.addEventListener('click',function(){setTimeout(patchDates,100)},true);
