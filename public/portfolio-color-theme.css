@@ -1,0 +1,96 @@
+/* Müşteri Portföyü — açık renkli ana görünüm */
+html,body{
+  background:#eef4fb!important;
+}
+.main{
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 7% 4%,#eaf2ff 0,transparent 30%),
+    radial-gradient(circle at 92% 8%,#eafaf0 0,transparent 27%),
+    radial-gradient(circle at 82% 92%,#f3edff 0,transparent 30%),
+    linear-gradient(135deg,#f7fbff 0%,#f8fff9 50%,#fbf9ff 100%)!important;
+}
+.head{
+  padding:13px 15px;
+  border:1px solid #dce8f5;
+  border-radius:14px;
+  background:rgba(255,255,255,.84);
+  box-shadow:0 8px 24px #52657a12;
+}
+.filter-grid{
+  padding:12px;
+  border:1px solid #dce8f5;
+  border-radius:12px;
+  background:rgba(255,255,255,.72);
+  box-shadow:0 6px 18px #52657a0d;
+}
+.filter input,.filter select{
+  background:#fff!important;
+  border-color:#cfddeb!important;
+}
+.cards .stat{
+  box-shadow:0 6px 18px #52657a0d;
+}
+.workbar,.table-card,.detail{
+  border-color:#d7e4f1!important;
+  box-shadow:0 8px 24px #52657a0d;
+}
+.workbar{
+  background:rgba(255,255,255,.92)!important;
+}
+.table-card{
+  background:#fafdff!important;
+}
+.detail{
+  background:rgba(255,255,255,.94)!important;
+}
+
+/* Takip tarihi GEÇMİŞ = açık kırmızı */
+#rows tr.overdue td,
+#rows tr:has(.crm-last-action-follow.overdue) td{
+  background:#fff0f2!important;
+  border-bottom-color:#ffd6dc!important;
+}
+#rows tr.overdue:hover td,
+#rows tr.overdue.selected td,
+#rows tr:has(.crm-last-action-follow.overdue):hover td,
+#rows tr:has(.crm-last-action-follow.overdue).selected td{
+  background:#ffe7eb!important;
+}
+
+/* Takip tarihi BUGÜN = beyaz */
+#rows tr:has(.follow.today) td,
+#rows tr:has(.crm-last-action-follow.today) td{
+  background:#ffffff!important;
+  border-bottom-color:#e2e8f0!important;
+}
+#rows tr:has(.follow.today):hover td,
+#rows tr:has(.follow.today).selected td,
+#rows tr:has(.crm-last-action-follow.today):hover td,
+#rows tr:has(.crm-last-action-follow.today).selected td{
+  background:#f8fafc!important;
+}
+
+/* Geçmiş veya bugün olmayan takipler = gelecek = açık yeşil */
+#rows tr:not(.overdue):not(:has(.follow.today)):not(:has(.crm-last-action-follow.today)) td{
+  background:#eefaf2!important;
+  border-bottom-color:#d6f0df!important;
+}
+#rows tr:not(.overdue):not(:has(.follow.today)):not(:has(.crm-last-action-follow.today)):hover td,
+#rows tr:not(.overdue):not(:has(.follow.today)):not(:has(.crm-last-action-follow.today)).selected td{
+  background:#e1f6e8!important;
+}
+
+/* Seçilen satır kaybolmasın: renk değişmeden ince mavi çerçeve */
+#rows tr.selected td:first-child{box-shadow:inset 3px 0 0 #1769f6}
+#rows tr.selected td{font-weight:inherit}
+
+/* Alt açıklama renkleri */
+.legend .l-today:before{background:#cbd5e1!important}
+.legend .l-over:before{background:#ef4444!important}
+.legend span:first-child:before{background:#22c55e!important}
+
+@media(max-width:720px){
+  .head{padding:10px 11px}
+  .filter-grid{padding:9px}
+}
