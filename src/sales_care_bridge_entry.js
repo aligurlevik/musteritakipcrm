@@ -108,7 +108,7 @@ export default{
       return new Response(asset.body,{status:asset.status,statusText:asset.statusText,headers});
     }
 
-    if(request.method==='GET'&&['/sales-care-ui.js','/customer-analysis-labels.js','/customer-analysis-lite.js','/mail-transport-v2-ui.js','/customer-card-tabs-controller.js','/portfolio-last-action.js','/last-contact-auto.js','/portfolio-customer-jump.js','/customer-deeplink.js'].includes(path)){
+    if(request.method==='GET'&&['/sales-care-ui.js','/customer-analysis-labels.js','/customer-analysis-lite.js','/mail-transport-v2-ui.js','/customer-card-tabs-controller.js','/portfolio-last-action.js','/last-contact-auto.js'].includes(path)){
       const asset=await env.ASSETS.fetch(request);
       const headers=new Headers(asset.headers);
       headers.set('content-type','application/javascript; charset=utf-8');
@@ -123,7 +123,6 @@ export default{
       html=html.replace(/<link[^>]*data-home-color-theme[^>]*>\s*/gi,'');
       html=stripScript(html,'data-customer-deeplink','customer-deeplink.js');
       html=html.replace(/<\/head>/i,'<link data-home-color-theme="20261002-v1" rel="stylesheet" href="/home-color-theme.css?v=20261002-1">\n</head>');
-      html=html.replace(/<\/body>/i,'<script data-customer-deeplink="20261002-v1" src="/customer-deeplink.js?v=20261002-1"></script>\n</body>');
       return rebuild(response,html);
     }
 
@@ -153,7 +152,6 @@ export default{
         '<script data-customer-card-tabs-controller="20261002-root-v2" src="/customer-card-tabs-controller.js?v=20261002-root-2"></script>\n'+
         '<script data-last-contact-auto="20261002-v4" src="/last-contact-auto.js?v=20261002-4"></script>\n'+
         '<script data-portfolio-last-action="20261001-v3" src="/portfolio-last-action.js?v=20261001-3"></script>\n'+
-        '<script data-portfolio-customer-jump="20261002-v1" src="/portfolio-customer-jump.js?v=20261002-1"></script>\n'+
         '</body>');
       return rebuild(response,html);
     }
