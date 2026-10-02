@@ -108,7 +108,7 @@ export default{
       return new Response(asset.body,{status:asset.status,statusText:asset.statusText,headers});
     }
 
-    if(request.method==='GET'&&['/sales-care-ui.js','/customer-analysis-labels.js','/customer-analysis-lite.js','/mail-transport-v2-ui.js','/customer-card-tabs-controller.js','/portfolio-last-action.js','/last-contact-auto.js'].includes(path)){
+    if(request.method==='GET'&&['/sales-care-ui.js','/customer-analysis-labels.js','/customer-analysis-lite.js','/mail-transport-v2-ui.js','/customer-card-tabs-controller.js','/portfolio-last-action.js','/last-contact-auto.js','/portfolio-customer-jump.js','/customer-deeplink.js'].includes(path)){
       const asset=await env.ASSETS.fetch(request);
       const headers=new Headers(asset.headers);
       headers.set('content-type','application/javascript; charset=utf-8');
@@ -121,7 +121,9 @@ export default{
     if(request.method==='GET'&&(path==='/'||path==='/index.html')&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
       let html=await response.text();
       html=html.replace(/<link[^>]*data-home-color-theme[^>]*>\s*/gi,'');
+      html=stripScript(html,'data-customer-deeplink','customer-deeplink.js');
       html=html.replace(/<\/head>/i,'<link data-home-color-theme="20261002-v1" rel="stylesheet" href="/home-color-theme.css?v=20261002-1">\n</head>');
+      html=html.replace(/<\/body>/i,'<script data-customer-deeplink="20261002-v1" src="/customer-deeplink.js?v=20261002-1"></script>\n</body>');
       return rebuild(response,html);
     }
 
@@ -141,8 +143,9 @@ export default{
       html=stripScript(html,'data-mail-transport-v2-ui','mail-transport-v2-ui.js');
       html=stripScript(html,'data-portfolio-last-action','portfolio-last-action.js');
       html=stripScript(html,'data-last-contact-auto','last-contact-auto.js');
+      html=stripScript(html,'data-portfolio-customer-jump','portfolio-customer-jump.js');
       html=html.replace(/<link[^>]*data-portfolio-color-theme[^>]*>\s*/gi,'');
-      html=html.replace(/<\/head>/i,'<link data-portfolio-color-theme="20261002-v1" rel="stylesheet" href="/portfolio-color-theme.css?v=20261002-1">\n</head>');
+      html=html.replace(/<\/head>/i,'<link data-portfolio-color-theme="20261002-v2" rel="stylesheet" href="/portfolio-color-theme.css?v=20261002-2">\n</head>');
 
       html=html.replace(/<\/body>/i,
         '<script data-sales-care-safe-ui="20261001-v1" src="/sales-care-ui.js?v=20261001-1"></script>\n'+
@@ -150,6 +153,7 @@ export default{
         '<script data-customer-card-tabs-controller="20261002-root-v2" src="/customer-card-tabs-controller.js?v=20261002-root-2"></script>\n'+
         '<script data-last-contact-auto="20261002-v4" src="/last-contact-auto.js?v=20261002-4"></script>\n'+
         '<script data-portfolio-last-action="20261001-v3" src="/portfolio-last-action.js?v=20261001-3"></script>\n'+
+        '<script data-portfolio-customer-jump="20261002-v1" src="/portfolio-customer-jump.js?v=20261002-1"></script>\n'+
         '</body>');
       return rebuild(response,html);
     }
