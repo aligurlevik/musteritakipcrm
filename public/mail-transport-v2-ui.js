@@ -1,7 +1,7 @@
 (function(){
   'use strict';
   if(window.__crmMailTransportV2Ui)return;
-  window.__crmMailTransportV2Ui='20261001-v3';
+  window.__crmMailTransportV2Ui='20261002-v4';
 
   var KEY='crm_mail_session_password';
   function clean(v){return String(v==null?'':v).trim()}
@@ -10,6 +10,16 @@
     var r=await fetch(path,{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'content-type':'application/json','cache-control':'no-cache'},body:JSON.stringify(data)}),d={};
     try{d=await r.json()}catch(_){ }
     if(!r.ok)throw new Error(d.error||'Mail işlemi başarısız.');
+    return d;
+  }
+  function notifyLast(id,at){
+    if(!id||!at)return;
+    window.dispatchEvent(new CustomEvent('crm-last-contact-updated',{detail:{customer_id:id,last_contact_at:at}}));
+  }
+  async function touch(id,at){
+    if(!id)return null;
+    var d=await post('/api/sales-care-touch',{customer_id:id,last_contact_at:at||new Date().toISOString()});
+    notifyLast(id,d.last_contact_at);
     return d;
   }
   function password(box,status){
@@ -82,7 +92,7 @@
     var messageArea=pane.querySelector('[data-v2-mail-body]');if(messageArea&&messageArea.parentNode)messageArea.parentNode.appendChild(draftNote);
 
     details.querySelector('.crm-mail-test-v2').onclick=async function(){var p=password(details,msg);if(!p)return;this.disabled=true;msg.textContent='Bağlantı deneniyor...';msg.className='crm-mail-transport-msg';try{await post('/api/customer-mail/test',{password:p});msg.textContent='✅ Mail bağlantısı hazır.'}catch(e){msg.textContent=e.message;msg.className='crm-mail-transport-msg err'}finally{this.disabled=false}};
-    details.querySelector('.crm-mail-sync-v2').onclick=async function(){var p=password(details,msg),id=currentId(pane);if(!p||!id)return;this.disabled=true;msg.textContent='Gelen kutusu kontrol ediliyor...';msg.className='crm-mail-transport-msg';try{var d=await post('/api/customer-mail/sync',{password:p,customer_id:id});msg.textContent='✅ '+d.added+' yeni gelen mail CRM’ye alındı.';refresh(pane)}catch(e){msg.textContent=e.message;msg.className='crm-mail-transport-msg err'}finally{this.disabled=false}};
+    details.querySelector('.crm-mail-sync-v2').onclick=async function(){var p=password(details,msg),id=currentId(pane);if(!p||!id)return;this.disabled=true;msg.textContent='Gelen kutusu kontrol ediliyor...';msg.className='crm-mail-transport-msg';try{var d=await post('/api/customer-mail/sync',{password:p,customer_id:id});notifyLast(id,d.last_contact_at);msg.textContent='✅ '+d.added+' yeni gelen mail CRM’ye alındı.';refresh(pane)}catch(e){msg.textContent=e.message;msg.className='crm-mail-transport-msg err'}finally{this.disabled=false}};
 
     var oldSend=send;
     var direct=oldSend.cloneNode(true);oldSend.replaceWith(direct);
@@ -92,7 +102,7 @@
       var f=fields(pane),to=clean(f.to&&f.to.value),subject=clean(f.subject&&f.subject.value),body=clean(f.body&&f.body.value),id=currentId(pane);
       if(!to||!subject||!body){status.textContent=!to?'Müşteri maili yok.':!subject?'Konu boş olamaz.':'Mesaj boş olamaz.';status.className='crm-mail-v2-status err';return}
       this.disabled=true;status.textContent='Mail gönderiliyor...';status.className='crm-mail-v2-status';
-      try{await post('/api/customer-mail/send',{password:p,customer_id:id,to:to,subject:subject,body:body});status.textContent='✅ Mail gönderildi ve CRM’ye otomatik kaydedildi.';f.subject.value='';f.body.value='';clearDraft(pane);refresh(pane)}catch(e){status.textContent=e.message;status.className='crm-mail-v2-status err'}finally{this.disabled=false}
+      try{var d=await post('/api/customer-mail/send',{password:p,customer_id:id,to:to,subject:subject,body:body});notifyLast(id,d.last_contact_at);status.textContent='✅ Mail gönderildi, CRM’ye kaydedildi ve Son Görüşme güncellendi.';f.subject.value='';f.body.value='';clearDraft(pane);refresh(pane)}catch(e){status.textContent=e.message;status.className='crm-mail-v2-status err'}finally{this.disabled=false}
     };
 
     var pasteOld=document.createElement('button');pasteOld.type='button';pasteOld.className='crm-mail-v2-btn crm-mail-paste-old';pasteOld.textContent='📋 Panodan Al';actions.insertBefore(pasteOld,direct);
@@ -111,14 +121,16 @@
       if(!subject)subject='Önceden gönderilmiş mail';
       this.disabled=true;status.textContent='CRM’ye kaydediliyor...';status.className='crm-mail-v2-status';
       try{
-        await post('/api/mails',{customer_id:id,direction:'Giden',mail_date:localDateTime(),email:to,subject:subject,summary:body,follow_date:''});
-        status.textContent='✅ Önceden gönderilmiş mail CRM’ye kaydedildi.';
+        var savedAt=localDateTime();
+        await post('/api/mails',{customer_id:id,direction:'Giden',mail_date:savedAt,email:to,subject:subject,summary:body,follow_date:''});
+        await touch(id,new Date().toISOString());
+        status.textContent='✅ Önceden gönderilmiş mail CRM’ye kaydedildi ve Son Görüşme güncellendi.';
         if(f.subject)f.subject.value='';if(f.body)f.body.value='';clearDraft(pane);refresh(pane);
       }catch(e){status.textContent=e.message;status.className='crm-mail-v2-status err'}finally{this.disabled=false}
     };
 
     var info=pane.querySelector('.crm-mail-v2-info');
-    if(info)info.textContent='Yazdığınız mail artık otomatik taslak olarak saklanır. Daha önce gönderdiğiniz bir metin panodaysa “Panodan Al” deyip kaydedebilirsiniz. Bundan sonraki mailleri “Şimdi Gönder + CRM’ye Kaydet” ile gönderin.';
+    if(info)info.textContent='Mail gönderildiğinde veya gelen mail CRM’ye alındığında Son Görüşme tarihi otomatik güncellenir. Yazdığınız mail ayrıca otomatik taslak olarak saklanır.';
   }
 
   function scan(){style();document.querySelectorAll('#portfolioDetailExpandModal .crm-mail-v2-pane').forEach(decorate)}
