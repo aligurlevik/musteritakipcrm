@@ -45,6 +45,44 @@ html,body{
   background:rgba(255,255,255,.94)!important;
 }
 
+/* Satış Takip Merkezi üst kartları */
+.crm-care-dashboard{
+  background:rgba(255,255,255,.90)!important;
+  border-color:#d7e4f1!important;
+  box-shadow:0 8px 24px #52657a10;
+}
+.crm-care-kpi[data-kpi="today"]{
+  background:linear-gradient(135deg,#eff6ff,#dbeafe)!important;
+  border-color:#93c5fd!important;
+  box-shadow:inset 0 4px 0 #3b82f6,0 5px 14px #3b82f614!important;
+}
+.crm-care-kpi[data-kpi="today"] strong{color:#1d4ed8!important}
+.crm-care-kpi[data-kpi="today"] span{color:#1e40af!important}
+.crm-care-kpi[data-kpi="overdue"]{
+  background:linear-gradient(135deg,#fff1f2,#ffe4e6)!important;
+  border-color:#fda4af!important;
+  box-shadow:inset 0 4px 0 #ef4444,0 5px 14px #ef444414!important;
+}
+.crm-care-kpi[data-kpi="overdue"] strong{color:#be123c!important}
+.crm-care-kpi[data-kpi="overdue"] span{color:#9f1239!important}
+.crm-care-kpi[data-kpi="complaints"]{
+  background:linear-gradient(135deg,#faf5ff,#f3e8ff)!important;
+  border-color:#d8b4fe!important;
+  box-shadow:inset 0 4px 0 #a855f7,0 5px 14px #a855f714!important;
+}
+.crm-care-kpi[data-kpi="complaints"] strong{color:#7e22ce!important}
+.crm-care-kpi[data-kpi="complaints"] span{color:#6b21a8!important}
+.crm-care-kpi[data-kpi="today"],
+.crm-care-kpi[data-kpi="overdue"],
+.crm-care-kpi[data-kpi="complaints"]{
+  transition:transform .15s ease,box-shadow .15s ease!important;
+}
+.crm-care-kpi[data-kpi="today"]:hover,
+.crm-care-kpi[data-kpi="overdue"]:hover,
+.crm-care-kpi[data-kpi="complaints"]:hover{
+  transform:translateY(-2px);
+}
+
 /* Takip tarihi GEÇMİŞ = açık kırmızı */
 #rows tr.overdue td,
 #rows tr:has(.crm-last-action-follow.overdue) td{
