@@ -9,6 +9,20 @@ function rebuild(response,html){
   return new Response(html,{status:response.status,statusText:response.statusText,headers});
 }
 
+function json(data,status=200){
+  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate'}});
+}
+
+async function authOk(request,env,ctx){
+  try{
+    const u=new URL(request.url);
+    u.pathname='/api/customers';
+    u.search='';
+    const response=await stableWorker.fetch(new Request(u,{method:'GET',headers:request.headers}),env,ctx);
+    return response.ok;
+  }catch(_){return false}
+}
+
 function stripScript(html,dataAttr,srcName=''){
   html=html.replace(new RegExp('<script[^>]*'+dataAttr+'[^>]*>[\\s\\S]*?<\\/script>\\s*','gi'),'');
   if(srcName){
@@ -27,11 +41,22 @@ export default{
       return salesCareWorker.fetch(request,env,ctx);
     }
 
+    if(path==='/api/sales-care-contacts'){
+      if(request.method!=='GET')return json({error:'Yöntem desteklenmiyor.'},405);
+      if(!(await authOk(request,env,ctx)))return json({error:'Oturum gerekli.'},401);
+      try{
+        const rows=(await env.DB.prepare('SELECT customer_id,last_contact_at FROM sales_care WHERE last_contact_at IS NOT NULL AND last_contact_at<>\'\'').all()).results||[];
+        return json({contacts:rows});
+      }catch(_){
+        return json({contacts:[]});
+      }
+    }
+
     if(path.startsWith('/api/customer-mail/')){
       return mailTransportWorker.fetch(request,env,ctx);
     }
 
-    if(request.method==='GET'&&['/sales-care-ui.js','/customer-analysis-labels.js','/customer-analysis-lite.js','/mail-transport-v2-ui.js','/customer-card-tabs-controller.js','/portfolio-last-action.js'].includes(path)){
+    if(request.method==='GET'&&['/sales-care-ui.js','/customer-analysis-labels.js','/customer-analysis-lite.js','/mail-transport-v2-ui.js','/customer-card-tabs-controller.js','/portfolio-last-action.js','/last-contact-auto.js'].includes(path)){
       const asset=await env.ASSETS.fetch(request);
       const headers=new Headers(asset.headers);
       headers.set('content-type','application/javascript; charset=utf-8');
@@ -55,11 +80,13 @@ export default{
       html=stripScript(html,'data-customer-analysis-lite','customer-analysis-lite.js');
       html=stripScript(html,'data-mail-transport-v2-ui','mail-transport-v2-ui.js');
       html=stripScript(html,'data-portfolio-last-action','portfolio-last-action.js');
+      html=stripScript(html,'data-last-contact-auto','last-contact-auto.js');
 
       html=html.replace(/<\/body>/i,
         '<script data-sales-care-safe-ui="20261001-v1" src="/sales-care-ui.js?v=20261001-1"></script>\n'+
         '<script data-mail-transport-v2-ui="20261001-v3" src="/mail-transport-v2-ui.js?v=20261001-3"></script>\n'+
         '<script data-customer-card-tabs-controller="20261002-root-v2" src="/customer-card-tabs-controller.js?v=20261002-root-2"></script>\n'+
+        '<script data-last-contact-auto="20261002-v1" src="/last-contact-auto.js?v=20261002-1"></script>\n'+
         '<script data-portfolio-last-action="20261001-v3" src="/portfolio-last-action.js?v=20261001-3"></script>\n'+
         '</body>');
       return rebuild(response,html);
