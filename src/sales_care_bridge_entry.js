@@ -130,7 +130,7 @@ export default{
         '<script data-sales-care-safe-ui="20261001-v1" src="/sales-care-ui.js?v=20261001-1"></script>\n'+
         '<script data-mail-transport-v2-ui="20261002-v4" src="/mail-transport-v2-ui.js?v=20261002-4"></script>\n'+
         '<script data-customer-card-tabs-controller="20261002-root-v2" src="/customer-card-tabs-controller.js?v=20261002-root-2"></script>\n'+
-        '<script data-last-contact-auto="20261002-v2" src="/last-contact-auto.js?v=20261002-2"></script>\n'+
+        '<script data-last-contact-auto="20261002-v3" src="/last-contact-auto.js?v=20261002-3"></script>\n'+
         '<script data-portfolio-last-action="20261001-v3" src="/portfolio-last-action.js?v=20261001-3"></script>\n'+
         '</body>');
       return rebuild(response,html);
