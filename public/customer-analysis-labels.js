@@ -1,7 +1,7 @@
 (function(){
   'use strict';
-  if(window.__crmCustomerAnalysisTabV3)return;
-  window.__crmCustomerAnalysisTabV3='20261002-v3';
+  if(window.__crmCustomerAnalysisTabV4)return;
+  window.__crmCustomerAnalysisTabV4='20261002-v4';
 
   function currentCustomer(){try{return typeof selected!=='undefined'?selected:null}catch(_){return null}}
   function clean(v){return String(v==null?'':v).trim()}
@@ -130,7 +130,7 @@
 
   function ensure(){
     ensureStyle();
-    var modal=document.getElementById('portfolioDetailExpandModal');if(!modal||!modal.classList.contains('show'))return;
+    var modal=document.getElementById('portfolioDetailExpandModal');if(!modal)return;
     var editor=modal.querySelector('.pie-editor');if(!editor)return;
     var pane=buildPane(editor);ensureTab(editor);
     var c=currentCustomer();
@@ -147,6 +147,7 @@
     ensureStyle();
     ensure();
     if(document.body)new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true});
+    setInterval(ensure,300);
     document.addEventListener('click',function(event){
       var modal=document.getElementById('portfolioDetailExpandModal'),editor=modal&&modal.querySelector('.pie-editor');if(!editor)return;
       var normal=event.target&&event.target.closest?event.target.closest('#portfolioDetailExpandModal .crm-root-tabbar .pie-top-tab'):null;
