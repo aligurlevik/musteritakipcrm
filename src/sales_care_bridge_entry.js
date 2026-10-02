@@ -31,7 +31,7 @@ export default{
       return mailTransportWorker.fetch(request,env,ctx);
     }
 
-    if(request.method==='GET'&&['/sales-care-ui.js','/mail-transport-v2-ui.js','/customer-card-tabs-controller.js','/portfolio-last-action.js'].includes(path)){
+    if(request.method==='GET'&&['/sales-care-ui.js','/customer-analysis-labels.js','/mail-transport-v2-ui.js','/customer-card-tabs-controller.js','/portfolio-last-action.js'].includes(path)){
       const asset=await env.ASSETS.fetch(request);
       const headers=new Headers(asset.headers);
       headers.set('content-type','application/javascript; charset=utf-8');
@@ -51,11 +51,13 @@ export default{
       html=stripScript(html,'data-customer-card-tabs-controller','customer-card-tabs-controller.js');
 
       html=stripScript(html,'data-sales-care-safe-ui','sales-care-ui.js');
+      html=stripScript(html,'data-customer-analysis-labels','customer-analysis-labels.js');
       html=stripScript(html,'data-mail-transport-v2-ui','mail-transport-v2-ui.js');
       html=stripScript(html,'data-portfolio-last-action','portfolio-last-action.js');
 
       html=html.replace(/<\/body>/i,
         '<script data-sales-care-safe-ui="20261001-v1" src="/sales-care-ui.js?v=20261001-1"></script>\n'+
+        '<script data-customer-analysis-labels="20261002-v1" src="/customer-analysis-labels.js?v=20261002-1"></script>\n'+
         '<script data-mail-transport-v2-ui="20261001-v3" src="/mail-transport-v2-ui.js?v=20261001-3"></script>\n'+
         '<script data-customer-card-tabs-controller="20261001-root-v1" src="/customer-card-tabs-controller.js?v=20261001-root-1"></script>\n'+
         '<script data-portfolio-last-action="20261001-v3" src="/portfolio-last-action.js?v=20261001-3"></script>\n'+
