@@ -1,15 +1,7 @@
 (function(){
   'use strict';
   if(window.__crmAutoLastContact)return;
-  window.__crmAutoLastContact='20261002-v5';
-
-  /* Firma adına tıklanınca sağdaki müşteri kartını tam ekran açan hafif modülü yükle. */
-  if(!document.querySelector('script[data-portfolio-fullscreen-detail-loader]')){
-    var fullscreenScript=document.createElement('script');
-    fullscreenScript.src='/portfolio-fullscreen-detail.js?v=20261002-1';
-    fullscreenScript.setAttribute('data-portfolio-fullscreen-detail-loader','1');
-    document.head.appendChild(fullscreenScript);
-  }
+  window.__crmAutoLastContact='20261002-v6';
 
   var contacts=new Map();
   window.__crmAutoLastContactMap=contacts;
@@ -57,6 +49,88 @@
     var row=document.querySelector('#rows tr.selected');
     return customerIdFromRow(row);
   }
+
+  /* Firma adına tıklanınca mevcut sağ müşteri panelini tam ekrana büyüt. */
+  function ensureFullscreenStyle(){
+    if(document.getElementById('crmPortfolioFullscreenStyle'))return;
+    var style=document.createElement('style');
+    style.id='crmPortfolioFullscreenStyle';
+    style.textContent='body.crm-portfolio-fullscreen{overflow:hidden!important}'+
+      'body.crm-portfolio-fullscreen #detail{position:fixed!important;inset:0!important;z-index:160000!important;width:100vw!important;height:100vh!important;min-height:100vh!important;max-height:100vh!important;margin:0!important;border:0!important;border-radius:0!important;overflow:auto!important;background:#fff!important;box-shadow:none!important}'+
+      'body.crm-portfolio-fullscreen #detail .detail-head{position:sticky!important;top:0!important;z-index:60!important;background:#fff!important}'+
+      'body.crm-portfolio-fullscreen #detail .tabs{position:sticky!important;top:58px!important;z-index:55!important;background:#fff!important}'+
+      'body.crm-portfolio-fullscreen #detail .detail-body{padding:18px!important;max-width:1500px!important;margin:0 auto!important;width:100%!important}'+
+      '#crmPortfolioFullscreenClose{background:#ef4444!important;color:#fff!important;border-color:#ef4444!important;font-size:16px!important;min-width:42px!important}'+
+      '#rows .company{cursor:pointer!important;color:#1769f6!important;text-decoration:underline!important;text-underline-offset:2px!important}';
+    document.head.appendChild(style);
+  }
+
+  function ensureCloseButton(){
+    var actions=document.querySelector('#detail .detail-actions');
+    if(!actions||document.getElementById('crmPortfolioFullscreenClose'))return;
+    var btn=document.createElement('button');
+    btn.type='button';
+    btn.id='crmPortfolioFullscreenClose';
+    btn.className='btn small';
+    btn.textContent='×';
+    btn.title='Tam ekranı kapat';
+    btn.addEventListener('click',function(event){event.preventDefault();event.stopPropagation();closeFullscreen()});
+    actions.appendChild(btn);
+  }
+
+  function openFullscreen(){
+    ensureFullscreenStyle();
+    ensureCloseButton();
+    var detail=document.getElementById('detail');
+    if(!detail)return;
+    document.body.classList.add('crm-portfolio-fullscreen');
+    try{detail.scrollTop=0}catch(_){}
+  }
+
+  function closeFullscreen(){
+    document.body.classList.remove('crm-portfolio-fullscreen');
+  }
+
+  function companyCustomerId(company){
+    var row=company&&company.closest?company.closest('#rows tr'):null;
+    var id=Number(customerIdFromRow(row)||0);
+    if(id)return id;
+    try{
+      var href=company.getAttribute&&company.getAttribute('href');
+      if(href){
+        var u=new URL(href,location.href);
+        id=Number(u.searchParams.get('editCustomer')||0);
+      }
+    }catch(_){}
+    return id||0;
+  }
+
+  function handleCompanyClick(event){
+    var company=event.target&&event.target.closest?event.target.closest('#rows .company'):null;
+    if(!company)return;
+    var id=companyCustomerId(company);
+    if(!id)return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    try{
+      if(typeof selectCustomer==='function')selectCustomer(id);
+      else if(typeof window.selectCustomer==='function')window.selectCustomer(id);
+    }catch(error){console.error('Müşteri seçilemedi',error)}
+    setTimeout(openFullscreen,0);
+  }
+
+  document.addEventListener('click',handleCompanyClick,true);
+  document.addEventListener('keydown',function(event){if(event.key==='Escape'&&document.body.classList.contains('crm-portfolio-fullscreen'))closeFullscreen()});
+
+  /* İlk açılışta veri isteği yarıda kalırsa yalnızca iki kez güvenli yeniden deneme yap. */
+  function retryInitialLoad(){
+    try{
+      if(typeof customers!=='undefined'&&Array.isArray(customers)&&customers.length===0&&typeof loadAll==='function')loadAll();
+    }catch(_){}
+  }
+  setTimeout(retryInitialLoad,500);
+  setTimeout(retryInitialLoad,1600);
 
   var originalLastMeeting=window.lastMeeting;
   if(typeof originalLastMeeting==='function'){
