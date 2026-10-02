@@ -23,6 +23,15 @@ async function authOk(request,env,ctx){
   }catch(_){return false}
 }
 
+async function ensureSalesCare(request,env,ctx){
+  try{
+    const u=new URL(request.url);
+    u.pathname='/api/sales-care-dashboard';
+    u.search='';
+    await salesCareWorker.fetch(new Request(u,{method:'GET',headers:request.headers}),env,ctx);
+  }catch(_){ }
+}
+
 function stripScript(html,dataAttr,srcName=''){
   html=html.replace(new RegExp('<script[^>]*'+dataAttr+'[^>]*>[\\s\\S]*?<\\/script>\\s*','gi'),'');
   if(srcName){
@@ -44,11 +53,36 @@ export default{
     if(path==='/api/sales-care-contacts'){
       if(request.method!=='GET')return json({error:'Yöntem desteklenmiyor.'},405);
       if(!(await authOk(request,env,ctx)))return json({error:'Oturum gerekli.'},401);
+      await ensureSalesCare(request,env,ctx);
       try{
         const rows=(await env.DB.prepare('SELECT customer_id,last_contact_at FROM sales_care WHERE last_contact_at IS NOT NULL AND last_contact_at<>\'\'').all()).results||[];
         return json({contacts:rows});
       }catch(_){
         return json({contacts:[]});
+      }
+    }
+
+    if(path==='/api/sales-care-touch'){
+      if(request.method!=='POST')return json({error:'Yöntem desteklenmiyor.'},405);
+      if(!(await authOk(request,env,ctx)))return json({error:'Oturum gerekli.'},401);
+      let body={};try{body=await request.json()}catch(_){return json({error:'Geçersiz istek.'},400)}
+      const id=Number(body.customer_id||0);if(!id)return json({error:'Müşteri seçilmedi.'},400);
+      const parsed=new Date(body.last_contact_at||Date.now());
+      const at=Number.isNaN(parsed.getTime())?new Date().toISOString():parsed.toISOString();
+      await ensureSalesCare(request,env,ctx);
+      try{
+        const customer=await env.DB.prepare('SELECT company FROM customers WHERE id=?').bind(id).first();
+        if(!customer)return json({error:'Müşteri bulunamadı.'},404);
+        const now=new Date().toISOString();
+        await env.DB.prepare(`INSERT INTO sales_care(customer_id,customer_name,last_contact_at,created_at,updated_at)
+          VALUES(?,?,?,?,?) ON CONFLICT(customer_id) DO UPDATE SET customer_name=excluded.customer_name,
+          last_contact_at=CASE WHEN sales_care.last_contact_at='' OR sales_care.last_contact_at<excluded.last_contact_at THEN excluded.last_contact_at ELSE sales_care.last_contact_at END,
+          updated_at=excluded.updated_at`).bind(id,String(customer.company||''),at,now,now).run();
+        const row=await env.DB.prepare('SELECT last_contact_at FROM sales_care WHERE customer_id=?').bind(id).first();
+        return json({ok:true,last_contact_at:String(row?.last_contact_at||at)});
+      }catch(e){
+        console.error('sales-care-touch',e);
+        return json({error:'Son görüşme tarihi güncellenemedi.'},500);
       }
     }
 
@@ -84,7 +118,7 @@ export default{
 
       html=html.replace(/<\/body>/i,
         '<script data-sales-care-safe-ui="20261001-v1" src="/sales-care-ui.js?v=20261001-1"></script>\n'+
-        '<script data-mail-transport-v2-ui="20261001-v3" src="/mail-transport-v2-ui.js?v=20261001-3"></script>\n'+
+        '<script data-mail-transport-v2-ui="20261002-v4" src="/mail-transport-v2-ui.js?v=20261002-4"></script>\n'+
         '<script data-customer-card-tabs-controller="20261002-root-v2" src="/customer-card-tabs-controller.js?v=20261002-root-2"></script>\n'+
         '<script data-last-contact-auto="20261002-v1" src="/last-contact-auto.js?v=20261002-1"></script>\n'+
         '<script data-portfolio-last-action="20261001-v3" src="/portfolio-last-action.js?v=20261001-3"></script>\n'+
