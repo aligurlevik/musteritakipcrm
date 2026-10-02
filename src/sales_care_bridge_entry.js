@@ -100,6 +100,14 @@ export default{
       return mailTransportWorker.fetch(request,env,ctx);
     }
 
+    if(request.method==='GET'&&path==='/home-color-theme.css'){
+      const asset=await env.ASSETS.fetch(request);
+      const headers=new Headers(asset.headers);
+      headers.set('content-type','text/css; charset=utf-8');
+      headers.set('cache-control','no-cache, no-store, must-revalidate');
+      return new Response(asset.body,{status:asset.status,statusText:asset.statusText,headers});
+    }
+
     if(request.method==='GET'&&['/sales-care-ui.js','/customer-analysis-labels.js','/customer-analysis-lite.js','/mail-transport-v2-ui.js','/customer-card-tabs-controller.js','/portfolio-last-action.js','/last-contact-auto.js'].includes(path)){
       const asset=await env.ASSETS.fetch(request);
       const headers=new Headers(asset.headers);
@@ -109,6 +117,14 @@ export default{
     }
 
     const response=await stableWorker.fetch(request,env,ctx);
+
+    if(request.method==='GET'&&(path==='/'||path==='/index.html')&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
+      let html=await response.text();
+      html=html.replace(/<link[^>]*data-home-color-theme[^>]*>\s*/gi,'');
+      html=html.replace(/<\/head>/i,'<link data-home-color-theme="20261002-v1" rel="stylesheet" href="/home-color-theme.css?v=20261002-1">\n</head>');
+      return rebuild(response,html);
+    }
+
     if(request.method==='GET'&&path==='/musteri-portfoyu.html'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
       let html=await response.text();
 
