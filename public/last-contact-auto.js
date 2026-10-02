@@ -1,7 +1,7 @@
 (function(){
   'use strict';
   if(window.__crmAutoLastContact)return;
-  window.__crmAutoLastContact='20261002-v1';
+  window.__crmAutoLastContact='20261002-v2';
 
   var original=window.lastMeeting;
   if(typeof original!=='function')return;
@@ -16,6 +16,15 @@
     var d=new Date(s);
     return Number.isNaN(d.getTime())?s:d.toISOString();
   }
+  function trDate(v){
+    var s=clean(v);
+    if(!s||s==='—')return s||'—';
+    var m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m)return m[3]+'.'+m[2]+'.'+m[1];
+    var d=new Date(s);
+    if(Number.isNaN(d.getTime()))return s;
+    return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
+  }
 
   window.lastMeeting=function(c){
     var meeting=original(c);
@@ -27,9 +36,38 @@
     return meeting;
   };
 
+  function formatDates(){
+    try{
+      document.querySelectorAll('#rows tr').forEach(function(row){
+        var cell=row.children&&row.children[5];
+        if(cell)cell.textContent=trDate(cell.textContent);
+      });
+      var last=document.getElementById('dLastMeeting');
+      if(last)last.textContent=trDate(last.textContent);
+    }catch(_){}
+  }
+
+  var originalRender=window.render;
+  if(typeof originalRender==='function'){
+    window.render=function(){
+      var result=originalRender.apply(this,arguments);
+      formatDates();
+      return result;
+    };
+  }
+  var originalLoadSelected=window.loadSelected;
+  if(typeof originalLoadSelected==='function'){
+    window.loadSelected=function(){
+      var result=originalLoadSelected.apply(this,arguments);
+      formatDates();
+      return result;
+    };
+  }
+
   function refresh(){
     try{if(typeof window.render==='function')window.render()}catch(_){}
     try{if(typeof window.loadSelected==='function')window.loadSelected()}catch(_){}
+    formatDates();
   }
 
   async function load(){
@@ -51,5 +89,6 @@
     refresh();
   });
 
+  formatDates();
   load();
 })();
