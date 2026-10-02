@@ -49,6 +49,11 @@ function patchPortfolioCore(html){
   const oldLoad="async function loadAll(reselect){try{[customers,meetings]=await Promise.all([api('/api/customers?status=Tümü'),api('/api/meetings?status=Tümü')]);customers=customers.filter(c=>c.record_status!=='Silindi');fillFilters();counts();render();const id=reselect||(selected&&selected.id)||(visibleRows[0]&&visibleRows[0].id);if(id)await selectCustomer(id)}catch(e){console.error(e)}}";
   const newLoad="async function loadAll(reselect){let loadedCustomers;try{loadedCustomers=await api('/api/customers?status=Tümü')}catch(e){console.error('Müşteriler yüklenemedi',e);customers=[];meetings=[];fillFilters();counts();render();return}customers=(Array.isArray(loadedCustomers)?loadedCustomers:(loadedCustomers&&Array.isArray(loadedCustomers.customers)?loadedCustomers.customers:[])).filter(c=>c&&c.record_status!=='Silindi');try{const loadedMeetings=await api('/api/meetings?status=Tümü');meetings=Array.isArray(loadedMeetings)?loadedMeetings:(loadedMeetings&&Array.isArray(loadedMeetings.meetings)?loadedMeetings.meetings:[])}catch(e){console.warn('Görüşmeler yüklenemedi; müşteri listesi gösterilmeye devam edecek.',e);meetings=[]}fillFilters();counts();render();const id=reselect||(selected&&selected.id)||(visibleRows[0]&&visibleRows[0].id);if(id)await selectCustomer(id)}";
   if(html.includes(oldLoad))html=html.replace(oldLoad,newLoad);
+
+  const oldCompany='<span class="company">${esc(c.company)}</span>';
+  const newCompany='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
+  if(html.includes(oldCompany))html=html.replaceAll(oldCompany,newCompany);
+
   return html;
 }
 
@@ -119,7 +124,7 @@ export default{
       return new Response(asset.body,{status:asset.status,statusText:asset.statusText,headers});
     }
 
-    if(request.method==='GET'&&['/sales-care-ui.js','/customer-analysis-labels.js','/customer-analysis-lite.js','/mail-transport-v2-ui.js','/customer-card-tabs-controller.js','/portfolio-last-action.js','/last-contact-auto.js'].includes(path)){
+    if(request.method==='GET'&&['/sales-care-ui.js','/customer-analysis-labels.js','/customer-analysis-lite.js','/mail-transport-v2-ui.js','/customer-card-tabs-controller.js','/portfolio-last-action.js','/last-contact-auto.js','/customer-deeplink.js'].includes(path)){
       const asset=await env.ASSETS.fetch(request);
       const headers=new Headers(asset.headers);
       headers.set('content-type','application/javascript; charset=utf-8');
@@ -134,6 +139,7 @@ export default{
       html=html.replace(/<link[^>]*data-home-color-theme[^>]*>\s*/gi,'');
       html=stripScript(html,'data-customer-deeplink','customer-deeplink.js');
       html=html.replace(/<\/head>/i,'<link data-home-color-theme="20261002-v1" rel="stylesheet" href="/home-color-theme.css?v=20261002-1">\n</head>');
+      html=html.replace(/<\/body>/i,'<script data-customer-deeplink="20261002-v2" src="/customer-deeplink.js?v=20261002-2"></script>\n</body>');
       return rebuild(response,html);
     }
 
