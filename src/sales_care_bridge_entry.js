@@ -152,7 +152,7 @@ export default{
         '<script data-customer-card-tabs-controller="20261002-root-v2" src="/customer-card-tabs-controller.js?v=20261002-root-2"></script>\n'+
         '<script data-last-contact-auto="20261002-v4" src="/last-contact-auto.js?v=20261002-4"></script>\n'+
         '<script data-portfolio-last-action="20261001-v3" src="/portfolio-last-action.js?v=20261001-3"></script>\n'+
-        '<script data-portfolio-customer-jump="20261002-v4" src="/portfolio-customer-jump.js?v=20261002-4"></script>\n'+
+        '<script data-portfolio-customer-jump="20261002-v5" src="/portfolio-customer-jump.js?v=20261002-5"></script>\n'+
         '</body>');
       return rebuild(response,html);
     }
