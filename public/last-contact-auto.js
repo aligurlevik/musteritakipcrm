@@ -1,7 +1,15 @@
 (function(){
   'use strict';
   if(window.__crmAutoLastContact)return;
-  window.__crmAutoLastContact='20261002-v4';
+  window.__crmAutoLastContact='20261002-v5';
+
+  /* Firma adına tıklanınca sağdaki müşteri kartını tam ekran açan hafif modülü yükle. */
+  if(!document.querySelector('script[data-portfolio-fullscreen-detail-loader]')){
+    var fullscreenScript=document.createElement('script');
+    fullscreenScript.src='/portfolio-fullscreen-detail.js?v=20261002-1';
+    fullscreenScript.setAttribute('data-portfolio-fullscreen-detail-loader','1');
+    document.head.appendChild(fullscreenScript);
+  }
 
   var contacts=new Map();
   window.__crmAutoLastContactMap=contacts;
