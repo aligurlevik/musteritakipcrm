@@ -54,12 +54,22 @@ export default{
       if(request.method!=='GET')return json({error:'Yöntem desteklenmiyor.'},405);
       if(!(await authOk(request,env,ctx)))return json({error:'Oturum gerekli.'},401);
       await ensureSalesCare(request,env,ctx);
+      const latest=new Map();
       try{
         const rows=(await env.DB.prepare('SELECT customer_id,last_contact_at FROM sales_care WHERE last_contact_at IS NOT NULL AND last_contact_at<>\'\'').all()).results||[];
-        return json({contacts:rows});
-      }catch(_){
-        return json({contacts:[]});
-      }
+        for(const row of rows){
+          const id=Number(row.customer_id||0),at=String(row.last_contact_at||'');
+          if(id&&at)latest.set(id,at);
+        }
+      }catch(_){ }
+      try{
+        const rows=(await env.DB.prepare('SELECT customer_id,MAX(mail_date) AS last_mail_at FROM mails GROUP BY customer_id').all()).results||[];
+        for(const row of rows){
+          const id=Number(row.customer_id||0),at=String(row.last_mail_at||''),old=latest.get(id)||'';
+          if(id&&at&&(!old||at>old))latest.set(id,at);
+        }
+      }catch(_){ }
+      return json({contacts:Array.from(latest,function(entry){return {customer_id:entry[0],last_contact_at:entry[1]}})});
     }
 
     if(path==='/api/sales-care-touch'){
