@@ -57,7 +57,7 @@ export default{
 
       html=html.replace(/<\/body>/i,
         '<script data-sales-care-safe-ui="20261001-v1" src="/sales-care-ui.js?v=20261001-1"></script>\n'+
-        '<script data-customer-analysis-labels="20261002-v4" src="/customer-analysis-labels.js?v=20261002-4"></script>\n'+
+        '<script data-customer-analysis-labels="20261002-v5" src="/customer-analysis-labels.js?v=20261002-5"></script>\n'+
         '<script data-mail-transport-v2-ui="20261001-v3" src="/mail-transport-v2-ui.js?v=20261001-3"></script>\n'+
         '<script data-customer-card-tabs-controller="20261001-root-v1" src="/customer-card-tabs-controller.js?v=20261001-root-1"></script>\n'+
         '<script data-portfolio-last-action="20261001-v3" src="/portfolio-last-action.js?v=20261001-3"></script>\n'+
