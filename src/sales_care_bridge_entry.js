@@ -41,6 +41,17 @@ function stripScript(html,dataAttr,srcName=''){
   return html;
 }
 
+function patchPortfolioCore(html){
+  const oldSelect="async function selectCustomer(id){selected=customers.find(c=>Number(c.id)===Number(id));if(!selected)return;selectedHistory=await api('/api/customers/'+id+'/history');loadSelected();render()}";
+  const newSelect="async function selectCustomer(id){const activeId=Number(id);selected=customers.find(c=>Number(c.id)===activeId);if(!selected)return;selectedHistory={meetings:[],offers:[]};loadSelected();render();try{const history=await api('/api/customers/'+activeId+'/history');if(!selected||Number(selected.id)!==activeId)return;selectedHistory=history||{meetings:[],offers:[]};renderHistory();renderAnalysis()}catch(e){console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',e)}}";
+  if(html.includes(oldSelect))html=html.replace(oldSelect,newSelect);
+
+  const oldLoad="async function loadAll(reselect){try{[customers,meetings]=await Promise.all([api('/api/customers?status=Tümü'),api('/api/meetings?status=Tümü')]);customers=customers.filter(c=>c.record_status!=='Silindi');fillFilters();counts();render();const id=reselect||(selected&&selected.id)||(visibleRows[0]&&visibleRows[0].id);if(id)await selectCustomer(id)}catch(e){console.error(e)}}";
+  const newLoad="async function loadAll(reselect){let loadedCustomers;try{loadedCustomers=await api('/api/customers?status=Tümü')}catch(e){console.error('Müşteriler yüklenemedi',e);customers=[];meetings=[];fillFilters();counts();render();return}customers=(Array.isArray(loadedCustomers)?loadedCustomers:(loadedCustomers&&Array.isArray(loadedCustomers.customers)?loadedCustomers.customers:[])).filter(c=>c&&c.record_status!=='Silindi');try{const loadedMeetings=await api('/api/meetings?status=Tümü');meetings=Array.isArray(loadedMeetings)?loadedMeetings:(loadedMeetings&&Array.isArray(loadedMeetings.meetings)?loadedMeetings.meetings:[])}catch(e){console.warn('Görüşmeler yüklenemedi; müşteri listesi gösterilmeye devam edecek.',e);meetings=[]}fillFilters();counts();render();const id=reselect||(selected&&selected.id)||(visibleRows[0]&&visibleRows[0].id);if(id)await selectCustomer(id)}";
+  if(html.includes(oldLoad))html=html.replace(oldLoad,newLoad);
+  return html;
+}
+
 export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url);
@@ -108,7 +119,7 @@ export default{
       return new Response(asset.body,{status:asset.status,statusText:asset.statusText,headers});
     }
 
-    if(request.method==='GET'&&['/sales-care-ui.js','/customer-analysis-labels.js','/customer-analysis-lite.js','/mail-transport-v2-ui.js','/customer-card-tabs-controller.js','/portfolio-last-action.js','/last-contact-auto.js','/portfolio-customer-jump.js'].includes(path)){
+    if(request.method==='GET'&&['/sales-care-ui.js','/customer-analysis-labels.js','/customer-analysis-lite.js','/mail-transport-v2-ui.js','/customer-card-tabs-controller.js','/portfolio-last-action.js','/last-contact-auto.js'].includes(path)){
       const asset=await env.ASSETS.fetch(request);
       const headers=new Headers(asset.headers);
       headers.set('content-type','application/javascript; charset=utf-8');
@@ -143,6 +154,7 @@ export default{
       html=stripScript(html,'data-portfolio-last-action','portfolio-last-action.js');
       html=stripScript(html,'data-last-contact-auto','last-contact-auto.js');
       html=stripScript(html,'data-portfolio-customer-jump','portfolio-customer-jump.js');
+      html=patchPortfolioCore(html);
       html=html.replace(/<link[^>]*data-portfolio-color-theme[^>]*>\s*/gi,'');
       html=html.replace(/<\/head>/i,'<link data-portfolio-color-theme="20261002-v2" rel="stylesheet" href="/portfolio-color-theme.css?v=20261002-2">\n</head>');
 
@@ -152,7 +164,6 @@ export default{
         '<script data-customer-card-tabs-controller="20261002-root-v2" src="/customer-card-tabs-controller.js?v=20261002-root-2"></script>\n'+
         '<script data-last-contact-auto="20261002-v4" src="/last-contact-auto.js?v=20261002-4"></script>\n'+
         '<script data-portfolio-last-action="20261001-v3" src="/portfolio-last-action.js?v=20261001-3"></script>\n'+
-        '<script data-portfolio-customer-jump="20261002-v7" src="/portfolio-customer-jump.js?v=20261002-7"></script>\n'+
         '</body>');
       return rebuild(response,html);
     }
