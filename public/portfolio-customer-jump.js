@@ -1,13 +1,7 @@
 (function(){
   'use strict';
   if(window.__crmPortfolioCustomerJump)return;
-  window.__crmPortfolioCustomerJump='20261002-v5';
-
-  function customerIdFromRow(row){
-    var raw=String(row&&row.getAttribute('onclick')||'');
-    var m=raw.match(/selectCustomer\((\d+)\)/);
-    return m?Number(m[1]):0;
-  }
+  window.__crmPortfolioCustomerJump='20261002-v6';
 
   async function fetchJson(url){
     var r=await fetch(url,{credentials:'same-origin',cache:'no-store',headers:{'cache-control':'no-cache'}});
@@ -15,33 +9,37 @@
     return r.json();
   }
 
-  function openCustomerNow(id){
+  async function immediateSelectCustomer(id){
     try{
       var list=(typeof customers!=='undefined'&&Array.isArray(customers))?customers:[];
       var found=list.find(function(c){return Number(c&&c.id)===Number(id)});
-      if(!found)return false;
+      if(!found)return;
 
       selected=found;
-      try{selectedHistory={meetings:[],offers:[]}}catch(_){ }
+      selectedHistory={meetings:[],offers:[]};
 
       if(typeof loadSelected==='function')loadSelected();
       if(typeof render==='function')render();
 
-      fetchJson('/api/customers/'+encodeURIComponent(id)+'/history').then(function(data){
-        try{
-          if(!selected||Number(selected.id)!==Number(id))return;
-          selectedHistory=data||{meetings:[],offers:[]};
-          if(typeof renderHistory==='function')renderHistory();
-          if(typeof renderAnalysis==='function')renderAnalysis();
-        }catch(_){ }
-      }).catch(function(error){
-        console.warn('Müşteri geçmişi yüklenemedi, kart açık kalacak.',error);
-      });
-      return true;
+      try{
+        var data=await fetchJson('/api/customers/'+encodeURIComponent(id)+'/history');
+        if(!selected||Number(selected.id)!==Number(id))return;
+        selectedHistory=data||{meetings:[],offers:[]};
+        if(typeof renderHistory==='function')renderHistory();
+        if(typeof renderAnalysis==='function')renderAnalysis();
+      }catch(error){
+        console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',error);
+      }
     }catch(error){
-      console.error('Müşteri kartı açılamadı',error);
-      return false;
+      console.error('Müşteri seçimi açılamadı',error);
     }
+  }
+
+  try{
+    if(typeof selectCustomer==='function')selectCustomer=immediateSelectCustomer;
+    window.selectCustomer=immediateSelectCustomer;
+  }catch(error){
+    console.error('Müşteri seçim fonksiyonu güncellenemedi',error);
   }
 
   async function recoverPortfolioIfEmpty(){
@@ -52,9 +50,7 @@
 
       var loaded=await fetchJson('/api/customers?status=T%C3%BCm%C3%BC');
       var list=Array.isArray(loaded)?loaded:(loaded&&Array.isArray(loaded.customers)?loaded.customers:[]);
-      if(typeof customers!=='undefined'){
-        customers=list.filter(function(c){return c&&c.record_status!=='Silindi'});
-      }
+      if(typeof customers!=='undefined')customers=list.filter(function(c){return c&&c.record_status!=='Silindi'});
 
       try{
         var loadedMeetings=await fetchJson('/api/meetings?status=T%C3%BCm%C3%BC');
@@ -69,29 +65,13 @@
       if(typeof render==='function')render();
 
       var finalList=(typeof customers!=='undefined'&&Array.isArray(customers))?customers:[];
-      if(finalList.length&&(!selected||!selected.id))openCustomerNow(finalList[0].id);
+      if(finalList.length&&(!selected||!selected.id))immediateSelectCustomer(finalList[0].id);
     }catch(error){
       console.error('Müşteri listesi geri yüklenemedi',error);
       var reminder=document.getElementById('sideReminders');
       if(reminder)reminder.textContent='Müşteriler yüklenemedi. Yenile butonunu deneyin.';
     }
   }
-
-  document.addEventListener('click',function(event){
-    var name=event.target&&event.target.closest?event.target.closest('#rows .company'):null;
-    if(!name)return;
-    var row=name.closest('tr'),id=customerIdFromRow(row);
-    if(!id)return;
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    if(!openCustomerNow(id)&&typeof window.selectCustomer==='function'){
-      Promise.resolve(window.selectCustomer(id)).catch(function(error){
-        console.error('Müşteri detayı açılamadı',error);
-      });
-    }
-  },true);
 
   var style=document.createElement('style');
   style.id='crmPortfolioCustomerJumpStyle';
