@@ -139,7 +139,7 @@ export default{
       html=html.replace(/<link[^>]*data-home-color-theme[^>]*>\s*/gi,'');
       html=stripScript(html,'data-customer-deeplink','customer-deeplink.js');
       html=html.replace(/<\/head>/i,'<link data-home-color-theme="20261002-v1" rel="stylesheet" href="/home-color-theme.css?v=20261002-1">\n</head>');
-      html=html.replace(/<\/body>/i,'<script data-customer-deeplink="20261002-v2" src="/customer-deeplink.js?v=20261002-2"></script>\n</body>');
+      html=html.replace(/<\/body>/i,'<script data-customer-deeplink="20261002-v3" src="/customer-deeplink.js?v=20261002-3"></script>\n</body>');
       return rebuild(response,html);
     }
 
