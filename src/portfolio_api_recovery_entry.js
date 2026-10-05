@@ -1,7 +1,7 @@
 import worker from './sales_care_bridge_entry.js';
 
 function json(data,status=200){
-  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v6'}});
+  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v7'}});
 }
 
 function rebuild(response,html){
@@ -61,21 +61,84 @@ async function directSalesCareContacts(env){
   return {contacts:Array.from(latest,entry=>({customer_id:entry[0],last_contact_at:entry[1]}))};
 }
 
+const FULLSCREEN_STYLE=String.raw`
+<style data-portfolio-fullscreen-inline="20261005-v4">
+body.crm-customer-fullscreen{overflow:hidden!important}
+body.crm-customer-fullscreen #detail{position:fixed!important;inset:0!important;z-index:2147483000!important;width:100vw!important;height:100vh!important;min-width:100vw!important;max-width:100vw!important;min-height:100vh!important;max-height:100vh!important;margin:0!important;border:0!important;border-radius:0!important;overflow:auto!important;background:#f4f7fb!important;box-shadow:none!important}
+body.crm-customer-fullscreen #detail .detail-head{position:sticky!important;top:0!important;z-index:50!important;background:#fff!important;padding:15px 20px!important;box-shadow:0 1px 0 #dce5ef!important}
+body.crm-customer-fullscreen #detail .detail-title{font-size:22px!important}
+body.crm-customer-fullscreen #detail .tabs{position:sticky!important;top:63px!important;z-index:45!important;background:#fff!important;padding:0 18px!important}
+body.crm-customer-fullscreen #detail .tab{font-size:12px!important;padding:13px 8px!important}
+body.crm-customer-fullscreen #detail .detail-body{width:min(1500px,calc(100vw - 44px))!important;max-width:1500px!important;margin:0 auto!important;padding:22px 0 40px!important}
+body.crm-customer-fullscreen #detail .summary4{gap:12px!important}
+body.crm-customer-fullscreen #detail .mini-card{min-height:78px!important;padding:12px!important}
+body.crm-customer-fullscreen #detail .mini-card .m-label{font-size:11px!important}
+body.crm-customer-fullscreen #detail .mini-card .m-value{font-size:14px!important}
+body.crm-customer-fullscreen #detail .panel{padding:16px!important}
+body.crm-customer-fullscreen #detail .panel h3{font-size:15px!important}
+body.crm-customer-fullscreen #detail .info-row{font-size:13px!important;margin:10px 0!important}
+body.crm-customer-fullscreen #detail .info-row input,body.crm-customer-fullscreen #detail .info-row select{height:38px!important;font-size:12px!important}
+body.crm-customer-fullscreen #detail .notes-panel{margin-top:14px!important}
+body.crm-customer-fullscreen #detail .note-list{max-height:280px!important}
+body.crm-customer-fullscreen #detail .history-item{font-size:12px!important;padding:12px 14px!important}
+#crmCustomerFullscreenClose{background:#ef4444!important;color:#fff!important;border-color:#ef4444!important;padding:9px 15px!important;font-size:13px!important;font-weight:900!important}
+#rows .company{cursor:pointer!important;text-decoration:underline!important;text-underline-offset:2px!important;color:#1769f6!important}
+@media(max-width:900px){body.crm-customer-fullscreen #detail .detail-body{width:calc(100vw - 24px)!important}body.crm-customer-fullscreen #detail .two-col{grid-template-columns:1fr!important}body.crm-customer-fullscreen #detail .summary4{grid-template-columns:1fr 1fr!important}}
+</style>`;
+
+const FULLSCREEN_SCRIPT=String.raw`
+<script data-portfolio-fullscreen-inline-script="20261005-v4">
+(function(){
+  'use strict';
+  window.crmCloseCustomerFullscreen=function(){
+    document.body.classList.remove('crm-customer-fullscreen');
+    var d=document.getElementById('detail');
+    if(d){try{d.scrollTop=0}catch(_){}}
+  };
+  window.crmOpenCustomerFullscreen=function(){
+    var d=document.getElementById('detail');
+    if(!d)return;
+    var actions=d.querySelector('.detail-actions');
+    if(actions&&!document.getElementById('crmCustomerFullscreenClose')){
+      var btn=document.createElement('button');
+      btn.type='button';
+      btn.id='crmCustomerFullscreenClose';
+      btn.className='btn small';
+      btn.textContent='✕ Kapat';
+      btn.onclick=function(event){event.preventDefault();event.stopPropagation();window.crmCloseCustomerFullscreen()};
+      actions.appendChild(btn);
+    }
+    document.body.classList.add('crm-customer-fullscreen');
+    try{d.scrollTop=0}catch(_){}
+  };
+  document.addEventListener('keydown',function(event){if(event.key==='Escape'&&document.body.classList.contains('crm-customer-fullscreen'))window.crmCloseCustomerFullscreen()});
+})();
+</script>`;
+
 function stabilizePortfolioHtml(html){
+  // Eski tam ekran katmanlarının tamamını kaldır; bu sürüm dış JS dosyasına bağlı değildir.
   html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-detail\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
   html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-stable\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
   html=html.replace(/<script[^>]*data-portfolio-fullscreen-stable[^>]*>[\s\S]*?<\/script>\s*/gi,'');
+  html=html.replace(/<script[^>]*data-portfolio-fullscreen-inline-script[^>]*>[\s\S]*?<\/script>\s*/gi,'');
+  html=html.replace(/<style[^>]*data-portfolio-fullscreen-inline[^>]*>[\s\S]*?<\/style>\s*/gi,'');
   html=html.replace(/<script[^>]*data-portfolio-name-click[^>]*>[\s\S]*?<\/script>\s*/gi,'');
 
+  // Firma isminin kendisi müşteri seçimini ve tam ekran açılışını doğrudan yapar.
+  // Böylece event delegation, asset cache veya başka click katmanlarına bağımlılık kalmaz.
   const linkedCompany='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
   const plainCompany='<span class="company">${esc(c.company)}</span>';
-  html=html.split(linkedCompany).join(plainCompany);
+  const clickableCompany='<span class="company" onclick="event.stopPropagation();selectCustomer(${c.id});window.crmOpenCustomerFullscreen&&window.crmOpenCustomerFullscreen()">${esc(c.company)}</span>';
+  html=html.split(linkedCompany).join(clickableCompany);
+  html=html.split(plainCompany).join(clickableCompany);
 
+  // Kart bilgilerini anında değiştir; geçmiş kaydı arkadan gelsin.
   const oldSelect="async function selectCustomer(id){selected=customers.find(c=>Number(c.id)===Number(id));if(!selected)return;selectedHistory=await api('/api/customers/'+id+'/history');loadSelected();render()}";
   const stableSelect="async function selectCustomer(id){const activeId=Number(id);selected=customers.find(c=>Number(c.id)===activeId);if(!selected)return;selectedHistory={meetings:[],offers:[]};loadSelected();render();try{const history=await api('/api/customers/'+activeId+'/history');if(!selected||Number(selected.id)!==activeId)return;selectedHistory=history||{meetings:[],offers:[]};renderHistory();renderAnalysis()}catch(e){console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',e)}}";
   html=html.split(oldSelect).join(stableSelect);
 
-  html=html.replace(/<\/body>/i,'<script data-portfolio-fullscreen-stable="20261005-v3" src="/portfolio-fullscreen-stable.js?v=20261005-3"></script>\n</body>');
+  html=html.replace(/<\/head>/i,FULLSCREEN_STYLE+'\n</head>');
+  html=html.replace(/<\/body>/i,FULLSCREEN_SCRIPT+'\n</body>');
   return html;
 }
 
@@ -83,15 +146,6 @@ export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url);
     const path=url.pathname;
-
-    if(request.method==='GET'&&path==='/portfolio-fullscreen-stable.js'){
-      const asset=await env.ASSETS.fetch(request);
-      const headers=new Headers(asset.headers);
-      headers.set('content-type','application/javascript; charset=utf-8');
-      headers.set('cache-control','no-cache, no-store, must-revalidate');
-      return new Response(asset.body,{status:asset.status,statusText:asset.statusText,headers});
-    }
-
     const wantsAll=url.searchParams.get('status')==='Tümü';
     const historyMatch=request.method==='GET'?path.match(/^\/api\/customers\/(\d+)\/history$/):null;
     const fastPortfolioRead=request.method==='GET'&&(
