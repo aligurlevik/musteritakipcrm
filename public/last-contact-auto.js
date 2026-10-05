@@ -1,7 +1,7 @@
 (function(){
   'use strict';
   if(window.__crmAutoLastContact)return;
-  window.__crmAutoLastContact='20261005-v9-no-global-click';
+  window.__crmAutoLastContact='20261005-v8-nav-safe';
 
   var contacts=new Map();
   window.__crmAutoLastContactMap=contacts;
@@ -130,6 +130,7 @@
     delayedPatch();
   });
 
+  document.addEventListener('click',function(){setTimeout(patchDates,100)},true);
   delayedPatch();
   load();
 })();

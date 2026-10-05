@@ -2,11 +2,7 @@ import worker from './sales_care_bridge_entry.js';
 import {restorePortfolioCustomers} from './restore_portfolio_customers.js';
 
 function json(data,status=200){
-  return new Response(JSON.stringify(data),{status,headers:{
-    'content-type':'application/json; charset=utf-8',
-    'cache-control':'no-cache, no-store, must-revalidate',
-    'x-crm-portfolio-recovery':'direct-d1-company-detail-v4'
-  }});
+  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v12'}});
 }
 
 function rebuild(response,html){
@@ -14,28 +10,6 @@ function rebuild(response,html){
   for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
   headers.set('cache-control','no-cache, no-store, must-revalidate');
   return new Response(html,{status:response.status,statusText:response.statusText,headers});
-}
-
-function patchPortfolioHtml(html){
-  // Satırın tamamı tıklanabilir olmasın. Böylece firma adına basmak yalnızca linki çalıştırır.
-  html=html.replace(/\s+onclick=["']selectCustomer\(\$\{c\.id\}\)["']/g,'');
-  html=html.replace(/tbody\s+tr\{cursor:pointer\}/g,'tbody tr{cursor:default}');
-
-  // Sadece firma adı doğrudan ayrı müşteri detay sayfasına gitsin.
-  const detailLink='<a class="company" href="/musteri-detay.html?id=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
-  html=html.replace(/<span\s+class=["']company["']>\$\{esc\(c\.company\)\}<\/span>/g,detailLink);
-  html=html.replace(/<a\s+class=["']company["'][^>]*>\$\{esc\(c\.company\)\}<\/a>/g,detailLink);
-
-  // Çok önemli: eski tıklama katmanı müşteri id'sini Detay düğmesindeki selectCustomer'dan da okuyordu.
-  // Bu yüzden firma linkini engelleyip yine satırı seçebiliyordu. Detay düğmesini de normal link yapıyoruz;
-  // satırın içinde artık selectCustomer(...) kalmıyor.
-  const detailButton='<a class="btn small" href="/musteri-detay.html?id=${c.id}" onclick="event.stopPropagation()">Detay</a>';
-  html=html.replace(/<button\s+class=["']btn small["']\s+onclick=["']event\.stopPropagation\(\);selectCustomer\(\$\{c\.id\}\)["']>Detay<\/button>/g,detailButton);
-
-  // Eski kolon yaması her tıklamada bütün tabloyu tekrar biçimlendiriyordu.
-  html=html.replace(/document\.addEventListener\(\s*["']click["']\s*,\s*function\(\)\s*\{\s*setTimeout\(enforce\s*,\s*70\s*\)\s*;\s*setTimeout\(enforce\s*,\s*220\s*\)\s*\}\s*,\s*true\s*\)\s*;?/g,'');
-
-  return html;
 }
 
 async function sessionOk(request,env,ctx){
@@ -62,7 +36,7 @@ async function directMeetings(env){
 
 async function directHistory(customerId,env){
   await restorePortfolioCustomers(env);
-  const customer=await env.DB.prepare("SELECT * FROM customers WHERE id=? AND COALESCE(record_status,'Aktif')<>'Silindi'").bind(customerId).first();
+  const customer=await env.DB.prepare('SELECT * FROM customers WHERE id=? AND COALESCE(record_status,\'Aktif\')<>\'Silindi\'').bind(customerId).first();
   if(!customer)return null;
   const [meetings,mails,offers]=await Promise.all([
     env.DB.prepare('SELECT * FROM meetings WHERE customer_id=? ORDER BY meeting_no ASC,COALESCE(meeting_date,created_at) ASC').bind(customerId).all(),
@@ -89,6 +63,42 @@ async function directSalesCareContacts(env){
     }
   }catch(_){}
   return {contacts:Array.from(latest,entry=>({customer_id:entry[0],last_contact_at:entry[1]}))};
+}
+
+const PORTFOLIO_LINK_CSS=`
+<style data-crm-portfolio-detail-link="v2">
+#rows .company{cursor:pointer!important;text-decoration:underline!important;text-underline-offset:2px!important;color:#1769f6!important}
+#rows tr{cursor:pointer!important}
+</style>`;
+
+function stabilizePortfolioHtml(html){
+  html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-detail\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
+  html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-stable\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
+  html=html.replace(/<script[^>]*data-portfolio-fullscreen-stable[^>]*>[\s\S]*?<\/script>\s*/gi,'');
+  html=html.replace(/<script[^>]*data-portfolio-name-click[^>]*>[\s\S]*?<\/script>\s*/gi,'');
+  html=html.replace(/<style[^>]*data-crm-portfolio-fullscreen[^>]*>[\s\S]*?<\/style>\s*/gi,'');
+  html=html.replace(/<style[^>]*data-crm-portfolio-detail-link[^>]*>[\s\S]*?<\/style>\s*/gi,'');
+
+  const linkedCompany='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
+  const plainCompany='<span class="company">${esc(c.company)}</span>';
+  const detailCompany='<a class="company" href="/musteri-detay.html?id=${c.id}" onclick="event.preventDefault();event.stopImmediatePropagation();location.href=this.href;return false">${esc(c.company)}</a>';
+  html=html.split(linkedCompany).join(detailCompany);
+  html=html.split(plainCompany).join(detailCompany);
+
+  const oldRow='<tr class="${cls}${sel}" onclick="selectCustomer(${c.id})">';
+  const detailRow='<tr class="${cls}${sel}" onclick="location.href=\'/musteri-detay.html?id=${c.id}\'">';
+  html=html.split(oldRow).join(detailRow);
+
+  const oldDetailButton='<button class="btn small" onclick="event.stopPropagation();selectCustomer(${c.id})">Detay</button>';
+  const newDetailButton='<button class="btn small" onclick="event.stopPropagation();location.href=\'/musteri-detay.html?id=${c.id}\'">Detay</button>';
+  html=html.split(oldDetailButton).join(newDetailButton);
+
+  const oldSelect="async function selectCustomer(id){selected=customers.find(c=>Number(c.id)===Number(id));if(!selected)return;selectedHistory=await api('/api/customers/'+id+'/history');loadSelected();render()}";
+  const stableSelect="async function selectCustomer(id){const activeId=Number(id);selected=customers.find(c=>Number(c.id)===activeId);if(!selected)return;selectedHistory={meetings:[],offers:[]};loadSelected();render();try{const history=await api('/api/customers/'+activeId+'/history');if(!selected||Number(selected.id)!==activeId)return;selectedHistory=history||{meetings:[],offers:[]};renderHistory();renderAnalysis()}catch(e){console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',e)}}";
+  html=html.split(oldSelect).join(stableSelect);
+
+  html=html.replace(/<\/head>/i,PORTFOLIO_LINK_CSS+'\n</head>');
+  return html;
 }
 
 export default{
@@ -119,7 +129,8 @@ export default{
 
     const response=await worker.fetch(request,env,ctx);
     if(request.method==='GET'&&path==='/musteri-portfoyu.html'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
-      return rebuild(response,patchPortfolioHtml(await response.text()));
+      const html=stabilizePortfolioHtml(await response.text());
+      return rebuild(response,html);
     }
     return response;
   },
