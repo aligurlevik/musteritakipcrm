@@ -1,7 +1,7 @@
 (function(){
   'use strict';
   if(window.__crmAutoLastContact)return;
-  window.__crmAutoLastContact='20261005-v8-nav-safe';
+  window.__crmAutoLastContact='20261005-v7-stable';
 
   var contacts=new Map();
   window.__crmAutoLastContactMap=contacts;
@@ -37,6 +37,19 @@
     m=btn&&String(btn.getAttribute('onclick')||'').match(/selectCustomer\((\d+)\)/);
     return m?String(m[1]):'';
   }
+  function companyCustomerId(company){
+    var row=company&&company.closest?company.closest('#rows tr'):null;
+    var id=Number(customerIdFromRow(row)||0);
+    if(id)return id;
+    try{
+      var href=company&&company.getAttribute?company.getAttribute('href')||'':'';
+      if(href){
+        var u=new URL(href,location.href);
+        id=Number(u.searchParams.get('editCustomer')||0);
+      }
+    }catch(_){}
+    return id||0;
+  }
   function lastContactColumn(){
     var headers=document.querySelectorAll('.table-card thead th');
     for(var i=0;i<headers.length;i++){
@@ -50,8 +63,20 @@
     return customerIdFromRow(row);
   }
 
-  /* Firma adı tıklamasına kesinlikle müdahale etme.
-     Bu dosyanın görevi yalnızca son görüşme tarihlerini güncellemektir. */
+  /* Tek ve hafif firma tıklama davranışı: yalnızca sağdaki müşteri kartını değiştirir. */
+  function handleCompanyClick(event){
+    var company=event.target&&event.target.closest?event.target.closest('#rows .company'):null;
+    if(!company)return;
+    var id=companyCustomerId(company);
+    if(!id)return;
+    event.preventDefault();
+    event.stopPropagation();
+    try{
+      if(typeof window.selectCustomer==='function')window.selectCustomer(id);
+      else if(typeof selectCustomer==='function')selectCustomer(id);
+    }catch(error){console.error('Müşteri seçilemedi',error)}
+  }
+  document.addEventListener('click',handleCompanyClick,true);
 
   var originalLastMeeting=window.lastMeeting;
   if(typeof originalLastMeeting==='function'){

@@ -1,8 +1,7 @@
 import worker from './sales_care_bridge_entry.js';
-import {restorePortfolioCustomers} from './restore_portfolio_customers.js';
 
 function json(data,status=200){
-  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v12'}});
+  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v6'}});
 }
 
 function rebuild(response,html){
@@ -23,19 +22,16 @@ async function sessionOk(request,env,ctx){
 }
 
 async function directCustomers(env){
-  await restorePortfolioCustomers(env);
   const r=await env.DB.prepare(`SELECT * FROM customers WHERE COALESCE(record_status,'Aktif')<>'Silindi' ORDER BY CASE priority WHEN 'KRİTİK' THEN 1 WHEN 'YÜKSEK' THEN 2 WHEN 'NORMAL' THEN 3 ELSE 4 END, company COLLATE NOCASE`).all();
   return r.results||[];
 }
 
 async function directMeetings(env){
-  await restorePortfolioCustomers(env);
   const r=await env.DB.prepare(`SELECT m.* FROM meetings m LEFT JOIN customers c ON c.id=m.customer_id WHERE COALESCE(c.record_status,'Aktif')<>'Silindi' ORDER BY COALESCE(m.meeting_date,m.created_at) DESC`).all();
   return r.results||[];
 }
 
 async function directHistory(customerId,env){
-  await restorePortfolioCustomers(env);
   const customer=await env.DB.prepare('SELECT * FROM customers WHERE id=? AND COALESCE(record_status,\'Aktif\')<>\'Silindi\'').bind(customerId).first();
   if(!customer)return null;
   const [meetings,mails,offers]=await Promise.all([
@@ -65,39 +61,21 @@ async function directSalesCareContacts(env){
   return {contacts:Array.from(latest,entry=>({customer_id:entry[0],last_contact_at:entry[1]}))};
 }
 
-const PORTFOLIO_LINK_CSS=`
-<style data-crm-portfolio-detail-link="v2">
-#rows .company{cursor:pointer!important;text-decoration:underline!important;text-underline-offset:2px!important;color:#1769f6!important}
-#rows tr{cursor:pointer!important}
-</style>`;
-
 function stabilizePortfolioHtml(html){
   html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-detail\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
   html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-stable\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
   html=html.replace(/<script[^>]*data-portfolio-fullscreen-stable[^>]*>[\s\S]*?<\/script>\s*/gi,'');
   html=html.replace(/<script[^>]*data-portfolio-name-click[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-  html=html.replace(/<style[^>]*data-crm-portfolio-fullscreen[^>]*>[\s\S]*?<\/style>\s*/gi,'');
-  html=html.replace(/<style[^>]*data-crm-portfolio-detail-link[^>]*>[\s\S]*?<\/style>\s*/gi,'');
 
   const linkedCompany='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
   const plainCompany='<span class="company">${esc(c.company)}</span>';
-  const detailCompany='<a class="company" href="/musteri-detay.html?id=${c.id}" onclick="event.preventDefault();event.stopImmediatePropagation();location.href=this.href;return false">${esc(c.company)}</a>';
-  html=html.split(linkedCompany).join(detailCompany);
-  html=html.split(plainCompany).join(detailCompany);
-
-  const oldRow='<tr class="${cls}${sel}" onclick="selectCustomer(${c.id})">';
-  const detailRow='<tr class="${cls}${sel}" onclick="location.href=\'/musteri-detay.html?id=${c.id}\'">';
-  html=html.split(oldRow).join(detailRow);
-
-  const oldDetailButton='<button class="btn small" onclick="event.stopPropagation();selectCustomer(${c.id})">Detay</button>';
-  const newDetailButton='<button class="btn small" onclick="event.stopPropagation();location.href=\'/musteri-detay.html?id=${c.id}\'">Detay</button>';
-  html=html.split(oldDetailButton).join(newDetailButton);
+  html=html.split(linkedCompany).join(plainCompany);
 
   const oldSelect="async function selectCustomer(id){selected=customers.find(c=>Number(c.id)===Number(id));if(!selected)return;selectedHistory=await api('/api/customers/'+id+'/history');loadSelected();render()}";
   const stableSelect="async function selectCustomer(id){const activeId=Number(id);selected=customers.find(c=>Number(c.id)===activeId);if(!selected)return;selectedHistory={meetings:[],offers:[]};loadSelected();render();try{const history=await api('/api/customers/'+activeId+'/history');if(!selected||Number(selected.id)!==activeId)return;selectedHistory=history||{meetings:[],offers:[]};renderHistory();renderAnalysis()}catch(e){console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',e)}}";
   html=html.split(oldSelect).join(stableSelect);
 
-  html=html.replace(/<\/head>/i,PORTFOLIO_LINK_CSS+'\n</head>');
+  html=html.replace(/<\/body>/i,'<script data-portfolio-fullscreen-stable="20261005-v3" src="/portfolio-fullscreen-stable.js?v=20261005-3"></script>\n</body>');
   return html;
 }
 
@@ -105,6 +83,15 @@ export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url);
     const path=url.pathname;
+
+    if(request.method==='GET'&&path==='/portfolio-fullscreen-stable.js'){
+      const asset=await env.ASSETS.fetch(request);
+      const headers=new Headers(asset.headers);
+      headers.set('content-type','application/javascript; charset=utf-8');
+      headers.set('cache-control','no-cache, no-store, must-revalidate');
+      return new Response(asset.body,{status:asset.status,statusText:asset.statusText,headers});
+    }
+
     const wantsAll=url.searchParams.get('status')==='Tümü';
     const historyMatch=request.method==='GET'?path.match(/^\/api\/customers\/(\d+)\/history$/):null;
     const fastPortfolioRead=request.method==='GET'&&(
