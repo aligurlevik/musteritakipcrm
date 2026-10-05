@@ -5,7 +5,7 @@ function json(data,status=200){
   return new Response(JSON.stringify(data),{status,headers:{
     'content-type':'application/json; charset=utf-8',
     'cache-control':'no-cache, no-store, must-revalidate',
-    'x-crm-portfolio-recovery':'direct-d1-company-detail-v4'
+    'x-crm-portfolio-recovery':'direct-d1-company-detail-v5'
   }});
 }
 
@@ -16,25 +16,42 @@ function rebuild(response,html){
   return new Response(html,{status:response.status,statusText:response.statusText,headers});
 }
 
+const EARLY_COMPANY_CLICK=String.raw`<script data-crm-company-click-v5>
+(function(){
+  if(window.__crmCompanyClickV5)return;
+  window.__crmCompanyClickV5=1;
+  document.addEventListener('click',function(event){
+    var company=event.target&&event.target.closest?event.target.closest('#rows .company'):null;
+    if(!company)return;
+    var id=company.getAttribute('data-customer-id')||'';
+    if(!id){
+      var href=company.getAttribute('href')||'';
+      var m=href.match(/[?&]id=(\d+)/);
+      if(m)id=m[1];
+    }
+    if(!id)return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    window.location.assign('/musteri-detay.html?id='+encodeURIComponent(id));
+  },true);
+})();
+</script>`;
+
 function patchPortfolioHtml(html){
-  // Satırın tamamı tıklanabilir olmasın. Böylece firma adına basmak yalnızca linki çalıştırır.
+  html=html.replace(/<script[^>]*data-crm-company-click-v5[^>]*>[\s\S]*?<\/script>\s*/gi,'');
+  html=html.replace(/<script\s+[^>]*src=["']\/portfolio-customer-jump\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
   html=html.replace(/\s+onclick=["']selectCustomer\(\$\{c\.id\}\)["']/g,'');
   html=html.replace(/tbody\s+tr\{cursor:pointer\}/g,'tbody tr{cursor:default}');
 
-  // Sadece firma adı doğrudan ayrı müşteri detay sayfasına gitsin.
-  const detailLink='<a class="company" href="/musteri-detay.html?id=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
+  const detailLink='<a class="company" data-customer-id="${c.id}" href="/musteri-detay.html?id=${c.id}">${esc(c.company)}</a>';
   html=html.replace(/<span\s+class=["']company["']>\$\{esc\(c\.company\)\}<\/span>/g,detailLink);
   html=html.replace(/<a\s+class=["']company["'][^>]*>\$\{esc\(c\.company\)\}<\/a>/g,detailLink);
 
-  // Çok önemli: eski tıklama katmanı müşteri id'sini Detay düğmesindeki selectCustomer'dan da okuyordu.
-  // Bu yüzden firma linkini engelleyip yine satırı seçebiliyordu. Detay düğmesini de normal link yapıyoruz;
-  // satırın içinde artık selectCustomer(...) kalmıyor.
   const detailButton='<a class="btn small" href="/musteri-detay.html?id=${c.id}" onclick="event.stopPropagation()">Detay</a>';
   html=html.replace(/<button\s+class=["']btn small["']\s+onclick=["']event\.stopPropagation\(\);selectCustomer\(\$\{c\.id\}\)["']>Detay<\/button>/g,detailButton);
 
-  // Eski kolon yaması her tıklamada bütün tabloyu tekrar biçimlendiriyordu.
   html=html.replace(/document\.addEventListener\(\s*["']click["']\s*,\s*function\(\)\s*\{\s*setTimeout\(enforce\s*,\s*70\s*\)\s*;\s*setTimeout\(enforce\s*,\s*220\s*\)\s*\}\s*,\s*true\s*\)\s*;?/g,'');
-
+  html=html.replace(/<\/head>/i,EARLY_COMPANY_CLICK+'\n</head>');
   return html;
 }
 
