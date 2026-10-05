@@ -5,7 +5,7 @@ function json(data,status=200){
   return new Response(JSON.stringify(data),{status,headers:{
     'content-type':'application/json; charset=utf-8',
     'cache-control':'no-cache, no-store, must-revalidate',
-    'x-crm-portfolio-recovery':'direct-d1-company-link-clean-v1'
+    'x-crm-portfolio-recovery':'direct-d1-company-detail-v3'
   }});
 }
 
@@ -17,15 +17,19 @@ function rebuild(response,html){
 }
 
 function patchPortfolioHtml(html){
-  const rowClick='<tr class="${cls}${sel}" onclick="selectCustomer(${c.id})">';
-  const rowPlain='<tr class="${cls}${sel}">';
-  html=html.split(rowClick).join(rowPlain);
+  // 1) Satırın tamamı tıklanabilir OLMASIN.
+  // Render şablonundaki yalnızca çıplak selectCustomer tıklamasını kaldırıyoruz.
+  html=html.replace(/\s+onclick=["']selectCustomer\(\$\{c\.id\}\)["']/g,'');
+  html=html.replace(/tbody\s+tr\{cursor:pointer\}/g,'tbody tr{cursor:default}');
 
-  const plainCompany='<span class="company">${esc(c.company)}</span>';
-  const normalLink='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
-  const hardLink='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopImmediatePropagation();window.location.href=this.href;return false;">${esc(c.company)}</a>';
-  html=html.split(plainCompany).join(hardLink);
-  html=html.split(normalLink).join(hardLink);
+  // 2) Sadece firma adı normal bağlantı olsun ve ayrı tam ekran müşteri dosyasını açsın.
+  const detailLink='<a class="company" href="/musteri-detay.html?id=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
+  html=html.replace(/<span\s+class=["']company["']>\$\{esc\(c\.company\)\}<\/span>/g,detailLink);
+  html=html.replace(/<a\s+class=["']company["'][^>]*>\$\{esc\(c\.company\)\}<\/a>/g,detailLink);
+
+  // 3) Eski kolon yaması her tıklamada bütün tabloyu tekrar biçimlendiriyordu.
+  // Bunu kaldırıyoruz; MutationObserver satırlar gerçekten değiştiğinde yine çalışıyor.
+  html=html.replace(/document\.addEventListener\(\s*["']click["']\s*,\s*function\(\)\s*\{\s*setTimeout\(enforce\s*,\s*70\s*\)\s*;\s*setTimeout\(enforce\s*,\s*220\s*\)\s*\}\s*,\s*true\s*\)\s*;?/g,'');
 
   return html;
 }
