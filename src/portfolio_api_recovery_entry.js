@@ -5,8 +5,29 @@ function json(data,status=200){
   return new Response(JSON.stringify(data),{status,headers:{
     'content-type':'application/json; charset=utf-8',
     'cache-control':'no-cache, no-store, must-revalidate',
-    'x-crm-portfolio-recovery':'direct-d1-native-company-link-v1'
+    'x-crm-portfolio-recovery':'direct-d1-company-link-clean-v1'
   }});
+}
+
+function rebuild(response,html){
+  const headers=new Headers(response.headers);
+  for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
+  headers.set('cache-control','no-cache, no-store, must-revalidate');
+  return new Response(html,{status:response.status,statusText:response.statusText,headers});
+}
+
+function patchPortfolioHtml(html){
+  const rowClick='<tr class="${cls}${sel}" onclick="selectCustomer(${c.id})">';
+  const rowPlain='<tr class="${cls}${sel}">';
+  html=html.split(rowClick).join(rowPlain);
+
+  const plainCompany='<span class="company">${esc(c.company)}</span>';
+  const normalLink='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
+  const hardLink='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopImmediatePropagation();window.location.href=this.href;return false;">${esc(c.company)}</a>';
+  html=html.split(plainCompany).join(hardLink);
+  html=html.split(normalLink).join(hardLink);
+
+  return html;
 }
 
 async function sessionOk(request,env,ctx){
@@ -88,7 +109,11 @@ export default{
       }
     }
 
-    return worker.fetch(request,env,ctx);
+    const response=await worker.fetch(request,env,ctx);
+    if(request.method==='GET'&&path==='/musteri-portfoyu.html'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
+      return rebuild(response,patchPortfolioHtml(await response.text()));
+    }
+    return response;
   },
   async scheduled(controller,env,ctx){
     if(typeof worker.scheduled==='function')return worker.scheduled(controller,env,ctx);
