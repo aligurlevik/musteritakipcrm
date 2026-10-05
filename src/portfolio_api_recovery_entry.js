@@ -1,7 +1,7 @@
 import worker from './sales_care_bridge_entry.js';
 
 function json(data,status=200){
-  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v9'}});
+  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v10'}});
 }
 
 function rebuild(response,html){
@@ -62,12 +62,13 @@ async function directSalesCareContacts(env){
 }
 
 const PORTFOLIO_LINK_CSS=`
-<style data-crm-portfolio-detail-link="v1">
+<style data-crm-portfolio-detail-link="v2">
 #rows .company{cursor:pointer!important;text-decoration:underline!important;text-underline-offset:2px!important;color:#1769f6!important}
+#rows tr{cursor:pointer!important}
 </style>`;
 
 function stabilizePortfolioHtml(html){
-  // Önceki tam ekran yamalarını temizle. Müşteri detayı artık ayrı, tam ekran bir sayfada açılır.
+  // Önceki tam ekran yamalarını temizle. Detay artık ayrı sayfada açılır.
   html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-detail\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
   html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-stable\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
   html=html.replace(/<script[^>]*data-portfolio-fullscreen-stable[^>]*>[\s\S]*?<\/script>\s*/gi,'');
@@ -75,13 +76,23 @@ function stabilizePortfolioHtml(html){
   html=html.replace(/<style[^>]*data-crm-portfolio-fullscreen[^>]*>[\s\S]*?<\/style>\s*/gi,'');
   html=html.replace(/<style[^>]*data-crm-portfolio-detail-link[^>]*>[\s\S]*?<\/style>\s*/gi,'');
 
+  // Firma adı doğrudan yeni detay sayfasına gider. Aynı tıklamada sağ kartı yeniden çizme yok.
   const linkedCompany='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
   const plainCompany='<span class="company">${esc(c.company)}</span>';
-  const detailCompany='<a class="company" href="/musteri-detay.html?id=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
+  const detailCompany='<a class="company" href="/musteri-detay.html?id=${c.id}" onclick="event.preventDefault();event.stopImmediatePropagation();location.href=this.href;return false">${esc(c.company)}</a>';
   html=html.split(linkedCompany).join(detailCompany);
   html=html.split(plainCompany).join(detailCompany);
 
-  // Sağ kart seçimi hızlı kalsın; mevcut portföy işleyişi bozulmasın.
+  // Satırın tamamı da aynı detay sayfasına gider. selectCustomer tetiklenmez, liste blok halinde oynamaz.
+  const oldRow='<tr class="${cls}${sel}" onclick="selectCustomer(${c.id})">';
+  const detailRow='<tr class="${cls}${sel}" onclick="location.href=\'/musteri-detay.html?id=${c.id}\'">';
+  html=html.split(oldRow).join(detailRow);
+
+  const oldDetailButton='<button class="btn small" onclick="event.stopPropagation();selectCustomer(${c.id})">Detay</button>';
+  const newDetailButton='<button class="btn small" onclick="event.stopPropagation();location.href=\'/musteri-detay.html?id=${c.id}\'">Detay</button>';
+  html=html.split(oldDetailButton).join(newDetailButton);
+
+  // İlk açılışta sağ kartın mevcut hızlı yüklenmesi korunur.
   const oldSelect="async function selectCustomer(id){selected=customers.find(c=>Number(c.id)===Number(id));if(!selected)return;selectedHistory=await api('/api/customers/'+id+'/history');loadSelected();render()}";
   const stableSelect="async function selectCustomer(id){const activeId=Number(id);selected=customers.find(c=>Number(c.id)===activeId);if(!selected)return;selectedHistory={meetings:[],offers:[]};loadSelected();render();try{const history=await api('/api/customers/'+activeId+'/history');if(!selected||Number(selected.id)!==activeId)return;selectedHistory=history||{meetings:[],offers:[]};renderHistory();renderAnalysis()}catch(e){console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',e)}}";
   html=html.split(oldSelect).join(stableSelect);
