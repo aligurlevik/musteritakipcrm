@@ -2,14 +2,11 @@ import worker from './sales_care_bridge_entry.js';
 import {restorePortfolioCustomers} from './restore_portfolio_customers.js';
 
 function json(data,status=200){
-  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v13'}});
-}
-
-function rebuild(response,html){
-  const headers=new Headers(response.headers);
-  for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
-  headers.set('cache-control','no-cache, no-store, must-revalidate');
-  return new Response(html,{status:response.status,statusText:response.statusText,headers});
+  return new Response(JSON.stringify(data),{status,headers:{
+    'content-type':'application/json; charset=utf-8',
+    'cache-control':'no-cache, no-store, must-revalidate',
+    'x-crm-portfolio-recovery':'direct-d1-stable-api-only-v1'
+  }});
 }
 
 async function sessionOk(request,env,ctx){
@@ -36,7 +33,7 @@ async function directMeetings(env){
 
 async function directHistory(customerId,env){
   await restorePortfolioCustomers(env);
-  const customer=await env.DB.prepare('SELECT * FROM customers WHERE id=? AND COALESCE(record_status,\'Aktif\')<>\'Silindi\'').bind(customerId).first();
+  const customer=await env.DB.prepare("SELECT * FROM customers WHERE id=? AND COALESCE(record_status,'Aktif')<>'Silindi'").bind(customerId).first();
   if(!customer)return null;
   const [meetings,mails,offers]=await Promise.all([
     env.DB.prepare('SELECT * FROM meetings WHERE customer_id=? ORDER BY meeting_no ASC,COALESCE(meeting_date,created_at) ASC').bind(customerId).all(),
@@ -65,47 +62,6 @@ async function directSalesCareContacts(env){
   return {contacts:Array.from(latest,entry=>({customer_id:entry[0],last_contact_at:entry[1]}))};
 }
 
-const PORTFOLIO_LINK_CSS=`
-<style data-crm-portfolio-detail-link="v4">
-#rows .company{cursor:pointer!important;text-decoration:underline!important;text-underline-offset:2px!important;color:#1769f6!important}
-#rows tr{cursor:default!important}
-</style>`;
-
-function stabilizePortfolioHtml(html){
-  html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-detail\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
-  html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-stable\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
-  html=html.replace(/<script[^>]*data-portfolio-fullscreen-stable[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-  html=html.replace(/<script[^>]*data-portfolio-name-click[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-  html=html.replace(/<style[^>]*data-crm-portfolio-fullscreen[^>]*>[\s\S]*?<\/style>\s*/gi,'');
-  html=html.replace(/<style[^>]*data-crm-portfolio-detail-link[^>]*>[\s\S]*?<\/style>\s*/gi,'');
-
-  // Yalnızca firma adı tıklanabilir. Normal link kullanılır; ekstra click/pointer listener yoktur.
-  const linkedCompany='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
-  const plainCompany='<span class="company">${esc(c.company)}</span>';
-  const detailCompany='<a class="company" href="/musteri-detay.html?id=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
-  html=html.split(linkedCompany).join(detailCompany);
-  html=html.split(plainCompany).join(detailCompany);
-
-  // Satırın tamamı artık hiçbir işlem yapmaz. Yorum içindeki selectCustomer deseni,
-  // müşteri id'sini satır onclick metninden okuyan mevcut yardımcı kodlarla uyumluluğu korur.
-  const oldRow='<tr class="${cls}${sel}" onclick="selectCustomer(${c.id})">';
-  const oldDetailRow='<tr class="${cls}${sel}" onclick="location.href=\'/musteri-detay.html?id=${c.id}\'">';
-  const neutralRow='<tr class="${cls}${sel}" onclick="void 0/*selectCustomer(${c.id})*/">';
-  html=html.split(oldRow).join(neutralRow);
-  html=html.split(oldDetailRow).join(neutralRow);
-
-  const oldDetailButton='<button class="btn small" onclick="event.stopPropagation();selectCustomer(${c.id})">Detay</button>';
-  const newDetailButton='<button class="btn small" onclick="event.stopPropagation();location.href=\'/musteri-detay.html?id=${c.id}\'">Detay</button>';
-  html=html.split(oldDetailButton).join(newDetailButton);
-
-  const oldSelect="async function selectCustomer(id){selected=customers.find(c=>Number(c.id)===Number(id));if(!selected)return;selectedHistory=await api('/api/customers/'+id+'/history');loadSelected();render()}";
-  const stableSelect="async function selectCustomer(id){const activeId=Number(id);selected=customers.find(c=>Number(c.id)===activeId);if(!selected)return;selectedHistory={meetings:[],offers:[]};loadSelected();render();try{const history=await api('/api/customers/'+activeId+'/history');if(!selected||Number(selected.id)!==activeId)return;selectedHistory=history||{meetings:[],offers:[]};renderHistory();renderAnalysis()}catch(e){console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',e)}}";
-  html=html.split(oldSelect).join(stableSelect);
-
-  html=html.replace(/<\/head>/i,PORTFOLIO_LINK_CSS+'\n</head>');
-  return html;
-}
-
 export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url);
@@ -132,12 +88,7 @@ export default{
       }
     }
 
-    const response=await worker.fetch(request,env,ctx);
-    if(request.method==='GET'&&path==='/musteri-portfoyu.html'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
-      const html=stabilizePortfolioHtml(await response.text());
-      return rebuild(response,html);
-    }
-    return response;
+    return worker.fetch(request,env,ctx);
   },
   async scheduled(controller,env,ctx){
     if(typeof worker.scheduled==='function')return worker.scheduled(controller,env,ctx);
