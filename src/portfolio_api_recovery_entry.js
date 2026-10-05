@@ -5,7 +5,7 @@ function json(data,status=200){
   return new Response(JSON.stringify(data),{status,headers:{
     'content-type':'application/json; charset=utf-8',
     'cache-control':'no-cache, no-store, must-revalidate',
-    'x-crm-portfolio-recovery':'direct-d1-company-open-v1'
+    'x-crm-portfolio-recovery':'direct-d1-company-open-v2'
   }});
 }
 
@@ -70,7 +70,7 @@ async function directSalesCareContacts(env){
 }
 
 const FULLSCREEN_CSS=`
-<style data-crm-company-open-v1>
+<style data-crm-company-open-v2>
 #rows tr{cursor:default!important}
 #rows .company-open{appearance:none;border:0;background:transparent;padding:0;margin:0;color:#1769f6;font:inherit;font-weight:900;cursor:pointer;text-decoration:underline;text-underline-offset:2px;text-align:left}
 #detail.crm-fullscreen{position:fixed!important;inset:0!important;z-index:2147483000!important;width:100vw!important;height:100vh!important;min-height:0!important;max-height:none!important;margin:0!important;border:0!important;border-radius:0!important;overflow:auto!important;background:#fff!important}
@@ -82,12 +82,12 @@ const FULLSCREEN_CSS=`
 </style>`;
 
 const FULLSCREEN_SCRIPT=`
-<script data-crm-company-open-v1>
+<script data-crm-company-open-v2>
 function openCustomerFullscreen(id){
-  var detail=document.getElementById('detail');
-  if(detail)detail.classList.add('crm-fullscreen');
   try{
     var p=selectCustomer(id);
+    var detail=document.getElementById('detail');
+    if(detail)detail.classList.add('crm-fullscreen');
     if(p&&typeof p.catch==='function')p.catch(function(err){console.error('Müşteri açılamadı',err)});
   }catch(err){console.error('Müşteri açılamadı',err)}
 }
@@ -98,24 +98,21 @@ function closeCustomerFullscreen(){
 </script>`;
 
 function patchPortfolioHtml(html){
-  // Eski tam ekran/tıklama deneylerinden kalan katmanları kaldır.
   html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-detail\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
   html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-stable\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
   html=html.replace(/<script[^>]*data-portfolio-fullscreen-stable[^>]*>[\s\S]*?<\/script>\s*/gi,'');
   html=html.replace(/<script[^>]*data-portfolio-name-click[^>]*>[\s\S]*?<\/script>\s*/gi,'');
   html=html.replace(/<style[^>]*data-crm-portfolio-fullscreen[^>]*>[\s\S]*?<\/style>\s*/gi,'');
   html=html.replace(/<style[^>]*data-crm-portfolio-detail-link[^>]*>[\s\S]*?<\/style>\s*/gi,'');
-  html=html.replace(/<style[^>]*data-crm-company-open-v1[^>]*>[\s\S]*?<\/style>\s*/gi,'');
-  html=html.replace(/<script[^>]*data-crm-company-open-v1[^>]*>[\s\S]*?<\/script>\s*/gi,'');
+  html=html.replace(/<style[^>]*data-crm-company-open-v[12][^>]*>[\s\S]*?<\/style>\s*/gi,'');
+  html=html.replace(/<script[^>]*data-crm-company-open-v[12][^>]*>[\s\S]*?<\/script>\s*/gi,'');
 
-  // Satır tıklanmaz. Yalnız firma adının kendisi açar.
   const rowClick='<tr class="${cls}${sel}" onclick="selectCustomer(${c.id})">';
   const rowDirect='<tr class="${cls}${sel}" onclick="location.href=\'/musteri-detay.html?id=${c.id}\'">';
   const rowPlain='<tr class="${cls}${sel}">';
   html=html.split(rowClick).join(rowPlain);
   html=html.split(rowDirect).join(rowPlain);
 
-  // Firma adını tek tıklama noktası yap.
   const companySpan='<span class="company">${esc(c.company)}</span>';
   const companyCustomerLink='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
   const companyDetailLink='<a class="company" href="/musteri-detay.html?id=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
@@ -124,12 +121,16 @@ function patchPortfolioHtml(html){
   html=html.split(companyCustomerLink).join(companyButton);
   html=html.split(companyDetailLink).join(companyButton);
 
-  // İlk anda temel bilgiler açılsın; geçmiş verisi gelince tamamlanır.
   const oldSelect="async function selectCustomer(id){selected=customers.find(c=>Number(c.id)===Number(id));if(!selected)return;selectedHistory=await api('/api/customers/'+id+'/history');loadSelected();render()}";
-  const stableSelect="async function selectCustomer(id){const activeId=Number(id);selected=customers.find(c=>Number(c.id)===activeId);if(!selected)return;selectedHistory={meetings:[],offers:[]};loadSelected();render();try{const history=await api('/api/customers/'+activeId+'/history');if(!selected||Number(selected.id)!==activeId)return;selectedHistory=history||{meetings:[],offers:[]};renderHistory();renderAnalysis()}catch(e){console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',e)}}";
+  const previousStableSelect="async function selectCustomer(id){const activeId=Number(id);selected=customers.find(c=>Number(c.id)===activeId);if(!selected)return;selectedHistory={meetings:[],offers:[]};loadSelected();render();try{const history=await api('/api/customers/'+activeId+'/history');if(!selected||Number(selected.id)!==activeId)return;selectedHistory=history||{meetings:[],offers:[]};renderHistory();renderAnalysis()}catch(e){console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',e)}}";
+  const stableSelect="async function selectCustomer(id){const activeId=Number(id);selected=customers.find(c=>Number(c.id)===activeId);if(!selected)return;selectedHistory={meetings:[],offers:[]};loadSelected();try{const history=await api('/api/customers/'+activeId+'/history');if(!selected||Number(selected.id)!==activeId)return;selectedHistory=history||{meetings:[],offers:[]};renderHistory();renderAnalysis()}catch(e){console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',e)}}";
   html=html.split(oldSelect).join(stableSelect);
+  html=html.split(previousStableSelect).join(stableSelect);
 
-  // Tam ekranda kapatma butonu.
+  const oldLoadAll="async function loadAll(reselect){try{[customers,meetings]=await Promise.all([api('/api/customers?status=Tümü'),api('/api/meetings?status=Tümü')]);customers=customers.filter(c=>c.record_status!=='Silindi');fillFilters();counts();render();const id=reselect||(selected&&selected.id)||(visibleRows[0]&&visibleRows[0].id);if(id)await selectCustomer(id)}catch(e){console.error(e)}}";
+  const safeLoadAll="async function loadAll(reselect){try{customers=await api('/api/customers?status=Tümü');customers=customers.filter(c=>c.record_status!=='Silindi');meetings=[];fillFilters();counts();render();try{meetings=await api('/api/meetings?status=Tümü');counts();render()}catch(meetingError){console.warn('Görüşmeler yüklenemedi; müşteri listesi açık kalacak.',meetingError)}if(reselect)await selectCustomer(reselect)}catch(e){console.error('Müşteri listesi yüklenemedi',e);$('sideReminders').textContent='Müşteriler yüklenemedi.'}}";
+  html=html.split(oldLoadAll).join(safeLoadAll);
+
   const actions='<div class="detail-actions"><button class="btn small" onclick="focusEdit()">✎ Düzenle</button></div>';
   const actionsWithClose='<div class="detail-actions"><button class="btn small" onclick="focusEdit()">✎ Düzenle</button><button type="button" class="btn small crm-close-fullscreen" onclick="closeCustomerFullscreen()">✕ Kapat</button></div>';
   html=html.split(actions).join(actionsWithClose);
