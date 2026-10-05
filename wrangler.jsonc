@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/portfolio_api_recovery_entry.js",
+  "main": "src/portfolio_company_link_entry.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
@@ -39,3 +39,4 @@
 // rollback-wide-detail-wrapper-2026-10-05
 // portfolio-api-recovery-direct-d1-2026-10-05
 // portfolio-root-stability-fix-2026-10-05
+// portfolio-company-name-normal-link-2026-10-05
