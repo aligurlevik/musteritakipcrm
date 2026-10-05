@@ -5,7 +5,7 @@ function json(data,status=200){
   return new Response(JSON.stringify(data),{status,headers:{
     'content-type':'application/json; charset=utf-8',
     'cache-control':'no-cache, no-store, must-revalidate',
-    'x-crm-portfolio-recovery':'direct-d1-company-open-v2'
+    'x-crm-portfolio-recovery':'direct-d1-company-open-v3'
   }});
 }
 
@@ -70,9 +70,9 @@ async function directSalesCareContacts(env){
 }
 
 const FULLSCREEN_CSS=`
-<style data-crm-company-open-v2>
+<style data-crm-company-open-v3>
 #rows tr{cursor:default!important}
-#rows .company-open{appearance:none;border:0;background:transparent;padding:0;margin:0;color:#1769f6;font:inherit;font-weight:900;cursor:pointer;text-decoration:underline;text-underline-offset:2px;text-align:left}
+#rows [data-customer-open]{appearance:none;border:0;background:transparent;padding:0;margin:0;color:#1769f6;font:inherit;font-weight:900;cursor:pointer;text-decoration:underline;text-underline-offset:2px;text-align:left}
 #detail.crm-fullscreen{position:fixed!important;inset:0!important;z-index:2147483000!important;width:100vw!important;height:100vh!important;min-height:0!important;max-height:none!important;margin:0!important;border:0!important;border-radius:0!important;overflow:auto!important;background:#fff!important}
 #detail.crm-fullscreen .detail-head{position:sticky;top:0;z-index:5;background:#fff}
 #detail.crm-fullscreen .detail-body{max-width:1500px;margin:0 auto;padding:18px 24px 40px}
@@ -82,19 +82,36 @@ const FULLSCREEN_CSS=`
 </style>`;
 
 const FULLSCREEN_SCRIPT=`
-<script data-crm-company-open-v2>
-function openCustomerFullscreen(id){
-  try{
-    var p=selectCustomer(id);
-    var detail=document.getElementById('detail');
-    if(detail)detail.classList.add('crm-fullscreen');
-    if(p&&typeof p.catch==='function')p.catch(function(err){console.error('Müşteri açılamadı',err)});
-  }catch(err){console.error('Müşteri açılamadı',err)}
-}
-function closeCustomerFullscreen(){
-  var detail=document.getElementById('detail');
-  if(detail)detail.classList.remove('crm-fullscreen');
-}
+<script data-crm-company-open-v3>
+(function(){
+  if(window.__crmCompanyOpenCaptureV3)return;
+  window.__crmCompanyOpenCaptureV3=true;
+
+  document.addEventListener('click',function(event){
+    var open=event.target&&event.target.closest?event.target.closest('[data-customer-open]'):null;
+    if(open){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      var id=Number(open.getAttribute('data-customer-open')||0);
+      if(!id)return;
+      var detail=document.getElementById('detail');
+      if(detail)detail.classList.add('crm-fullscreen');
+      try{
+        var result=selectCustomer(id);
+        if(result&&typeof result.catch==='function')result.catch(function(err){console.error('Müşteri açılamadı',err)});
+      }catch(err){console.error('Müşteri açılamadı',err)}
+      return;
+    }
+
+    var close=event.target&&event.target.closest?event.target.closest('[data-customer-close]'):null;
+    if(close){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      var detail=document.getElementById('detail');
+      if(detail)detail.classList.remove('crm-fullscreen');
+    }
+  },true);
+})();
 </script>`;
 
 function patchPortfolioHtml(html){
@@ -104,8 +121,8 @@ function patchPortfolioHtml(html){
   html=html.replace(/<script[^>]*data-portfolio-name-click[^>]*>[\s\S]*?<\/script>\s*/gi,'');
   html=html.replace(/<style[^>]*data-crm-portfolio-fullscreen[^>]*>[\s\S]*?<\/style>\s*/gi,'');
   html=html.replace(/<style[^>]*data-crm-portfolio-detail-link[^>]*>[\s\S]*?<\/style>\s*/gi,'');
-  html=html.replace(/<style[^>]*data-crm-company-open-v[12][^>]*>[\s\S]*?<\/style>\s*/gi,'');
-  html=html.replace(/<script[^>]*data-crm-company-open-v[12][^>]*>[\s\S]*?<\/script>\s*/gi,'');
+  html=html.replace(/<style[^>]*data-crm-company-open-v[123][^>]*>[\s\S]*?<\/style>\s*/gi,'');
+  html=html.replace(/<script[^>]*data-crm-company-open-v[123][^>]*>[\s\S]*?<\/script>\s*/gi,'');
 
   const rowClick='<tr class="${cls}${sel}" onclick="selectCustomer(${c.id})">';
   const rowDirect='<tr class="${cls}${sel}" onclick="location.href=\'/musteri-detay.html?id=${c.id}\'">';
@@ -116,7 +133,7 @@ function patchPortfolioHtml(html){
   const companySpan='<span class="company">${esc(c.company)}</span>';
   const companyCustomerLink='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
   const companyDetailLink='<a class="company" href="/musteri-detay.html?id=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
-  const companyButton='<button type="button" class="company company-open" onclick="event.stopPropagation();openCustomerFullscreen(${c.id})">${esc(c.company)}</button>';
+  const companyButton='<button type="button" class="company" data-customer-open="${c.id}">${esc(c.company)}</button>';
   html=html.split(companySpan).join(companyButton);
   html=html.split(companyCustomerLink).join(companyButton);
   html=html.split(companyDetailLink).join(companyButton);
@@ -127,12 +144,8 @@ function patchPortfolioHtml(html){
   html=html.split(oldSelect).join(stableSelect);
   html=html.split(previousStableSelect).join(stableSelect);
 
-  const oldLoadAll="async function loadAll(reselect){try{[customers,meetings]=await Promise.all([api('/api/customers?status=Tümü'),api('/api/meetings?status=Tümü')]);customers=customers.filter(c=>c.record_status!=='Silindi');fillFilters();counts();render();const id=reselect||(selected&&selected.id)||(visibleRows[0]&&visibleRows[0].id);if(id)await selectCustomer(id)}catch(e){console.error(e)}}";
-  const safeLoadAll="async function loadAll(reselect){try{customers=await api('/api/customers?status=Tümü');customers=customers.filter(c=>c.record_status!=='Silindi');meetings=[];fillFilters();counts();render();try{meetings=await api('/api/meetings?status=Tümü');counts();render()}catch(meetingError){console.warn('Görüşmeler yüklenemedi; müşteri listesi açık kalacak.',meetingError)}if(reselect)await selectCustomer(reselect)}catch(e){console.error('Müşteri listesi yüklenemedi',e);$('sideReminders').textContent='Müşteriler yüklenemedi.'}}";
-  html=html.split(oldLoadAll).join(safeLoadAll);
-
   const actions='<div class="detail-actions"><button class="btn small" onclick="focusEdit()">✎ Düzenle</button></div>';
-  const actionsWithClose='<div class="detail-actions"><button class="btn small" onclick="focusEdit()">✎ Düzenle</button><button type="button" class="btn small crm-close-fullscreen" onclick="closeCustomerFullscreen()">✕ Kapat</button></div>';
+  const actionsWithClose='<div class="detail-actions"><button class="btn small" onclick="focusEdit()">✎ Düzenle</button><button type="button" class="btn small crm-close-fullscreen" data-customer-close="1">✕ Kapat</button></div>';
   html=html.split(actions).join(actionsWithClose);
 
   html=html.replace(/<\/head>/i,FULLSCREEN_CSS+'\n</head>');
