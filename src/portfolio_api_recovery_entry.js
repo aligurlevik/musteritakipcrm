@@ -1,7 +1,7 @@
 import worker from './sales_care_bridge_entry.js';
 
 function json(data,status=200){
-  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v5'}});
+  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v6'}});
 }
 
 function rebuild(response,html){
@@ -75,7 +75,7 @@ function stabilizePortfolioHtml(html){
   const stableSelect="async function selectCustomer(id){const activeId=Number(id);selected=customers.find(c=>Number(c.id)===activeId);if(!selected)return;selectedHistory={meetings:[],offers:[]};loadSelected();render();try{const history=await api('/api/customers/'+activeId+'/history');if(!selected||Number(selected.id)!==activeId)return;selectedHistory=history||{meetings:[],offers:[]};renderHistory();renderAnalysis()}catch(e){console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',e)}}";
   html=html.split(oldSelect).join(stableSelect);
 
-  html=html.replace(/<\/body>/i,'<script data-portfolio-fullscreen-stable="20261005-v2" src="/portfolio-fullscreen-stable.js?v=20261005-2"></script>\n</body>');
+  html=html.replace(/<\/body>/i,'<script data-portfolio-fullscreen-stable="20261005-v3" src="/portfolio-fullscreen-stable.js?v=20261005-3"></script>\n</body>');
   return html;
 }
 
