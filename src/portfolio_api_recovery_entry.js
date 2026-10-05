@@ -5,15 +5,8 @@ function json(data,status=200){
   return new Response(JSON.stringify(data),{status,headers:{
     'content-type':'application/json; charset=utf-8',
     'cache-control':'no-cache, no-store, must-revalidate',
-    'x-crm-portfolio-recovery':'direct-d1-company-open-v3'
+    'x-crm-portfolio-recovery':'direct-d1-native-company-link-v1'
   }});
-}
-
-function rebuild(response,html){
-  const headers=new Headers(response.headers);
-  for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
-  headers.set('cache-control','no-cache, no-store, must-revalidate');
-  return new Response(html,{status:response.status,statusText:response.statusText,headers});
 }
 
 async function sessionOk(request,env,ctx){
@@ -69,90 +62,6 @@ async function directSalesCareContacts(env){
   return {contacts:Array.from(latest,entry=>({customer_id:entry[0],last_contact_at:entry[1]}))};
 }
 
-const FULLSCREEN_CSS=`
-<style data-crm-company-open-v3>
-#rows tr{cursor:default!important}
-#rows [data-customer-open]{appearance:none;border:0;background:transparent;padding:0;margin:0;color:#1769f6;font:inherit;font-weight:900;cursor:pointer;text-decoration:underline;text-underline-offset:2px;text-align:left}
-#detail.crm-fullscreen{position:fixed!important;inset:0!important;z-index:2147483000!important;width:100vw!important;height:100vh!important;min-height:0!important;max-height:none!important;margin:0!important;border:0!important;border-radius:0!important;overflow:auto!important;background:#fff!important}
-#detail.crm-fullscreen .detail-head{position:sticky;top:0;z-index:5;background:#fff}
-#detail.crm-fullscreen .detail-body{max-width:1500px;margin:0 auto;padding:18px 24px 40px}
-#detail.crm-fullscreen .tabs{position:sticky;top:55px;z-index:4;background:#fff}
-#detail .crm-close-fullscreen{display:none}
-#detail.crm-fullscreen .crm-close-fullscreen{display:inline-block}
-</style>`;
-
-const FULLSCREEN_SCRIPT=`
-<script data-crm-company-open-v3>
-(function(){
-  if(window.__crmCompanyOpenCaptureV3)return;
-  window.__crmCompanyOpenCaptureV3=true;
-
-  document.addEventListener('click',function(event){
-    var open=event.target&&event.target.closest?event.target.closest('[data-customer-open]'):null;
-    if(open){
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      var id=Number(open.getAttribute('data-customer-open')||0);
-      if(!id)return;
-      var detail=document.getElementById('detail');
-      if(detail)detail.classList.add('crm-fullscreen');
-      try{
-        var result=selectCustomer(id);
-        if(result&&typeof result.catch==='function')result.catch(function(err){console.error('Müşteri açılamadı',err)});
-      }catch(err){console.error('Müşteri açılamadı',err)}
-      return;
-    }
-
-    var close=event.target&&event.target.closest?event.target.closest('[data-customer-close]'):null;
-    if(close){
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      var detail=document.getElementById('detail');
-      if(detail)detail.classList.remove('crm-fullscreen');
-    }
-  },true);
-})();
-</script>`;
-
-function patchPortfolioHtml(html){
-  html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-detail\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
-  html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-stable\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
-  html=html.replace(/<script[^>]*data-portfolio-fullscreen-stable[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-  html=html.replace(/<script[^>]*data-portfolio-name-click[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-  html=html.replace(/<style[^>]*data-crm-portfolio-fullscreen[^>]*>[\s\S]*?<\/style>\s*/gi,'');
-  html=html.replace(/<style[^>]*data-crm-portfolio-detail-link[^>]*>[\s\S]*?<\/style>\s*/gi,'');
-  html=html.replace(/<style[^>]*data-crm-company-open-v[123][^>]*>[\s\S]*?<\/style>\s*/gi,'');
-  html=html.replace(/<script[^>]*data-crm-company-open-v[123][^>]*>[\s\S]*?<\/script>\s*/gi,'');
-
-  const rowClick='<tr class="${cls}${sel}" onclick="selectCustomer(${c.id})">';
-  const rowDirect='<tr class="${cls}${sel}" onclick="location.href=\'/musteri-detay.html?id=${c.id}\'">';
-  const rowPlain='<tr class="${cls}${sel}">';
-  html=html.split(rowClick).join(rowPlain);
-  html=html.split(rowDirect).join(rowPlain);
-
-  const companySpan='<span class="company">${esc(c.company)}</span>';
-  const companyCustomerLink='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
-  const companyDetailLink='<a class="company" href="/musteri-detay.html?id=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
-  const companyButton='<button type="button" class="company" data-customer-open="${c.id}">${esc(c.company)}</button>';
-  html=html.split(companySpan).join(companyButton);
-  html=html.split(companyCustomerLink).join(companyButton);
-  html=html.split(companyDetailLink).join(companyButton);
-
-  const oldSelect="async function selectCustomer(id){selected=customers.find(c=>Number(c.id)===Number(id));if(!selected)return;selectedHistory=await api('/api/customers/'+id+'/history');loadSelected();render()}";
-  const previousStableSelect="async function selectCustomer(id){const activeId=Number(id);selected=customers.find(c=>Number(c.id)===activeId);if(!selected)return;selectedHistory={meetings:[],offers:[]};loadSelected();render();try{const history=await api('/api/customers/'+activeId+'/history');if(!selected||Number(selected.id)!==activeId)return;selectedHistory=history||{meetings:[],offers:[]};renderHistory();renderAnalysis()}catch(e){console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',e)}}";
-  const stableSelect="async function selectCustomer(id){const activeId=Number(id);selected=customers.find(c=>Number(c.id)===activeId);if(!selected)return;selectedHistory={meetings:[],offers:[]};loadSelected();try{const history=await api('/api/customers/'+activeId+'/history');if(!selected||Number(selected.id)!==activeId)return;selectedHistory=history||{meetings:[],offers:[]};renderHistory();renderAnalysis()}catch(e){console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',e)}}";
-  html=html.split(oldSelect).join(stableSelect);
-  html=html.split(previousStableSelect).join(stableSelect);
-
-  const actions='<div class="detail-actions"><button class="btn small" onclick="focusEdit()">✎ Düzenle</button></div>';
-  const actionsWithClose='<div class="detail-actions"><button class="btn small" onclick="focusEdit()">✎ Düzenle</button><button type="button" class="btn small crm-close-fullscreen" data-customer-close="1">✕ Kapat</button></div>';
-  html=html.split(actions).join(actionsWithClose);
-
-  html=html.replace(/<\/head>/i,FULLSCREEN_CSS+'\n</head>');
-  html=html.replace(/<\/body>/i,FULLSCREEN_SCRIPT+'\n</body>');
-  return html;
-}
-
 export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url);
@@ -179,11 +88,7 @@ export default{
       }
     }
 
-    const response=await worker.fetch(request,env,ctx);
-    if(request.method==='GET'&&path==='/musteri-portfoyu.html'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
-      return rebuild(response,patchPortfolioHtml(await response.text()));
-    }
-    return response;
+    return worker.fetch(request,env,ctx);
   },
   async scheduled(controller,env,ctx){
     if(typeof worker.scheduled==='function')return worker.scheduled(controller,env,ctx);
