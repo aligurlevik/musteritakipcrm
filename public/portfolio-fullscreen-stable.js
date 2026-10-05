@@ -1,7 +1,7 @@
 (function(){
   'use strict';
   if(window.__crmPortfolioFullscreenStable)return;
-  window.__crmPortfolioFullscreenStable='20261005-v3-working';
+  window.__crmPortfolioFullscreenStable='20261005-v4-direct-open';
 
   var BODY_CLASS='crm-customer-fullscreen';
   var CLOSE_ID='crmCustomerFullscreenClose';
@@ -66,6 +66,9 @@
     document.body.classList.add(BODY_CLASS);
     try{d.scrollTop=0}catch(_){}
   }
+
+  window.crmOpenCustomerFullscreen=openFullscreen;
+  window.crmCloseCustomerFullscreen=closeFullscreen;
 
   function onClick(event){
     var company=event.target&&event.target.closest?event.target.closest('#rows .company'):null;

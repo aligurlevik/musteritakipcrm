@@ -1,7 +1,7 @@
 (function(){
   'use strict';
   if(window.__crmAutoLastContact)return;
-  window.__crmAutoLastContact='20261005-v7-stable';
+  window.__crmAutoLastContact='20261005-v8-fullscreen-name';
 
   var contacts=new Map();
   window.__crmAutoLastContactMap=contacts;
@@ -63,7 +63,7 @@
     return customerIdFromRow(row);
   }
 
-  /* Tek ve hafif firma tıklama davranışı: yalnızca sağdaki müşteri kartını değiştirir. */
+  /* Firma adına basınca yalnızca o müşteri seçilir ve mevcut müşteri kartı tam ekran açılır. */
   function handleCompanyClick(event){
     var company=event.target&&event.target.closest?event.target.closest('#rows .company'):null;
     if(!company)return;
@@ -72,8 +72,11 @@
     event.preventDefault();
     event.stopPropagation();
     try{
-      if(typeof window.selectCustomer==='function')window.selectCustomer(id);
-      else if(typeof selectCustomer==='function')selectCustomer(id);
+      var task;
+      if(typeof window.selectCustomer==='function')task=window.selectCustomer(id);
+      else if(typeof selectCustomer==='function')task=selectCustomer(id);
+      if(typeof window.crmOpenCustomerFullscreen==='function')window.crmOpenCustomerFullscreen();
+      if(task&&typeof task.catch==='function')task.catch(function(error){console.error('Müşteri seçilemedi',error)});
     }catch(error){console.error('Müşteri seçilemedi',error)}
   }
   document.addEventListener('click',handleCompanyClick,true);
