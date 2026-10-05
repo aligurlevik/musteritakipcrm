@@ -5,7 +5,7 @@ function json(data,status=200){
   return new Response(JSON.stringify(data),{status,headers:{
     'content-type':'application/json; charset=utf-8',
     'cache-control':'no-cache, no-store, must-revalidate',
-    'x-crm-portfolio-recovery':'direct-d1-company-detail-v3'
+    'x-crm-portfolio-recovery':'direct-d1-company-detail-v4'
   }});
 }
 
@@ -17,18 +17,22 @@ function rebuild(response,html){
 }
 
 function patchPortfolioHtml(html){
-  // 1) Satırın tamamı tıklanabilir OLMASIN.
-  // Render şablonundaki yalnızca çıplak selectCustomer tıklamasını kaldırıyoruz.
+  // Satırın tamamı tıklanabilir olmasın. Böylece firma adına basmak yalnızca linki çalıştırır.
   html=html.replace(/\s+onclick=["']selectCustomer\(\$\{c\.id\}\)["']/g,'');
   html=html.replace(/tbody\s+tr\{cursor:pointer\}/g,'tbody tr{cursor:default}');
 
-  // 2) Sadece firma adı normal bağlantı olsun ve ayrı tam ekran müşteri dosyasını açsın.
+  // Sadece firma adı doğrudan ayrı müşteri detay sayfasına gitsin.
   const detailLink='<a class="company" href="/musteri-detay.html?id=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
   html=html.replace(/<span\s+class=["']company["']>\$\{esc\(c\.company\)\}<\/span>/g,detailLink);
   html=html.replace(/<a\s+class=["']company["'][^>]*>\$\{esc\(c\.company\)\}<\/a>/g,detailLink);
 
-  // 3) Eski kolon yaması her tıklamada bütün tabloyu tekrar biçimlendiriyordu.
-  // Bunu kaldırıyoruz; MutationObserver satırlar gerçekten değiştiğinde yine çalışıyor.
+  // Çok önemli: eski tıklama katmanı müşteri id'sini Detay düğmesindeki selectCustomer'dan da okuyordu.
+  // Bu yüzden firma linkini engelleyip yine satırı seçebiliyordu. Detay düğmesini de normal link yapıyoruz;
+  // satırın içinde artık selectCustomer(...) kalmıyor.
+  const detailButton='<a class="btn small" href="/musteri-detay.html?id=${c.id}" onclick="event.stopPropagation()">Detay</a>';
+  html=html.replace(/<button\s+class=["']btn small["']\s+onclick=["']event\.stopPropagation\(\);selectCustomer\(\$\{c\.id\}\)["']>Detay<\/button>/g,detailButton);
+
+  // Eski kolon yaması her tıklamada bütün tabloyu tekrar biçimlendiriyordu.
   html=html.replace(/document\.addEventListener\(\s*["']click["']\s*,\s*function\(\)\s*\{\s*setTimeout\(enforce\s*,\s*70\s*\)\s*;\s*setTimeout\(enforce\s*,\s*220\s*\)\s*\}\s*,\s*true\s*\)\s*;?/g,'');
 
   return html;
