@@ -1,7 +1,7 @@
 import worker from './sales_care_bridge_entry.js';
 
 function json(data,status=200){
-  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v11'}});
+  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v10'}});
 }
 
 function rebuild(response,html){
@@ -62,38 +62,10 @@ async function directSalesCareContacts(env){
 }
 
 const PORTFOLIO_LINK_CSS=`
-<style data-crm-portfolio-detail-link="v3">
+<style data-crm-portfolio-detail-link="v2">
 #rows .company{cursor:pointer!important;text-decoration:underline!important;text-underline-offset:2px!important;color:#1769f6!important}
 #rows tr{cursor:pointer!important}
 </style>`;
-
-const PORTFOLIO_NAV_GUARD=`
-<script data-crm-portfolio-nav-guard="v1">
-(function(){
-  if(window.__crmPortfolioDirectNavigationV1)return;
-  window.__crmPortfolioDirectNavigationV1=true;
-  function detailHref(target){
-    var company=target&&target.closest?target.closest('#rows .company'):null;
-    if(company){
-      var href=company.getAttribute('href')||'';
-      if(href.indexOf('/musteri-detay.html?id=')===0)return href;
-    }
-    var row=target&&target.closest?target.closest('#rows tr'):null;
-    if(!row)return '';
-    if(target.closest&&target.closest('a.mail,button,input,select,textarea'))return '';
-    var link=row.querySelector('.company[href^="/musteri-detay.html?id="]');
-    return link?link.getAttribute('href')||'':'';
-  }
-  document.addEventListener('pointerdown',function(event){
-    if(event.button!==undefined&&event.button!==0)return;
-    var href=detailHref(event.target);
-    if(!href)return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    location.assign(href);
-  },true);
-})();
-</script>`;
 
 function stabilizePortfolioHtml(html){
   // Önceki tam ekran yamalarını temizle. Detay artık ayrı sayfada açılır.
@@ -101,13 +73,8 @@ function stabilizePortfolioHtml(html){
   html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-stable\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
   html=html.replace(/<script[^>]*data-portfolio-fullscreen-stable[^>]*>[\s\S]*?<\/script>\s*/gi,'');
   html=html.replace(/<script[^>]*data-portfolio-name-click[^>]*>[\s\S]*?<\/script>\s*/gi,'');
-  html=html.replace(/<script[^>]*data-crm-portfolio-nav-guard[^>]*>[\s\S]*?<\/script>\s*/gi,'');
   html=html.replace(/<style[^>]*data-crm-portfolio-fullscreen[^>]*>[\s\S]*?<\/style>\s*/gi,'');
   html=html.replace(/<style[^>]*data-crm-portfolio-detail-link[^>]*>[\s\S]*?<\/style>\s*/gi,'');
-
-  // Liste sütunlarını düzenleyen eski katman her tıklamada bütün tabloyu yeniden biçimlendiriyordu.
-  // Görünümünü koruyoruz ama global click sonrası tekrar-enforce davranışını devre dışı bırakıyoruz.
-  html=html.replace("document.addEventListener('click',function(){setTimeout(enforce,70);setTimeout(enforce,220)},true);",'');
 
   // Firma adı doğrudan yeni detay sayfasına gider. Aynı tıklamada sağ kartı yeniden çizme yok.
   const linkedCompany='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
@@ -130,7 +97,7 @@ function stabilizePortfolioHtml(html){
   const stableSelect="async function selectCustomer(id){const activeId=Number(id);selected=customers.find(c=>Number(c.id)===activeId);if(!selected)return;selectedHistory={meetings:[],offers:[]};loadSelected();render();try{const history=await api('/api/customers/'+activeId+'/history');if(!selected||Number(selected.id)!==activeId)return;selectedHistory=history||{meetings:[],offers:[]};renderHistory();renderAnalysis()}catch(e){console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',e)}}";
   html=html.split(oldSelect).join(stableSelect);
 
-  html=html.replace(/<\/head>/i,PORTFOLIO_LINK_CSS+'\n'+PORTFOLIO_NAV_GUARD+'\n</head>');
+  html=html.replace(/<\/head>/i,PORTFOLIO_LINK_CSS+'\n</head>');
   return html;
 }
 
