@@ -1,7 +1,14 @@
 import worker from './sales_care_bridge_entry.js';
 
 function json(data,status=200){
-  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v2'}});
+  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v3'}});
+}
+
+function rebuild(response,html){
+  const headers=new Headers(response.headers);
+  for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
+  headers.set('cache-control','no-cache, no-store, must-revalidate');
+  return new Response(html,{status:response.status,statusText:response.statusText,headers});
 }
 
 async function sessionOk(request,env,ctx){
@@ -54,6 +61,25 @@ async function directSalesCareContacts(env){
   return {contacts:Array.from(latest,entry=>({customer_id:entry[0],last_contact_at:entry[1]}))};
 }
 
+function stabilizePortfolioHtml(html){
+  // Eski tam ekran modülü capture aşamasında click'i stopImmediatePropagation ile kesiyordu.
+  // Bu script artık hiç yüklenmiyor; müşteri seçimi tek akıştan ilerliyor.
+  html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-detail\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
+  html=html.replace(/<script[^>]*data-portfolio-name-click[^>]*>[\s\S]*?<\/script>\s*/gi,'');
+
+  // Firma adını başka sayfaya giden linke çevirmeyelim. Satırın kendi selectCustomer click'i tek kaynak olsun.
+  const linkedCompany='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
+  const plainCompany='<span class="company">${esc(c.company)}</span>';
+  html=html.split(linkedCompany).join(plainCompany);
+
+  // Sağ kart önce anında değişsin; geçmiş verisi arkadan gelsin. Ağ gecikmesi tıklamayı kilitlemesin.
+  const oldSelect="async function selectCustomer(id){selected=customers.find(c=>Number(c.id)===Number(id));if(!selected)return;selectedHistory=await api('/api/customers/'+id+'/history');loadSelected();render()}";
+  const stableSelect="async function selectCustomer(id){const activeId=Number(id);selected=customers.find(c=>Number(c.id)===activeId);if(!selected)return;selectedHistory={meetings:[],offers:[]};loadSelected();render();try{const history=await api('/api/customers/'+activeId+'/history');if(!selected||Number(selected.id)!==activeId)return;selectedHistory=history||{meetings:[],offers:[]};renderHistory();renderAnalysis()}catch(e){console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',e)}}";
+  html=html.split(oldSelect).join(stableSelect);
+
+  return html;
+}
+
 export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url);
@@ -80,7 +106,12 @@ export default{
       }
     }
 
-    return worker.fetch(request,env,ctx);
+    const response=await worker.fetch(request,env,ctx);
+    if(request.method==='GET'&&path==='/musteri-portfoyu.html'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
+      const html=stabilizePortfolioHtml(await response.text());
+      return rebuild(response,html);
+    }
+    return response;
   },
   async scheduled(controller,env,ctx){
     if(typeof worker.scheduled==='function')return worker.scheduled(controller,env,ctx);
