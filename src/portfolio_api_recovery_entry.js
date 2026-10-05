@@ -1,7 +1,8 @@
 import worker from './sales_care_bridge_entry.js';
+import {restorePortfolioCustomers} from './restore_portfolio_customers.js';
 
 function json(data,status=200){
-  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v10'}});
+  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v12'}});
 }
 
 function rebuild(response,html){
@@ -22,16 +23,19 @@ async function sessionOk(request,env,ctx){
 }
 
 async function directCustomers(env){
+  await restorePortfolioCustomers(env);
   const r=await env.DB.prepare(`SELECT * FROM customers WHERE COALESCE(record_status,'Aktif')<>'Silindi' ORDER BY CASE priority WHEN 'KRİTİK' THEN 1 WHEN 'YÜKSEK' THEN 2 WHEN 'NORMAL' THEN 3 ELSE 4 END, company COLLATE NOCASE`).all();
   return r.results||[];
 }
 
 async function directMeetings(env){
+  await restorePortfolioCustomers(env);
   const r=await env.DB.prepare(`SELECT m.* FROM meetings m LEFT JOIN customers c ON c.id=m.customer_id WHERE COALESCE(c.record_status,'Aktif')<>'Silindi' ORDER BY COALESCE(m.meeting_date,m.created_at) DESC`).all();
   return r.results||[];
 }
 
 async function directHistory(customerId,env){
+  await restorePortfolioCustomers(env);
   const customer=await env.DB.prepare('SELECT * FROM customers WHERE id=? AND COALESCE(record_status,\'Aktif\')<>\'Silindi\'').bind(customerId).first();
   if(!customer)return null;
   const [meetings,mails,offers]=await Promise.all([
@@ -68,7 +72,6 @@ const PORTFOLIO_LINK_CSS=`
 </style>`;
 
 function stabilizePortfolioHtml(html){
-  // Önceki tam ekran yamalarını temizle. Detay artık ayrı sayfada açılır.
   html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-detail\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
   html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-stable\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
   html=html.replace(/<script[^>]*data-portfolio-fullscreen-stable[^>]*>[\s\S]*?<\/script>\s*/gi,'');
@@ -76,14 +79,12 @@ function stabilizePortfolioHtml(html){
   html=html.replace(/<style[^>]*data-crm-portfolio-fullscreen[^>]*>[\s\S]*?<\/style>\s*/gi,'');
   html=html.replace(/<style[^>]*data-crm-portfolio-detail-link[^>]*>[\s\S]*?<\/style>\s*/gi,'');
 
-  // Firma adı doğrudan yeni detay sayfasına gider. Aynı tıklamada sağ kartı yeniden çizme yok.
   const linkedCompany='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
   const plainCompany='<span class="company">${esc(c.company)}</span>';
   const detailCompany='<a class="company" href="/musteri-detay.html?id=${c.id}" onclick="event.preventDefault();event.stopImmediatePropagation();location.href=this.href;return false">${esc(c.company)}</a>';
   html=html.split(linkedCompany).join(detailCompany);
   html=html.split(plainCompany).join(detailCompany);
 
-  // Satırın tamamı da aynı detay sayfasına gider. selectCustomer tetiklenmez, liste blok halinde oynamaz.
   const oldRow='<tr class="${cls}${sel}" onclick="selectCustomer(${c.id})">';
   const detailRow='<tr class="${cls}${sel}" onclick="location.href=\'/musteri-detay.html?id=${c.id}\'">';
   html=html.split(oldRow).join(detailRow);
@@ -92,7 +93,6 @@ function stabilizePortfolioHtml(html){
   const newDetailButton='<button class="btn small" onclick="event.stopPropagation();location.href=\'/musteri-detay.html?id=${c.id}\'">Detay</button>';
   html=html.split(oldDetailButton).join(newDetailButton);
 
-  // İlk açılışta sağ kartın mevcut hızlı yüklenmesi korunur.
   const oldSelect="async function selectCustomer(id){selected=customers.find(c=>Number(c.id)===Number(id));if(!selected)return;selectedHistory=await api('/api/customers/'+id+'/history');loadSelected();render()}";
   const stableSelect="async function selectCustomer(id){const activeId=Number(id);selected=customers.find(c=>Number(c.id)===activeId);if(!selected)return;selectedHistory={meetings:[],offers:[]};loadSelected();render();try{const history=await api('/api/customers/'+activeId+'/history');if(!selected||Number(selected.id)!==activeId)return;selectedHistory=history||{meetings:[],offers:[]};renderHistory();renderAnalysis()}catch(e){console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',e)}}";
   html=html.split(oldSelect).join(stableSelect);
