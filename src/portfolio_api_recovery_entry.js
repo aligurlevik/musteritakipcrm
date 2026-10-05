@@ -5,7 +5,7 @@ function json(data,status=200){
   return new Response(JSON.stringify(data),{status,headers:{
     'content-type':'application/json; charset=utf-8',
     'cache-control':'no-cache, no-store, must-revalidate',
-    'x-crm-portfolio-recovery':'direct-d1-company-detail-v5'
+    'x-crm-portfolio-recovery':'direct-d1-company-detail-v6'
   }});
 }
 
@@ -16,18 +16,24 @@ function rebuild(response,html){
   return new Response(html,{status:response.status,statusText:response.statusText,headers});
 }
 
-const EARLY_COMPANY_CLICK=String.raw`<script data-crm-company-click-v5>
+const EARLY_COMPANY_CLICK=String.raw`<script data-crm-company-click-v6>
 (function(){
-  if(window.__crmCompanyClickV5)return;
-  window.__crmCompanyClickV5=1;
-  document.addEventListener('click',function(event){
+  if(window.__crmCompanyClickV6)return;
+  window.__crmCompanyClickV6=1;
+  window.addEventListener('click',function(event){
     var company=event.target&&event.target.closest?event.target.closest('#rows .company'):null;
     if(!company)return;
     var id=company.getAttribute('data-customer-id')||'';
     if(!id){
       var href=company.getAttribute('href')||'';
-      var m=href.match(/[?&]id=(\d+)/);
+      var m=href.match(/[?&](?:id|editCustomer)=(\d+)/);
       if(m)id=m[1];
+    }
+    if(!id){
+      var row=company.closest?company.closest('#rows tr'):null;
+      var raw=String(row&&row.getAttribute('onclick')||'');
+      var mm=raw.match(/selectCustomer\((\d+)\)/);
+      if(mm)id=mm[1];
     }
     if(!id)return;
     event.preventDefault();
@@ -38,7 +44,7 @@ const EARLY_COMPANY_CLICK=String.raw`<script data-crm-company-click-v5>
 </script>`;
 
 function patchPortfolioHtml(html){
-  html=html.replace(/<script[^>]*data-crm-company-click-v5[^>]*>[\s\S]*?<\/script>\s*/gi,'');
+  html=html.replace(/<script[^>]*data-crm-company-click-v[0-9]+[^>]*>[\s\S]*?<\/script>\s*/gi,'');
   html=html.replace(/<script\s+[^>]*src=["']\/portfolio-customer-jump\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
   html=html.replace(/\s+onclick=["']selectCustomer\(\$\{c\.id\}\)["']/g,'');
   html=html.replace(/tbody\s+tr\{cursor:pointer\}/g,'tbody tr{cursor:default}');
@@ -51,6 +57,7 @@ function patchPortfolioHtml(html){
   html=html.replace(/<button\s+class=["']btn small["']\s+onclick=["']event\.stopPropagation\(\);selectCustomer\(\$\{c\.id\}\)["']>Detay<\/button>/g,detailButton);
 
   html=html.replace(/document\.addEventListener\(\s*["']click["']\s*,\s*function\(\)\s*\{\s*setTimeout\(enforce\s*,\s*70\s*\)\s*;\s*setTimeout\(enforce\s*,\s*220\s*\)\s*\}\s*,\s*true\s*\)\s*;?/g,'');
+  html=html.replace('/portfolio-fullscreen-detail.js?v=20261005-1','/portfolio-fullscreen-detail.js?v=20261005-2');
   html=html.replace(/<\/head>/i,EARLY_COMPANY_CLICK+'\n</head>');
   return html;
 }
