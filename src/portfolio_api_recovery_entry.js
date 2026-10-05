@@ -2,7 +2,7 @@ import worker from './sales_care_bridge_entry.js';
 import {restorePortfolioCustomers} from './restore_portfolio_customers.js';
 
 function json(data,status=200){
-  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v12'}});
+  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v13'}});
 }
 
 function rebuild(response,html){
@@ -66,9 +66,9 @@ async function directSalesCareContacts(env){
 }
 
 const PORTFOLIO_LINK_CSS=`
-<style data-crm-portfolio-detail-link="v2">
+<style data-crm-portfolio-detail-link="v4">
 #rows .company{cursor:pointer!important;text-decoration:underline!important;text-underline-offset:2px!important;color:#1769f6!important}
-#rows tr{cursor:pointer!important}
+#rows tr{cursor:default!important}
 </style>`;
 
 function stabilizePortfolioHtml(html){
@@ -79,15 +79,20 @@ function stabilizePortfolioHtml(html){
   html=html.replace(/<style[^>]*data-crm-portfolio-fullscreen[^>]*>[\s\S]*?<\/style>\s*/gi,'');
   html=html.replace(/<style[^>]*data-crm-portfolio-detail-link[^>]*>[\s\S]*?<\/style>\s*/gi,'');
 
+  // Yalnızca firma adı tıklanabilir. Normal link kullanılır; ekstra click/pointer listener yoktur.
   const linkedCompany='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
   const plainCompany='<span class="company">${esc(c.company)}</span>';
-  const detailCompany='<a class="company" href="/musteri-detay.html?id=${c.id}" onclick="event.preventDefault();event.stopImmediatePropagation();location.href=this.href;return false">${esc(c.company)}</a>';
+  const detailCompany='<a class="company" href="/musteri-detay.html?id=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
   html=html.split(linkedCompany).join(detailCompany);
   html=html.split(plainCompany).join(detailCompany);
 
+  // Satırın tamamı artık hiçbir işlem yapmaz. Yorum içindeki selectCustomer deseni,
+  // müşteri id'sini satır onclick metninden okuyan mevcut yardımcı kodlarla uyumluluğu korur.
   const oldRow='<tr class="${cls}${sel}" onclick="selectCustomer(${c.id})">';
-  const detailRow='<tr class="${cls}${sel}" onclick="location.href=\'/musteri-detay.html?id=${c.id}\'">';
-  html=html.split(oldRow).join(detailRow);
+  const oldDetailRow='<tr class="${cls}${sel}" onclick="location.href=\'/musteri-detay.html?id=${c.id}\'">';
+  const neutralRow='<tr class="${cls}${sel}" onclick="void 0/*selectCustomer(${c.id})*/">';
+  html=html.split(oldRow).join(neutralRow);
+  html=html.split(oldDetailRow).join(neutralRow);
 
   const oldDetailButton='<button class="btn small" onclick="event.stopPropagation();selectCustomer(${c.id})">Detay</button>';
   const newDetailButton='<button class="btn small" onclick="event.stopPropagation();location.href=\'/musteri-detay.html?id=${c.id}\'">Detay</button>';
