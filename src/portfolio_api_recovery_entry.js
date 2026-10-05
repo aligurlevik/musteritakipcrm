@@ -1,7 +1,7 @@
 import worker from './sales_care_bridge_entry.js';
 
 function json(data,status=200){
-  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v8'}});
+  return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v9'}});
 }
 
 function rebuild(response,html){
@@ -61,59 +61,32 @@ async function directSalesCareContacts(env){
   return {contacts:Array.from(latest,entry=>({customer_id:entry[0],last_contact_at:entry[1]}))};
 }
 
-const FULLSCREEN_CSS=`
-<style data-crm-portfolio-fullscreen="safe-v1">
+const PORTFOLIO_LINK_CSS=`
+<style data-crm-portfolio-detail-link="v1">
 #rows .company{cursor:pointer!important;text-decoration:underline!important;text-underline-offset:2px!important;color:#1769f6!important}
-#crmFullscreenClose{display:none}
-body.crm-customer-fullscreen{overflow:hidden!important}
-body.crm-customer-fullscreen #detail{position:fixed!important;inset:0!important;top:0!important;left:0!important;right:0!important;bottom:0!important;z-index:2147483000!important;width:100vw!important;height:100vh!important;min-width:100vw!important;max-width:100vw!important;min-height:100vh!important;max-height:100vh!important;margin:0!important;border:0!important;border-radius:0!important;overflow:auto!important;background:#f4f7fb!important;box-shadow:none!important}
-body.crm-customer-fullscreen #detail .detail-head{position:sticky!important;top:0!important;z-index:50!important;background:#fff!important;padding:15px 20px!important;box-shadow:0 1px 0 #dce5ef!important}
-body.crm-customer-fullscreen #detail .detail-title{font-size:22px!important}
-body.crm-customer-fullscreen #detail .tabs{position:sticky!important;top:63px!important;z-index:45!important;background:#fff!important;padding:0 18px!important}
-body.crm-customer-fullscreen #detail .tab{font-size:12px!important;padding:13px 8px!important}
-body.crm-customer-fullscreen #detail .detail-body{width:min(1500px,calc(100vw - 44px))!important;max-width:1500px!important;margin:0 auto!important;padding:22px 0 40px!important}
-body.crm-customer-fullscreen #detail .summary4{gap:12px!important}
-body.crm-customer-fullscreen #detail .mini-card{min-height:78px!important;padding:12px!important}
-body.crm-customer-fullscreen #detail .mini-card .m-label{font-size:11px!important}
-body.crm-customer-fullscreen #detail .mini-card .m-value{font-size:14px!important}
-body.crm-customer-fullscreen #detail .panel{padding:16px!important}
-body.crm-customer-fullscreen #detail .panel h3{font-size:15px!important}
-body.crm-customer-fullscreen #detail .info-row{font-size:13px!important;margin:10px 0!important}
-body.crm-customer-fullscreen #detail .info-row input,body.crm-customer-fullscreen #detail .info-row select{height:38px!important;font-size:12px!important}
-body.crm-customer-fullscreen #detail .notes-panel{margin-top:14px!important}
-body.crm-customer-fullscreen #detail .note-list{max-height:280px!important}
-body.crm-customer-fullscreen #detail .history-item{font-size:12px!important;padding:12px 14px!important}
-body.crm-customer-fullscreen #crmFullscreenClose{display:inline-flex!important;background:#ef4444!important;color:#fff!important;border-color:#ef4444!important;padding:9px 15px!important;font-size:13px!important;font-weight:900!important}
-@media(max-width:900px){body.crm-customer-fullscreen #detail .detail-body{width:calc(100vw - 24px)!important}body.crm-customer-fullscreen #detail .two-col{grid-template-columns:1fr!important}body.crm-customer-fullscreen #detail .summary4{grid-template-columns:1fr 1fr!important}}
 </style>`;
 
 function stabilizePortfolioHtml(html){
-  // Eski tam ekran katmanlarını kaldır. Yeni sürüm harici JS kullanmaz.
+  // Önceki tam ekran yamalarını temizle. Müşteri detayı artık ayrı, tam ekran bir sayfada açılır.
   html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-detail\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
   html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-stable\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
   html=html.replace(/<script[^>]*data-portfolio-fullscreen-stable[^>]*>[\s\S]*?<\/script>\s*/gi,'');
   html=html.replace(/<script[^>]*data-portfolio-name-click[^>]*>[\s\S]*?<\/script>\s*/gi,'');
   html=html.replace(/<style[^>]*data-crm-portfolio-fullscreen[^>]*>[\s\S]*?<\/style>\s*/gi,'');
+  html=html.replace(/<style[^>]*data-crm-portfolio-detail-link[^>]*>[\s\S]*?<\/style>\s*/gi,'');
 
-  // Firma adının kendi tıklaması: müşteri seç + mevcut sağ kartı tam ekrana büyüt.
-  // Yeni script, event listener veya ikinci veri akışı yok.
   const linkedCompany='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
   const plainCompany='<span class="company">${esc(c.company)}</span>';
-  const fullscreenCompany='<span class="company" onclick="event.stopPropagation();selectCustomer(${c.id});document.body.classList.add(\'crm-customer-fullscreen\')">${esc(c.company)}</span>';
-  html=html.split(linkedCompany).join(fullscreenCompany);
-  html=html.split(plainCompany).join(fullscreenCompany);
+  const detailCompany='<a class="company" href="/musteri-detay.html?id=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
+  html=html.split(linkedCompany).join(detailCompany);
+  html=html.split(plainCompany).join(detailCompany);
 
-  // Kapat butonunu kartın mevcut başlığına ekle. Normal görünümde CSS ile gizlidir.
-  const oldActions='<div class="detail-actions"><button class="btn small" onclick="focusEdit()">✎ Düzenle</button></div>';
-  const newActions='<div class="detail-actions"><button class="btn small" onclick="focusEdit()">✎ Düzenle</button><button id="crmFullscreenClose" class="btn small" onclick="event.stopPropagation();document.body.classList.remove(\'crm-customer-fullscreen\')">✕ Kapat</button></div>';
-  html=html.split(oldActions).join(newActions);
-
-  // Sağ kart önce anında değişsin; geçmiş verisi arkadan gelsin.
+  // Sağ kart seçimi hızlı kalsın; mevcut portföy işleyişi bozulmasın.
   const oldSelect="async function selectCustomer(id){selected=customers.find(c=>Number(c.id)===Number(id));if(!selected)return;selectedHistory=await api('/api/customers/'+id+'/history');loadSelected();render()}";
   const stableSelect="async function selectCustomer(id){const activeId=Number(id);selected=customers.find(c=>Number(c.id)===activeId);if(!selected)return;selectedHistory={meetings:[],offers:[]};loadSelected();render();try{const history=await api('/api/customers/'+activeId+'/history');if(!selected||Number(selected.id)!==activeId)return;selectedHistory=history||{meetings:[],offers:[]};renderHistory();renderAnalysis()}catch(e){console.warn('Müşteri geçmişi yüklenemedi; temel bilgiler açık kalacak.',e)}}";
   html=html.split(oldSelect).join(stableSelect);
 
-  html=html.replace(/<\/head>/i,FULLSCREEN_CSS+'\n</head>');
+  html=html.replace(/<\/head>/i,PORTFOLIO_LINK_CSS+'\n</head>');
   return html;
 }
 
