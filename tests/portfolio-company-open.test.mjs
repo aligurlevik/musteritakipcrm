@@ -4,10 +4,11 @@ import {readFile} from 'node:fs/promises';
 
 test('temiz portföy ekranı firma butonundan müşteri kartını aynı sayfada açar', async () => {
   const wrapper = await readFile(new URL('../src/portfolio_company_link_entry.js', import.meta.url), 'utf8');
-  const page = await readFile(new URL('../public/musteri-portfoyu.html', import.meta.url), 'utf8');
+  const page = await readFile(new URL('../public/musteri-portfoyu-v2.html', import.meta.url), 'utf8');
 
   assert.match(wrapper, /clean-v2/);
-  assert.match(wrapper, /musteri-portfoyu-v2\\.html/);\n  assert.match(wrapper, /env\\.ASSETS\\.fetch/);
+  assert.match(wrapper, /musteri-portfoyu-v2\.html/);
+  assert.match(wrapper, /env\.ASSETS\.fetch/);
   assert.doesNotMatch(wrapper, /crmOpenPortfolioCustomer/);
   assert.doesNotMatch(wrapper, /patchPortfolioHtml/);
 
