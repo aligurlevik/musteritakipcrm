@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
-test('temiz portföy ekranı firma butonundan müşteri kartını aynı sayfada açar', async () => {
+test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartını korur', async () => {
   const wrapper = await readFile(new URL('../src/portfolio_company_link_entry.js', import.meta.url), 'utf8');
   const embedded = await readFile(new URL('../src/portfolio_clean_page.js', import.meta.url), 'utf8');
   const page = await readFile(new URL('../public/musteri-portfoyu-v2.html', import.meta.url), 'utf8');
@@ -10,22 +10,22 @@ test('temiz portföy ekranı firma butonundan müşteri kartını aynı sayfada 
   assert.match(wrapper, /CLEAN_PORTFOLIO_HTML/);
   assert.match(wrapper, /clean-v3-inline/);
   assert.doesNotMatch(wrapper, /env\.ASSETS\.fetch/);
-  assert.doesNotMatch(wrapper, /patchPortfolioHtml/);
 
-  assert.match(embedded, /PORTFOY CLEAN V2/);
-  assert.match(page, /PORTFOY CLEAN V2/);
-  assert.match(page, /id="listView"/);
-  assert.match(page, /id="detailView"/);
-  assert.match(page, /data-open-customer/);
-  assert.match(page, /function openCustomerCard\(id\)/);
-  assert.match(page, /\$\('listView'\)\.classList\.add\('hidden'\)/);
-  assert.match(page, /\$\('detailView'\)\.classList\.remove\('hidden'\)/);
-  assert.match(page, /customerRows'\)\.addEventListener\('click'/);
-  assert.match(page, /api\('\/api\/customers\?status=Tümü'\)/);
-
-  assert.doesNotMatch(page, /portfolio-fullscreen-detail\.js/);
-  assert.doesNotMatch(page, /portfolio-fullscreen-stable\.js/);
-  assert.doesNotMatch(page, /onclick="selectCustomer/);
+  for (const source of [embedded,page]) {
+    assert.match(source, /PORTFOY RICH V3/);
+    assert.match(source, /Günlük Değerlendirme/);
+    assert.match(source, /<th>Mail<\/th>/);
+    assert.match(source, /<th>Son Görüşme<\/th>/);
+    assert.match(source, /Görüşmeler & Notlar/);
+    assert.match(source, /Teklifler/);
+    assert.match(source, /Siparişler/);
+    assert.match(source, /Müşteri Analizi/);
+    assert.match(source, /company-open-btn/);
+    assert.match(source, /function closeCustomerDetail\(\)/);
+    assert.match(source, /document\.body\.classList\.add\('customer-open'\)/);
+    assert.doesNotMatch(source, /portfolio-fullscreen-detail\.js/);
+    assert.doesNotMatch(source, /portfolio-fullscreen-stable\.js/);
+  }
 
   const start = page.lastIndexOf('<script>');
   const end = page.indexOf('</script>', start);
