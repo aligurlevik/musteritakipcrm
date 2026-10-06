@@ -67,7 +67,7 @@ jobs:
           grep -Fq 'data-open-customer' /tmp/portfolio.html && echo 'customer buttons: OK' || (echo 'customer buttons: MISSING'; exit 1)
           grep -Fq 'function openCustomerCard(id)' /tmp/portfolio.html && echo 'customer opener: OK' || (echo 'customer opener: MISSING'; exit 1)
           grep -Fq "customerRows').addEventListener('click'" /tmp/portfolio.html && echo 'isolated click handler: OK' || (echo 'isolated click handler: MISSING'; exit 1)
-          grep -qi '^x-crm-portfolio-screen: clean-v2' /tmp/portfolio-headers.txt && echo 'clean response header: OK' || (echo 'clean response header: MISSING'; exit 1)
+          grep -qi '^x-crm-portfolio-screen: clean-v3-inline' /tmp/portfolio-headers.txt && echo 'clean response header: OK' || (echo 'clean response header: MISSING'; exit 1)
           if grep -q 'portfolio-fullscreen-detail.js\|portfolio-fullscreen-stable.js\|onclick="selectCustomer' /tmp/portfolio.html; then
             echo 'legacy portfolio click layer still present'
             exit 1
