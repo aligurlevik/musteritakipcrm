@@ -26,8 +26,9 @@ test('temiz portföy ekranı firma butonundan müşteri kartını aynı sayfada 
   assert.doesNotMatch(page, /portfolio-fullscreen-stable\.js/);
   assert.doesNotMatch(page, /onclick="selectCustomer/);
 
-  const scripts=[...page.matchAll(/<script>([\\s\\S]*?)<\\/script>/g)];
-  assert.ok(scripts.length>0,'portföy sayfasında inline script bulunmalı');
-  const inlineScript=scripts.at(-1)[1];
-  assert.doesNotThrow(()=>new Function(inlineScript));
+  const start = page.lastIndexOf('<script>');
+  const end = page.indexOf('</script>', start);
+  assert.ok(start >= 0 && end > start, 'portföy sayfasında inline script bulunmalı');
+  const inlineScript = page.slice(start + '<script>'.length, end);
+  assert.doesNotThrow(() => new Function(inlineScript));
 });
