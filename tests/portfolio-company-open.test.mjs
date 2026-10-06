@@ -2,19 +2,26 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
-test('firma adına tıklama native link ile müşteri kartına gider', async () => {
+test('temiz portföy ekranı firma butonundan müşteri kartını aynı sayfada açar', async () => {
   const wrapper = await readFile(new URL('../src/portfolio_company_link_entry.js', import.meta.url), 'utf8');
-  const index = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
+  const page = await readFile(new URL('../public/musteri-portfoyu.html', import.meta.url), 'utf8');
 
-  assert.match(wrapper, /crm-company-native-link/);
-  assert.match(wrapper, /href="\/\?page=customers&editCustomer=\$\{c\.id\}"/);
-  assert.match(wrapper, /PORTFÖY 06\.10-E/);
-  assert.match(wrapper, /native-link-v3/);
+  assert.match(wrapper, /clean-v2/);
+  assert.match(wrapper, /env\.ASSETS\.fetch\(request\)/);
   assert.doesNotMatch(wrapper, /crmOpenPortfolioCustomer/);
+  assert.doesNotMatch(wrapper, /patchPortfolioHtml/);
 
-  assert.match(index, /openRequestedCustomerFromUrl/);
-  assert.match(index, /params\.get\('editCustomer'\)/);
-  assert.match(index, /modal\.classList\.add\('crm-direct-customer'\)/);
-  assert.match(index, /editCustomer\(customerId\)/);
-  assert.match(index, /\.modal\.crm-direct-customer\.open/);
+  assert.match(page, /PORTFÖY CLEAN V2/);
+  assert.match(page, /id="listView"/);
+  assert.match(page, /id="detailView"/);
+  assert.match(page, /data-open-customer/);
+  assert.match(page, /function openCustomerCard\(id\)/);
+  assert.match(page, /\$\('listView'\)\.classList\.add\('hidden'\)/);
+  assert.match(page, /\$\('detailView'\)\.classList\.remove\('hidden'\)/);
+  assert.match(page, /customerRows'\)\.addEventListener\('click'/);
+  assert.match(page, /api\('\/api\/customers\?status=Tümü'\)/);
+
+  assert.doesNotMatch(page, /portfolio-fullscreen-detail\.js/);
+  assert.doesNotMatch(page, /portfolio-fullscreen-stable\.js/);
+  assert.doesNotMatch(page, /onclick="selectCustomer/);
 });
