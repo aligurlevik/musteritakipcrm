@@ -20,7 +20,7 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   assert.match(wrapper, /x-crm-portfolio-api/);
 
   for (const source of [embedded,page]) {
-    assert.match(source, /PORTFOY RICH V13/);
+    assert.match(source, /PORTFOY RICH V14/);
     assert.match(source, /Günlük Değerlendirme/);
     assert.match(source, /<th>Mail<\/th>/);
     assert.match(source, /<th>Son Görüşme<\/th>/);
@@ -60,6 +60,15 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
     assert.match(source, /document\.body\.classList\.add\('customer-open'\)/);
     assert.doesNotMatch(source, /portfolio-fullscreen-detail\.js/);
     assert.doesNotMatch(source, /portfolio-fullscreen-stable\.js/);
+    assert.match(source, /Yetkili Kişiler/);
+    assert.match(source, /function addContactPerson\(\)/);
+    assert.match(source, /openContactIndex/);
+    assert.match(source, /portfolioLoadInFlight/);
+    assert.match(source, /meetingLoadInFlight/);
+    assert.match(source, /async function ensureSelectedHistory\(\)/);
+    assert.match(source, /function refreshPortfolioDataSilently\(\)/);
+    assert.match(source, /const cached=readCustomerCache\(\)/);
+    assert.doesNotMatch(source, /await loadAll\(selected\.id\)/);
   }
 
   assert.match(page, /data-tab="mails"/);
