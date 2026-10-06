@@ -64,7 +64,7 @@ jobs:
               -o /tmp/portfolio.html \
               "https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html?smoke=$attempt"
 
-            if grep -Fq 'PORTFOY RICH V17' /tmp/portfolio.html \
+            if grep -Fq 'PORTFOY RICH V18' /tmp/portfolio.html \
               && grep -Fq 'Günlük Değerlendirme' /tmp/portfolio.html \
               && grep -Fq '<th>Son Görüşme</th>' /tmp/portfolio.html \
               && grep -Fq 'Müşteri Analizi' /tmp/portfolio.html \
@@ -133,7 +133,7 @@ jobs:
           echo 'main mail column removed: OK'
           echo 'rightmost mail tab: OK'
           echo 'orders tab removed: OK'
-          echo 'portfolio page V17: OK'
+          echo 'portfolio page V18: OK'
           echo 'portfolio bootstrap route: OK'
           curl --fail --silent --show-error \
             'https://musteri-takip-crm.musteritakipcrm.workers.dev/api/portfolio-health' \
@@ -141,6 +141,22 @@ jobs:
           cat /tmp/portfolio-health.json
           node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync('/tmp/portfolio-health.json','utf8'));if(!d.ok||!d.ready||d.version!=='v6-split'){console.error('portfolio health not ready',d);process.exit(1)}console.log('portfolio D1 health: OK')"
           echo 'rich portfolio production smoke OK'
+
+      - name: CRM lazy navigation smoke
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 \
+            -o /tmp/crm-index.html \
+            'https://musteri-takip-crm.musteritakipcrm.workers.dev/?page=customers&nav-smoke=1'
+          grep -Fq 'const CRM_PAGE_CACHE_MS=30000' /tmp/crm-index.html || (echo 'page cache marker missing'; exit 1)
+          grep -Fq 'async function loadCrmPageData(page' /tmp/crm-index.html || (echo 'lazy page loader missing'; exit 1)
+          grep -Fq 'async function activateCrmPage(page' /tmp/crm-index.html || (echo 'instant page activator missing'; exit 1)
+          grep -Fq 'crmPageLoadPromises' /tmp/crm-index.html || (echo 'duplicate load guard missing'; exit 1)
+          grep -Fq 'rel="prefetch" href="/musteri-portfoyu.html"' /tmp/crm-index.html || (echo 'portfolio prefetch missing'; exit 1)
+          if grep -Fq "Promise.allSettled([loadDashboard(),loadCustomers(),loadMeetings(),loadOffers(),loadMails(),loadAgenda()])" /tmp/crm-index.html; then
+            echo 'old heavy all-module startup is still present'
+            exit 1
+          fi
+          echo 'CRM lazy navigation smoke OK'
 
       - name: Reminder diagnostics
         run: |
