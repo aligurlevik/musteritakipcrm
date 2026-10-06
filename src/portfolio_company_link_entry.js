@@ -118,10 +118,10 @@ export default{
           "SELECT COUNT(*) AS n FROM customers WHERE COALESCE(record_status,'Aktif')<>'Silindi'"
         ).first();
         const count=Number(row?.n||0);
-        return json({ok:count>=8,ready:count>=8,version:'v5-direct'});
+        return json({ok:count>=8,ready:count>=8,version:'v6-split'});
       }catch(error){
         console.error('portfolio health failed',error?.stack||error);
-        return json({ok:false,ready:false,version:'v5-direct'},500);
+        return json({ok:false,ready:false,version:'v6-split'},500);
       }
     }
 
