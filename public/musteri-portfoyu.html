@@ -53,6 +53,29 @@ th,td{font-size:12.5px!important}
 .pager{font-size:12px!important}
 
 
+/* V17: Takip tarihine göre satır renkleri. Gelecek=yeşil, geçmiş=kırmızı, bugün=beyaz ve yanıp söner. */
+tbody tr.follow-future td{background:#eaf8ef!important}
+tbody tr.follow-overdue td{background:#fdebec!important}
+tbody tr.follow-today td{background:#ffffff!important;animation:dueTodayPulse 1s ease-in-out infinite}
+tbody tr.follow-future:hover td{background:#dff3e7!important}
+tbody tr.follow-overdue:hover td{background:#fbdfe2!important}
+tbody tr.follow-today:hover td{background:#ffffff!important}
+tbody tr.follow-future.selected td{background:#d9f0e2!important}
+tbody tr.follow-overdue.selected td{background:#f8d7dc!important}
+tbody tr.follow-today.selected td{background:#ffffff!important}
+@keyframes dueTodayPulse{
+  0%,100%{background-color:#ffffff;box-shadow:inset 0 0 0 0 rgba(245,158,11,0)}
+  50%{background-color:#fff4c2;box-shadow:inset 4px 0 0 #f59e0b}
+}
+.legend .l-future:before{background:#22c55e}
+.legend .l-today:before{background:#fff;border:1px solid #94a3b8;animation:dueLegendPulse 1s ease-in-out infinite}
+.legend .l-over:before{background:#ef4444}
+@keyframes dueLegendPulse{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0)}50%{box-shadow:0 0 0 4px rgba(245,158,11,.24)}}
+@media (prefers-reduced-motion: reduce){
+  tbody tr.follow-today td,.legend .l-today:before{animation:none}
+  tbody tr.follow-today td{box-shadow:inset 4px 0 0 #f59e0b}
+}
+
 /* V15: Görüşmeler & Notlar sekmesinden doğrudan kayıt; notlarda tarih gösterimi. */
 .meeting-compose{display:grid;grid-template-columns:160px 190px minmax(0,1fr) auto;gap:9px;align-items:end}
 .meeting-compose .mc-field{display:grid;gap:5px}
@@ -194,7 +217,7 @@ body.customer-open .tabs{grid-template-columns:repeat(5,minmax(120px,1fr))}
 @media(max-width:720px){body.customer-open .detail{min-height:calc(100vh - 20px)!important}}
 </style>
 </head>
-<body><div id="buildMarker">PORTFOY RICH V16</div>
+<body><div id="buildMarker">PORTFOY RICH V17</div>
 <div class="app">
 <aside class="side">
   <div class="brand"><img src="/notes-logo-ag-v1.webp" alt="AG"><span>CRM Müşteri<br>Takip</span></div>
@@ -248,7 +271,7 @@ body.customer-open .tabs{grid-template-columns:repeat(5,minmax(120px,1fr))}
   <div class="workspace">
     <div class="table-card">
       <table><thead><tr><th>Firma</th><th>Görüşülen Kişi</th><th>Telefon</th><th>İş Alanı</th><th>Son Görüşme</th><th>Potansiyel</th><th>Sonuç</th><th>Sonraki İşlem</th><th>Not</th><th>Aksiyon</th></tr></thead><tbody id="rows"></tbody></table>
-      <div class="pager"><div id="rowCount">0 firma</div><div class="legend"><span>Zamanında</span><span class="l-today">Bugün</span><span class="l-over">Süresi Geçti</span></div></div>
+      <div class="pager"><div id="rowCount">0 firma</div><div class="legend"><span class="l-future">Gelecek</span><span class="l-today">Bugün</span><span class="l-over">Geçmiş</span></div></div>
     </div>
 
     <aside id="detail" class="detail">
@@ -432,6 +455,7 @@ function priorityClass(c){const p=String(c.priority||'NORMAL');return p==='KRİT
 function lastMeeting(c){return meetings.filter(m=>Number(m.customer_id)===Number(c.id)).sort((a,b)=>String(b.meeting_date||b.created_at||'').localeCompare(String(a.meeting_date||a.created_at||'')))[0]||null}
 function isOverdue(c){return !!(c.follow_date&&c.follow_date<today()&&!['positive','negative'].includes(resultOf(c)))}
 function isToday(c){return c.follow_date===today()&&!['positive','negative'].includes(resultOf(c))}
+function isFuture(c){return !!(c.follow_date&&c.follow_date>today()&&!['positive','negative'].includes(resultOf(c)))}
 const ANALYSIS_MARKER='[[CRM_ANALYSIS]]';
 function stripAnalysisMeta(text){return String(text||'').split('\n').filter(line=>!line.startsWith(ANALYSIS_MARKER)).join('\n')}
 function readCustomerAnalysis(customer){
@@ -456,7 +480,7 @@ function monthRange(){const d=new Date(),y=d.getFullYear(),m=d.getMonth();const 
 function fillFilters(){const cities=[...new Set(customers.map(c=>String(c.region||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr'));$('city').innerHTML='<option value="">Tümü</option>'+cities.map(x=>`<option>${esc(x)}</option>`).join('');const secs=[...new Set(customers.flatMap(c=>String(c.categories||c.sector||'').split(',').map(x=>x.trim()).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'tr'));$('sector').innerHTML='<option value="">Tümü</option>'+secs.map(x=>`<option>${esc(x)}</option>`).join('')}
 function counts(){const all=customers.filter(c=>c.record_status!=='Silindi');$('sTotal').textContent=all.length;$('sPositive').textContent=all.filter(c=>resultOf(c)==='positive').length;$('sWaiting').textContent=all.filter(c=>resultOf(c)==='waiting').length;$('sNegative').textContent=all.filter(c=>resultOf(c)==='negative').length;$('sOffer').textContent=all.filter(c=>String(c.stage||'').toLocaleLowerCase('tr').includes('teklif')).length;$('sFollow').textContent=all.filter(c=>c.follow_date&&!['positive','negative'].includes(resultOf(c))).length;$('sOrder').textContent=all.filter(c=>resultOf(c)==='positive').length;$('sOverdue').textContent=all.filter(isOverdue).length;const due=all.filter(isOverdue).slice(0,3);$('sideReminders').innerHTML=due.length?due.map(c=>`<div style="margin:6px 0">🔴 <b>${esc(c.company)}</b><br><span>${esc(c.follow_date)}</span></div>`).join(''):'Bugün geciken takip yok.'}
 function filterRows(){const q=$('search').value.trim().toLocaleLowerCase('tr'),city=$('city').value,sector=$('sector').value,prio=$('priority').value,res=$('result').value,follow=$('followFilter').value;return customers.filter(c=>c.record_status!=='Silindi').filter(c=>!city||c.region===city).filter(c=>!sector||String(c.categories||c.sector||'').includes(sector)).filter(c=>!prio||c.priority===prio).filter(c=>!res||resultOf(c)===res).filter(c=>{if(!follow)return true;if(follow==='overdue')return isOverdue(c);if(follow==='today')return isToday(c);if(follow==='future')return c.follow_date>today();return true}).filter(c=>!q||[c.company,c.contact_name,c.phone,c.email,c.contacts_json,c.region,c.categories,c.sector].join(' ').toLocaleLowerCase('tr').includes(q))}
-function render(){visibleRows=filterRows();$('rowCount').textContent=`${visibleRows.length} firma`;const tbody=$('rows');tbody.innerHTML=visibleRows.map(c=>{const lm=lastMeeting(c),note=firstNote(c),cls=isOverdue(c)?'overdue ':'';const sel=selected&&Number(selected.id)===Number(c.id)?'selected':'';const followClass=isOverdue(c)?'over':isToday(c)?'today':'';return `<tr class="${cls}${sel}"><td><span class="dot ${resultOf(c)==='negative'?'red':resultOf(c)==='waiting'?'amber':''}"></span><button type="button" class="company company-open-btn" onclick="selectCustomer(${c.id})">${esc(c.company)}</button></td><td>${esc(c.contact_name||'—')}<span class="person-role">${esc(c.invoice_title||'')}</span></td><td>${esc(c.phone||parsed(c.phones_json)[0]||'—')}</td><td>${esc(c.categories||c.sector||'—')}</td><td>${esc((lm?.meeting_date||'—').slice(0,10))}</td><td><span class="badge ${priorityClass(c)}">${priorityLabel(c)}</span></td><td><span class="badge ${resultBadge(c)}">${resultLabel(c)}</span></td><td class="follow ${followClass}">${esc(c.follow_date||'—')}</td><td><span class="note-check">${note?'☑':'□'}</span></td><td><button class="btn small" onclick="event.stopPropagation();selectCustomer(${c.id})">Detay</button></td></tr>`}).join('');if(selected&&!visibleRows.some(c=>Number(c.id)===Number(selected.id))){selected=null;$('detailContent').classList.add('hidden');$('detailEmpty').classList.remove('hidden')}}
+function render(){visibleRows=filterRows();$('rowCount').textContent=`${visibleRows.length} firma`;const tbody=$('rows');tbody.innerHTML=visibleRows.map(c=>{const lm=lastMeeting(c),note=firstNote(c),statusClass=isOverdue(c)?'follow-overdue ':isToday(c)?'follow-today ':isFuture(c)?'follow-future ':'';const sel=selected&&Number(selected.id)===Number(c.id)?'selected':'';const followClass=isOverdue(c)?'over':isToday(c)?'today':'';return `<tr class="${statusClass}${sel}"><td><span class="dot ${resultOf(c)==='negative'?'red':resultOf(c)==='waiting'?'amber':''}"></span><button type="button" class="company company-open-btn" onclick="selectCustomer(${c.id})">${esc(c.company)}</button></td><td>${esc(c.contact_name||'—')}<span class="person-role">${esc(c.invoice_title||'')}</span></td><td>${esc(c.phone||parsed(c.phones_json)[0]||'—')}</td><td>${esc(c.categories||c.sector||'—')}</td><td>${esc((lm?.meeting_date||'—').slice(0,10))}</td><td><span class="badge ${priorityClass(c)}">${priorityLabel(c)}</span></td><td><span class="badge ${resultBadge(c)}">${resultLabel(c)}</span></td><td class="follow ${followClass}">${esc(c.follow_date||'—')}</td><td><span class="note-check">${note?'☑':'□'}</span></td><td><button class="btn small" onclick="event.stopPropagation();selectCustomer(${c.id})">Detay</button></td></tr>`}).join('');if(selected&&!visibleRows.some(c=>Number(c.id)===Number(selected.id))){selected=null;$('detailContent').classList.add('hidden');$('detailEmpty').classList.remove('hidden')}}
 function clearFilters(){['search','city','sector','priority','result','followFilter'].forEach(id=>$(id).value='');render()}
 function renderNotes(){if(!notes.length){$('noteList').innerHTML='<div style="font-size:10px;color:#64748b">Henüz not yok.</div>';return}$('noteList').innerHTML=notes.map((n,i)=>`<div class="note-row"><input type="checkbox" ${n.done?'checked':''} onchange="toggleNote(${i},this.checked)"><span class="note-main" style="${n.done?'text-decoration:line-through;color:#94a3b8':''}"><span>${esc(n.text)}</span><span class="note-date">${esc(n.date||'Tarih bilgisi yok')}</span></span><button onclick="removeNote(${i})">×</button></div>`).join('')}
 function parseNotes(text){return stripAnalysisMeta(text).split('\n').map(x=>x.trim()).filter(Boolean).map(x=>{const done=/^\[[xX]\]/.test(x);const raw=x.replace(/^\[[ xX]\]\s*/,'');const m=raw.match(/^(\d{4}-\d{2}-\d{2})\s*\|\s*(.*)$/);return {done,date:m?m[1]:'',text:m?m[2]:raw}})}
