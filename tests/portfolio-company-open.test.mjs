@@ -12,10 +12,14 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   assert.match(wrapper, /clean-v3-inline/);
   assert.doesNotMatch(wrapper, /env\.ASSETS\.fetch/);
   assert.match(recovery, /restorePortfolioCustomers/);
+  assert.match(wrapper, /\/api\/portfolio-bootstrap/);
+  assert.match(wrapper, /directBootstrap/);
+  assert.match(wrapper, /restorePortfolioCustomers/);
+  assert.match(wrapper, /x-crm-portfolio-api/);
   assert.match(recovery, /async function directCustomers\(env\)\{\n  await restorePortfolioCustomers\(env\);/);
 
   for (const source of [embedded,page]) {
-    assert.match(source, /PORTFOY RICH V4/);
+    assert.match(source, /PORTFOY RICH V5/);
     assert.match(source, /Günlük Değerlendirme/);
     assert.match(source, /<th>Mail<\/th>/);
     assert.match(source, /<th>Son Görüşme<\/th>/);
@@ -25,6 +29,7 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
     assert.match(source, /Müşteri Analizi/);
     assert.match(source, /company-open-btn/);
     assert.match(source, /function normalizeRows\(data,key\)/);
+    assert.match(source, /api\('\/api\/portfolio-bootstrap'\)/);
     assert.match(source, /Müşteriler yüklenemedi/);
     assert.doesNotMatch(source, /Promise\.allSettled\(\[api\('\/api\/customers/);
     assert.match(source, /function closeCustomerDetail\(\)/);
