@@ -64,7 +64,7 @@ jobs:
               -o /tmp/portfolio.html \
               "https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html?smoke=$attempt"
 
-            if grep -Fq 'PORTFOY RICH V7' /tmp/portfolio.html \
+            if grep -Fq 'PORTFOY RICH V8' /tmp/portfolio.html \
               && grep -Fq 'Günlük Değerlendirme' /tmp/portfolio.html \
               && grep -Fq '<th>Mail</th>' /tmp/portfolio.html \
               && grep -Fq '<th>Son Görüşme</th>' /tmp/portfolio.html \
@@ -74,6 +74,8 @@ jobs:
               && grep -Fq "api('/api/portfolio-meetings?ts='+Date.now())" /tmp/portfolio.html \
               && grep -Fq 'PORTFOLIO_CACHE_KEY' /tmp/portfolio.html \
               && grep -Fq 'minmax(690px,1.08fr)' /tmp/portfolio.html \
+              && grep -Fq 'detail-title{font-size:20px' /tmp/portfolio.html \
+              && grep -Fq 'info-row input,.info-row select{font-size:12.5px' /tmp/portfolio.html \
               && grep -Fq 'body:not(.customer-open) .workspace .detail{display:none' /tmp/portfolio.html \
               && grep -Fq "classList.add('customer-open')" /tmp/portfolio.html \
               && grep -qi '^x-crm-portfolio-screen: clean-v3-inline' /tmp/portfolio-headers.txt \
@@ -93,7 +95,7 @@ jobs:
             'https://musteri-takip-crm.musteritakipcrm.workers.dev/api/portfolio-bootstrap')
           [ "$http_code" = "401" ] || (echo "portfolio bootstrap unauth expected 401, got $http_code"; cat /tmp/bootstrap-unauth.json; exit 1)
 
-          echo 'portfolio page V7: OK'
+          echo 'portfolio page V8: OK'
           echo 'portfolio bootstrap route: OK'
           curl --fail --silent --show-error \
             'https://musteri-takip-crm.musteritakipcrm.workers.dev/api/portfolio-health' \
