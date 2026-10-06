@@ -18,7 +18,6 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   assert.match(wrapper, /\/api\/portfolio-meetings/);
   assert.match(wrapper, /restorePortfolioCustomers/);
   assert.match(wrapper, /x-crm-portfolio-api/);
-  \{\n  await restorePortfolioCustomers\(env\);/);
 
   for (const source of [embedded,page]) {
     assert.match(source, /PORTFOY RICH V6/);
