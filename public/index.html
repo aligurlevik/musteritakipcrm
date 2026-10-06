@@ -267,7 +267,71 @@ function openPasswordModal(){$('passwordUser').value='Ali';$('newPassword').valu
 async function savePassword(){const user=$('passwordUser').value,password=$('newPassword').value,again=$('newPasswordAgain').value,error=$('passwordError');error.textContent='';if(password.length<8){error.textContent='Şifre en az 8 karakter olmalıdır.';return}if(password!==again){error.textContent='Yazdığınız iki şifre aynı değil.';return}try{await req('/api/password',{method:'POST',body:JSON.stringify({user,password})});$('newPassword').value='';$('newPasswordAgain').value='';closeM('passwordModal');showMsg(user+' kullanıcısının şifresi değiştirildi.')}catch(e){error.textContent=e.message}}
 async function login(){const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({user:$('loginUser').value,password:$('pw').value})});if(r.ok){const d=await r.json();$('pw').value='';$('loginErr').textContent='';$('login').classList.remove('show');applyAccess(d.role);loadAll()}else $('loginErr').textContent='Şifre hatalı.'}
 async function logout(){await fetch('/api/logout');location.reload()}
-document.querySelectorAll('.menu button[data-page]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.menu button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));$(b.dataset.page).classList.add('active');$('title').textContent=b.dataset.title||b.textContent;const topCustomerButton=document.querySelector('.top .primary');if(topCustomerButton)topCustomerButton.style.display=(['tracking','reports'].includes(b.dataset.page)||currentAccessRole!=='admin')?'none':'';if(b.dataset.page==='customers'){currentCustomerResultFilter=b.dataset.result||'';loadCustomers()}if(b.dataset.page==='agenda')showAgendaMonth();if(b.dataset.page==='graphicJobs')loadGraphicJobs();if(b.dataset.page==='tracking')loadTrackingJobs();if(b.dataset.page==='reports')loadProductionReport()});
+const CRM_PAGE_CACHE_MS=30000;
+const crmPageLoadedAt=new Map();
+const crmPageLoadPromises=new Map();
+const CRM_PAGES=new Set(['dash','customers','meetings','mails','graphicJobs','tracking','reports','agenda']);
+
+function requestedCrmPage(){
+  const params=new URLSearchParams(location.search);
+  const requested=params.get('page');
+  if(CRM_PAGES.has(requested))return requested;
+  const saved=sessionStorage.getItem('crm_active_page');
+  return CRM_PAGES.has(saved)?saved:'dash';
+}
+
+function setCrmPageView(page,button=null){
+  if(!CRM_PAGES.has(page))page='dash';
+  document.querySelectorAll('.menu button').forEach(x=>x.classList.remove('active'));
+  const targetButton=button||document.querySelector(`.menu button[data-page="${page}"]`);
+  if(targetButton)targetButton.classList.add('active');
+  document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+  $(page)?.classList.add('active');
+  $('title').textContent=targetButton?.dataset.title||targetButton?.textContent||({
+    dash:'Ana Ekran',customers:'Müşteriler',meetings:'Görüşmeler',mails:'Mailler',
+    graphicJobs:'Grafik İşleri',tracking:'Takip',reports:'Raporlama',agenda:'Ajanda'
+  })[page]||'CRM';
+  const topCustomerButton=document.querySelector('.top .primary');
+  if(topCustomerButton)topCustomerButton.style.display=(['tracking','reports'].includes(page)||currentAccessRole!=='admin')?'none':'';
+  sessionStorage.setItem('crm_active_page',page);
+}
+
+async function loadCrmPageData(page,{force=false}={}){
+  if(!CRM_PAGES.has(page))page='dash';
+  const now=Date.now();
+  const last=Number(crmPageLoadedAt.get(page)||0);
+  if(!force&&last&&now-last<CRM_PAGE_CACHE_MS)return;
+  if(crmPageLoadPromises.has(page))return crmPageLoadPromises.get(page);
+
+  const task=(async()=>{
+    if(page==='dash')await loadDashboard();
+    else if(page==='customers')await loadCustomers();
+    else if(page==='meetings')await loadMeetings();
+    else if(page==='mails')await loadMails();
+    else if(page==='agenda'){agendaView='month';await loadAgenda()}
+    else if(page==='graphicJobs')await loadGraphicJobs();
+    else if(page==='tracking')await loadTrackingJobs();
+    else if(page==='reports')await loadProductionReport();
+    crmPageLoadedAt.set(page,Date.now());
+  })().finally(()=>crmPageLoadPromises.delete(page));
+
+  crmPageLoadPromises.set(page,task);
+  return task;
+}
+
+async function activateCrmPage(page,button=null,{force=false,updateUrl=true}={}){
+  setCrmPageView(page,button);
+  if(page==='customers'&&button)currentCustomerResultFilter=button.dataset.result||'';
+  if(updateUrl&&currentAccessRole==='admin'){
+    const url=new URL(location.href);
+    url.searchParams.set('page',page);
+    url.searchParams.delete('editCustomer');
+    history.replaceState(null,'',url.pathname+'?'+url.searchParams.toString());
+  }
+  try{await loadCrmPageData(page,{force})}catch(e){console.error('Sayfa verisi yüklenemedi:',page,e);showMsg(e.message||'Sayfa yüklenemedi.','err')}
+}
+
+document.querySelectorAll('.menu button[data-page]').forEach(b=>b.onclick=()=>activateCrmPage(b.dataset.page,b));
 function cls(d){return !d?'':d<today()?'overdue':d===today()?'due':''}
 function localDateTimeValue(date=new Date()){const local=new Date(date.getTime()-date.getTimezoneOffset()*60000);return local.toISOString().slice(0,16)}
 function localDateKey(date=new Date()){return localDateTimeValue(date).slice(0,10)}
@@ -531,7 +595,33 @@ async function loadProductionReport(){if(currentAccessRole!=='admin')return;appl
 function openReportsPage(){document.querySelectorAll('.menu button').forEach(x=>x.classList.remove('active'));document.querySelector('.menu button[data-page="reports"]')?.classList.add('active');document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));$('reports').classList.add('active');$('title').textContent='Raporlama';const topCustomerButton=document.querySelector('.top .primary');if(topCustomerButton)topCustomerButton.style.display='none';$('reportPeriod').value='daily';$('reportDate').value=localDateKey();loadProductionReport()}
 function checkAutomaticEndOfDayReport(){if(currentAccessRole!=='admin')return;const now=new Date(),day=localDateKey(now),hour=Number(new Intl.DateTimeFormat('tr-TR',{timeZone:'Europe/Istanbul',hour:'2-digit',hourCycle:'h23'}).format(now));if(hour<17||localStorage.getItem('crm_delay_report_opened')===day)return;localStorage.setItem('crm_delay_report_opened',day);openReportsPage();showMsg('Gün sonu yetişmeyen işler raporu açıldı.','err')}
 
-async function loadAll(){try{const session=await req('/api/session');applyAccess(session.role);$('login').classList.remove('show');if(session.role==='graphic'){await loadGraphicJobs();return}if(session.role==='tracking'){await loadTrackingJobs();return}const baseResults=await Promise.allSettled([loadDashboard(),loadCustomers(),loadMeetings(),loadOffers(),loadMails(),loadAgenda()]);const baseFailures=baseResults.filter(x=>x.status==='rejected');if(baseFailures.length)console.error('Bazı CRM bölümleri yüklenemedi:',baseFailures.map(x=>x.reason));if($('graphicJobs').classList.contains('active'))await loadGraphicJobs();if($('tracking').classList.contains('active'))await loadTrackingJobs()}catch(e){console.error(e);$('login').classList.add('show');if(e.message!=='Oturum süresi doldu.'){$('loginErr').textContent='Bağlantı kurulamadı. Sayfayı yenileyip tekrar deneyin.';showMsg(e.message,'err')}}}
+async function loadAll(){try{
+  const session=await req('/api/session');
+  applyAccess(session.role);
+  $('login').classList.remove('show');
+
+  if(session.role==='graphic'){
+    setCrmPageView('graphicJobs');
+    await loadCrmPageData('graphicJobs',{force:true});
+    return;
+  }
+  if(session.role==='tracking'){
+    setCrmPageView('tracking');
+    await loadCrmPageData('tracking',{force:true});
+    return;
+  }
+
+  const page=requestedCrmPage();
+  setCrmPageView(page);
+  await loadCrmPageData(page,{force:true});
+}catch(e){
+  console.error(e);
+  $('login').classList.add('show');
+  if(e.message!=='Oturum süresi doldu.'){
+    $('loginErr').textContent='Bağlantı kurulamadı. Sayfayı yenileyip tekrar deneyin.';
+    showMsg(e.message,'err');
+  }
+}}
 function openM(id){$(id).classList.add('open')} function closeM(id){$(id).classList.remove('open')}
 function setCustomerCardActions(hasCustomer){['customerTrashBtn','customerHistoryBtn','customerMeetingBtn','customerOfferBtn','customerMailBtn'].forEach(id=>$(id).style.display=hasCustomer?'inline-block':'none')}
 function setCustomerNoteImage(value){customerNoteImageData=safeAgendaImage(value);const preview=$('c_note_image_preview'),remove=$('c_note_image_remove');if(preview){preview.src=customerNoteImageData||'';preview.style.display=customerNoteImageData?'block':'none'}if(remove)remove.style.display=customerNoteImageData?'inline-block':'none'}
@@ -759,18 +849,12 @@ function openRequestedCustomerFromUrl(){
   const params=new URLSearchParams(location.search);
   const customerId=Number(params.get('editCustomer')||0);
   if(params.get('page')!=='customers'||!customerId)return;
-  document.querySelectorAll('.menu button').forEach(x=>x.classList.remove('active'));
-  document.querySelector('.menu button[data-page="customers"]')?.classList.add('active');
-  document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
-  $('customers').classList.add('active');
-  $('title').textContent='Müşteriler';
-  const topCustomerButton=document.querySelector('.top .primary');
-  if(topCustomerButton)topCustomerButton.style.display='';
+  setCrmPageView('customers');
   const modal=$('customerModal');
   modal.classList.add('crm-direct-customer');
   editCustomer(customerId);
 }
-let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole==='admin'){openRequestedCustomerFromUrl();pollMeetingReminders();pollAgendaReminders();checkLocalAgendaAlarms();checkAutomaticEndOfDayReport()}});setInterval(checkAutomaticEndOfDayReport,60000);setInterval(()=>{if(currentAccessRole==='admin')checkLocalAgendaAlarms()},5000); setInterval(()=>{if(currentAccessRole!=='admin')return;loadMeetings().catch(()=>{});pollMeetingReminders();pollAgendaReminders();const newDay=localDateKey();if(newDay!==activeCalendarDay){activeCalendarDay=newDay;agendaDate=new Date();agendaView='month';loadAgenda().catch(()=>{})}},15000);
+let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole==='admin'){openRequestedCustomerFromUrl();pollMeetingReminders();pollAgendaReminders();checkLocalAgendaAlarms();checkAutomaticEndOfDayReport()}});setInterval(checkAutomaticEndOfDayReport,60000);setInterval(()=>{if(currentAccessRole==='admin')checkLocalAgendaAlarms()},5000); setInterval(()=>{if(currentAccessRole!=='admin')return;const meetingsActive=$('meetings')?.classList.contains('active');if(meetingsActive)loadCrmPageData('meetings',{force:true}).catch(()=>{});pollMeetingReminders();pollAgendaReminders();const newDay=localDateKey();if(newDay!==activeCalendarDay){activeCalendarDay=newDay;agendaDate=new Date();agendaView='month';if($('agenda')?.classList.contains('active'))loadCrmPageData('agenda',{force:true}).catch(()=>{})}},60000);
 </script><!-- deployment-refresh: 2026-08-28-multi-participants -->
 <!-- deployment-refresh: tracking-two-hour-warning -->
 </body></html>
