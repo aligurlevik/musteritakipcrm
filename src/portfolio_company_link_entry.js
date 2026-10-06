@@ -46,7 +46,7 @@ export function patchPortfolioHtml(html){
   html=html.replace(/<script[^>]*data-portfolio-customer-jump[^>]*>[\s\S]*?<\/script>\s*/gi,'');
   html=html.replace(/<script[^>]*data-last-contact-auto[^>]*>[\s\S]*?<\/script>\s*/gi,'');
 
-  // Bu görünür işaret, masaüstü uygulamasının gerçekten yeni HTML'i aldığını kanıtlar.\n  if(!html.includes('id="crmPortfolioBuild"')){\n    html=html.replace('<body>','<body><div id="crmPortfolioBuild">PORTFÖY 06.10-B</div>');\n  }\n\n  // Firma ismi artık link veya global listener değil: doğrudan tek buton.
+  // Bu görünür işaret, masaüstü uygulamasının gerçekten yeni HTML'i aldığını kanıtlar.\n  if(!html.includes('id="crmPortfolioBuild"')){\n    html=html.replace('<body>','<body><div id="crmPortfolioBuild">PORTFÖY 06.10-C</div>');\n  }\n\n  // Firma ismi artık link veya global listener değil: doğrudan tek buton.
   const plainCompany='<span class="company">${esc(c.company)}</span>';
   const linkedCompany='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
   const directCompany='<button type="button" class="company crm-company-open" onclick="return crmOpenPortfolioCustomer(${c.id},event)">${esc(c.company)}</button>';
