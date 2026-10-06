@@ -30,9 +30,6 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
     assert.doesNotMatch(source, /data-tab="orders"/);
     assert.doesNotMatch(source, /id="tabOrders"/);
     assert.doesNotMatch(source, /orderSummary/);
-    assert.match(source, /data-tab="mails"/);
-    assert.match(source, /id="tabMails"/);
-    assert.match(source, /id="mailHistory"/);
     assert.match(source, /Gelen/);
     assert.match(source, /Giden/);
     assert.match(source, /grid-template-columns:repeat\(5,minmax\(120px,1fr\)\)/);
@@ -64,6 +61,11 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
     assert.doesNotMatch(source, /portfolio-fullscreen-detail\.js/);
     assert.doesNotMatch(source, /portfolio-fullscreen-stable\.js/);
   }
+
+  assert.match(page, /data-tab="mails"/);
+  assert.match(page, /id="tabMails"/);
+  assert.match(page, /id="mailHistory"/);
+  assert.match(page, /grid-template-columns:repeat\(5,minmax\(120px,1fr\)\)/);
 
   const start = page.lastIndexOf('<script>');
   const end = page.indexOf('</script>', start);
