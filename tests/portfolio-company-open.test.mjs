@@ -20,7 +20,7 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   assert.match(wrapper, /x-crm-portfolio-api/);
 
   for (const source of [embedded,page]) {
-    assert.match(source, /PORTFOY RICH V11/);
+    assert.match(source, /PORTFOY RICH V12/);
     assert.match(source, /Günlük Değerlendirme/);
     assert.match(source, /<th>Mail<\/th>/);
     assert.match(source, /<th>Son Görüşme<\/th>/);
