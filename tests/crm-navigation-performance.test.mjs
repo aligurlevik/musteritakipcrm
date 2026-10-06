@@ -15,7 +15,11 @@ test('CRM modülleri kalıcı kabukta anında görünür ve veri yükü sonraki 
   assert.match(page,/data-page="portfolio"/);
   assert.match(page,/id="portfolioFrame"/);
   assert.match(page,/musteri-portfoyu\.html\?embedded=1/);
-  assert.match(page,/function prewarmPortfolioFrame\(\)/);\n  assert.doesNotMatch(page,/requestIdleCallback\(prewarmPortfolioFrame/);\n  assert.match(page,/crmSwitching/);\n  assert.match(page,/beginCrmSwitch/);\n  assert.match(page,/crmDeferredLoadTimer/);
+  assert.match(page,/function prewarmPortfolioFrame\(\)/);
+  assert.doesNotMatch(page,/requestIdleCallback\(prewarmPortfolioFrame/);
+  assert.match(page,/crmSwitching/);
+  assert.match(page,/beginCrmSwitch/);
+  assert.match(page,/crmDeferredLoadTimer/);
   assert.match(page,/portfolio-mode/);
 
   const loadAllStart=page.indexOf('async function loadAll(){');
