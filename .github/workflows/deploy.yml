@@ -54,26 +54,25 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-      - name: Portfolio company click smoke
+      - name: Clean portfolio screen smoke
         run: |
           curl --fail --silent --show-error --retry 5 --retry-delay 2 \
             -D /tmp/portfolio-headers.txt \
             -o /tmp/portfolio.html \
             https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html
           echo '--- portfolio headers ---'
-          grep -i 'x-crm-company-open\|content-type\|cache-control' /tmp/portfolio-headers.txt || true
-          echo '--- portfolio markers ---'
-          grep -o -m3 '.\{0,80\}class="company".\{0,180\}' /tmp/portfolio.html || true
-          grep -Fq 'PORTFÖY 06.10-E' /tmp/portfolio.html && echo 'build marker: OK' || (echo 'build marker: MISSING'; exit 1)
-          grep -Fq 'href="/?page=customers&editCustomer=${c.id}"' /tmp/portfolio.html && echo 'native company link: OK' || (echo 'native company link: MISSING'; exit 1)
-          grep -Fq 'crm-company-native-link' /tmp/portfolio.html && echo 'native link class: OK' || (echo 'native link class: MISSING'; exit 1)
-          grep -qi '^x-crm-company-open: native-link-v3' /tmp/portfolio-headers.txt && echo 'response header: OK' || (echo 'response header: MISSING'; exit 1)
-          curl --fail --silent --show-error --retry 5 --retry-delay 2 \
-            -o /tmp/index.html \
-            'https://musteri-takip-crm.musteritakipcrm.workers.dev/?page=customers&editCustomer=1'
-          grep -Fq 'openRequestedCustomerFromUrl' /tmp/index.html && echo 'customer URL opener: OK' || (echo 'customer URL opener: MISSING'; exit 1)
-          grep -Fq 'crm-direct-customer' /tmp/index.html && echo 'fullscreen customer modal: OK' || (echo 'fullscreen customer modal: MISSING'; exit 1)
-          echo 'portfolio native company navigation production smoke OK'
+          grep -i 'x-crm-portfolio-screen\|content-type\|cache-control' /tmp/portfolio-headers.txt || true
+          echo '--- clean portfolio markers ---'
+          grep -Fq 'PORTFÖY CLEAN V2' /tmp/portfolio.html && echo 'clean screen marker: OK' || (echo 'clean screen marker: MISSING'; exit 1)
+          grep -Fq 'data-open-customer' /tmp/portfolio.html && echo 'customer buttons: OK' || (echo 'customer buttons: MISSING'; exit 1)
+          grep -Fq 'function openCustomerCard(id)' /tmp/portfolio.html && echo 'customer opener: OK' || (echo 'customer opener: MISSING'; exit 1)
+          grep -Fq "customerRows').addEventListener('click'" /tmp/portfolio.html && echo 'isolated click handler: OK' || (echo 'isolated click handler: MISSING'; exit 1)
+          grep -qi '^x-crm-portfolio-screen: clean-v2' /tmp/portfolio-headers.txt && echo 'clean response header: OK' || (echo 'clean response header: MISSING'; exit 1)
+          if grep -q 'portfolio-fullscreen-detail.js\|portfolio-fullscreen-stable.js\|onclick="selectCustomer' /tmp/portfolio.html; then
+            echo 'legacy portfolio click layer still present'
+            exit 1
+          fi
+          echo 'clean portfolio production smoke OK'
 
       - name: Reminder diagnostics
         run: |
