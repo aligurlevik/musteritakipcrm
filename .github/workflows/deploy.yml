@@ -64,7 +64,7 @@ jobs:
               -o /tmp/portfolio.html \
               "https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html?smoke=$attempt"
 
-            if grep -Fq 'PORTFOY RICH V9' /tmp/portfolio.html \
+            if grep -Fq 'PORTFOY RICH V10' /tmp/portfolio.html \
               && grep -Fq 'Günlük Değerlendirme' /tmp/portfolio.html \
               && grep -Fq '<th>Mail</th>' /tmp/portfolio.html \
               && grep -Fq '<th>Son Görüşme</th>' /tmp/portfolio.html \
@@ -99,7 +99,9 @@ jobs:
             'https://musteri-takip-crm.musteritakipcrm.workers.dev/api/portfolio-bootstrap')
           [ "$http_code" = "401" ] || (echo "portfolio bootstrap unauth expected 401, got $http_code"; cat /tmp/bootstrap-unauth.json; exit 1)
 
-          echo 'portfolio page V9: OK'
+          if grep -q 'data-tab="orders"\|id="tabOrders"\|orderSummary' /tmp/portfolio.html; then echo 'orders tab still present'; exit 1; fi
+          echo 'orders tab removed: OK'
+          echo 'portfolio page V10: OK'
           echo 'portfolio bootstrap route: OK'
           curl --fail --silent --show-error \
             'https://musteri-takip-crm.musteritakipcrm.workers.dev/api/portfolio-health' \
