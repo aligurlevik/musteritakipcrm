@@ -321,8 +321,14 @@ async function loadCrmPageData(page,{force=false}={}){
 }
 
 async function activateCrmPage(page,button=null,{force=false,updateUrl=true}={}){
+  let resultChanged=false;
+  if(page==='customers'&&button){
+    const nextResult=button.dataset.result||'';
+    resultChanged=currentCustomerResultFilter!==nextResult;
+    currentCustomerResultFilter=nextResult;
+  }
   setCrmPageView(page,button);
-  if(page==='customers'&&button)currentCustomerResultFilter=button.dataset.result||'';
+  force=force||resultChanged;
   if(updateUrl&&currentAccessRole==='admin'){
     const url=new URL(location.href);
     url.searchParams.set('page',page);
