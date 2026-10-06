@@ -64,7 +64,7 @@ jobs:
               -o /tmp/portfolio.html \
               "https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html?smoke=$attempt"
 
-            if grep -Fq 'PORTFOY RICH V11' /tmp/portfolio.html \
+            if grep -Fq 'PORTFOY RICH V12' /tmp/portfolio.html \
               && grep -Fq 'Günlük Değerlendirme' /tmp/portfolio.html \
               && grep -Fq '<th>Mail</th>' /tmp/portfolio.html \
               && grep -Fq '<th>Son Görüşme</th>' /tmp/portfolio.html \
@@ -104,9 +104,14 @@ jobs:
           grep -Fq 'id="tabMails"' /tmp/portfolio.html || (echo 'mail pane missing'; exit 1)
           grep -Fq 'id="mailHistory"' /tmp/portfolio.html || (echo 'mail history missing'; exit 1)
           grep -Fq 'grid-template-columns:repeat(5,minmax(120px,1fr))' /tmp/portfolio.html || (echo 'five-column tabs missing'; exit 1)
+          grep -Fq 'Yetkili Kişiler' /tmp/portfolio.html || (echo 'contact people panel missing'; exit 1)
+          grep -Fq 'Yetkili Adı Soyadı' /tmp/portfolio.html || (echo 'contact name field missing'; exit 1)
+          grep -Fq 'function toggleContactPerson(i)' /tmp/portfolio.html || (echo 'contact expand function missing'; exit 1)
+          grep -Fq 'contacts:cleanContacts' /tmp/portfolio.html || (echo 'contact save payload missing'; exit 1)
+          echo 'multiple contact people: OK'
           echo 'rightmost mail tab: OK'
           echo 'orders tab removed: OK'
-          echo 'portfolio page V11: OK'
+          echo 'portfolio page V12: OK'
           echo 'portfolio bootstrap route: OK'
           curl --fail --silent --show-error \
             'https://musteri-takip-crm.musteritakipcrm.workers.dev/api/portfolio-health' \
