@@ -7,6 +7,7 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   const recovery = await readFile(new URL('../src/portfolio_api_recovery_entry.js', import.meta.url), 'utf8');
   const embedded = await readFile(new URL('../src/portfolio_clean_page.js', import.meta.url), 'utf8');
   const page = await readFile(new URL('../public/musteri-portfoyu-v2.html', import.meta.url), 'utf8');
+  const index = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
 
   assert.match(wrapper, /CLEAN_PORTFOLIO_HTML/);
   assert.match(wrapper, /clean-v3-inline/);
@@ -20,7 +21,7 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   assert.match(wrapper, /x-crm-portfolio-api/);
 
   for (const source of [embedded,page]) {
-    assert.match(source, /PORTFOY RICH V18/);
+    assert.match(source, /PORTFOY RICH V19/);
     assert.match(source, /Günlük Değerlendirme/);
     assert.match(source, /<th>Son Görüşme<\/th>/);
     assert.match(source, /Görüşmeler & Notlar/);
@@ -87,6 +88,16 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   assert.match(page, /id="meetingNoteDate"/);
   assert.match(page, /id="meetingNoteText"/);
   assert.match(page, /grid-template-columns:repeat\(5,minmax\(120px,1fr\)\)/);
+  assert.match(page, /embedded/);
+  assert.match(page, /location\.replace\('\/\?page=portfolio'\)/);
+  assert.match(page, /window\.parent\.activateCrmPage\('customers'\)/);
+
+  assert.match(index, /data-page="portfolio"/);
+  assert.match(index, /id="portfolioFrame"/);
+  assert.match(index, /musteri-portfoyu\.html\?embedded=1/);
+  assert.match(index, /CRM_PAGE_CACHE_MS=300000/);
+  assert.match(index, /requestAnimationFrame\(\(\)=>setTimeout/);
+  assert.match(index, /prewarmPortfolioFrame/);
 
   const start = page.lastIndexOf('<script>');
   const end = page.indexOf('</script>', start);
