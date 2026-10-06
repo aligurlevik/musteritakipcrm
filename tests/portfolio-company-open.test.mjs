@@ -20,7 +20,7 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   assert.match(wrapper, /x-crm-portfolio-api/);
 
   for (const source of [embedded,page]) {
-    assert.match(source, /PORTFOY RICH V14/);
+    assert.match(source, /PORTFOY RICH V15/);
     assert.match(source, /Günlük Değerlendirme/);
     assert.match(source, /<th>Mail<\/th>/);
     assert.match(source, /<th>Son Görüşme<\/th>/);
@@ -60,6 +60,12 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
     assert.doesNotMatch(source, /portfolio-fullscreen-detail\.js/);
     assert.doesNotMatch(source, /portfolio-fullscreen-stable\.js/);
     assert.match(source, /Yetkili Kişiler/);
+    assert.match(source, /Yeni Görüşme \/ Not Ekle/);
+    assert.match(source, /id="meetingNoteDate"/);
+    assert.match(source, /id="meetingNoteText"/);
+    assert.match(source, /function saveMeetingNote\(\)/);
+    assert.match(source, /note-date/);
+    assert.match(source, /date:today\(\)/);
     assert.match(source, /function addContactPerson\(\)/);
     assert.match(source, /openContactIndex/);
     assert.match(source, /portfolioLoadInFlight/);
