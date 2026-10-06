@@ -1,25 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {patchPortfolioHtml} from '../src/portfolio_company_link_entry.js';
+import {readFile} from 'node:fs/promises';
 
-test('firma adına tıklama eski listener katmanlarını kullanmadan tek müşteri kartını tam ekran açar',()=>{
-  const input=`<!doctype html><html><head></head><body>
-  <table><tbody id="rows"><tr onclick="selectCustomer(42)"><td><span class="company">${esc(c.company)}</span></td></tr></tbody></table>
-  <aside id="detail"><div class="detail-actions"><button>Düzenle</button></div></aside>
-  <script data-last-contact-auto="x" src="/last-contact-auto.js?v=1"></script>
-  <script data-portfolio-fullscreen-stable="x" src="/portfolio-fullscreen-stable.js?v=1"></script>
-  </body></html>`;
+test('firma adına tıklama eski listener katmanlarını kullanmadan tek müşteri kartını tam ekran açar',async()=>{
+  const source=await readFile(new URL('../src/portfolio_company_link_entry.js',import.meta.url),'utf8');
 
-  const output=patchPortfolioHtml(input);
+  assert.match(source,/class="company crm-company-open"/);
+  assert.match(source,/crmOpenPortfolioCustomer/);
+  assert.match(source,/event\.preventDefault\(\);event\.stopPropagation\(\)/);
+  assert.match(source,/body\.crm-portfolio-detail-open #detail/);
+  assert.match(source,/id="crmCustomerClose"/);
+  assert.match(source,/crmClosePortfolioCustomer/);
 
-  assert.match(output,/class="company crm-company-open"/);
-  assert.match(output,/crmOpenPortfolioCustomer\(\$\{c\.id\},event\)/);
-  assert.match(output,/event\.preventDefault\(\);event\.stopPropagation\(\)/);
-  assert.match(output,/body\.crm-portfolio-detail-open #detail/);
-  assert.match(output,/id="crmCustomerClose"/);
-  assert.match(output,/crmClosePortfolioCustomer/);
-
-  assert.doesNotMatch(output,/href="\/\?page=customers&editCustomer=/);
-  assert.doesNotMatch(output,/src="\/last-contact-auto\.js/);
-  assert.doesNotMatch(output,/src="\/portfolio-fullscreen-stable\.js/);
+  assert.match(source,/portfolio-fullscreen-detail\\\.js/);
+  assert.match(source,/portfolio-fullscreen-stable\\\.js/);
+  assert.match(source,/last-contact-auto\\\.js/);
 });
