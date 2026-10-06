@@ -53,6 +53,30 @@ th,td{font-size:12.5px!important}
 .pager{font-size:12px!important}
 
 
+/* V12: Firmaya birden fazla yetkili kişi eklenebilir; tıklayınca detay açılır. */
+.contacts-panel{border:1px solid var(--line);border-radius:9px;background:#fff;margin:10px 0;overflow:hidden}
+.contacts-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.contacts-head h3{margin:0;font-size:14px}
+.contacts-list{display:grid;gap:8px;padding:10px}
+.contact-card{border:1px solid var(--line);border-radius:9px;background:#f8fafc;overflow:hidden}
+.contact-summary{width:100%;border:0;background:transparent;display:grid;grid-template-columns:minmax(180px,1.1fr) minmax(130px,.8fr) auto;gap:10px;align-items:center;padding:10px 12px;text-align:left;cursor:pointer}
+.contact-summary:hover{background:#eef5ff}
+.contact-name{font-size:13px;font-weight:900;color:#0f172a}
+.contact-role{font-size:12px;color:#64748b;font-weight:800}
+.contact-arrow{font-size:14px;color:#64748b;transition:transform .18s ease}
+.contact-card.open .contact-arrow{transform:rotate(90deg)}
+.contact-details{display:none;border-top:1px solid var(--line);padding:10px 12px;background:#fff}
+.contact-card.open .contact-details{display:block}
+.contact-fields{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.contact-field{display:grid;gap:5px}
+.contact-field label{font-size:11px;font-weight:900;color:#475569}
+.contact-field input{width:100%;height:36px;border:1px solid var(--line);border-radius:7px;padding:0 9px;font-size:12.5px}
+.contact-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;flex-wrap:wrap}
+.contact-links{display:flex;gap:7px;flex-wrap:wrap}
+.contact-link{display:inline-flex;align-items:center;gap:5px;text-decoration:none;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:12px;font-weight:900;background:#fff;color:#1769f6}
+.contact-empty{padding:12px;color:#64748b;font-size:12px}
+@media(max-width:760px){.contact-summary{grid-template-columns:1fr auto}.contact-role{grid-column:1/-1}.contact-fields{grid-template-columns:1fr}}
+
 /* V11: Mail sekmesi en sağda, tüm sekmeler soldan sağa tek sıra. */
 .mail-item{border:1px solid var(--line);border-left:4px solid #1769f6;border-radius:9px;padding:10px 12px;background:#fff}
 .mail-item.incoming{border-left-color:#16a34a}
@@ -153,7 +177,7 @@ body.customer-open .tabs{grid-template-columns:repeat(5,minmax(120px,1fr))}
 @media(max-width:720px){body.customer-open .detail{min-height:calc(100vh - 20px)!important}}
 </style>
 </head>
-<body><div id="buildMarker">PORTFOY RICH V11</div>
+<body><div id="buildMarker">PORTFOY RICH V12</div>
 <div class="app">
 <aside class="side">
   <div class="brand"><img src="/notes-logo-ag-v1.webp" alt="AG"><span>CRM Müşteri<br>Takip</span></div>
@@ -237,6 +261,13 @@ body.customer-open .tabs{grid-template-columns:repeat(5,minmax(120px,1fr))}
                 <div class="info-row"><span class="ico">▣</span><input id="dMachine" placeholder="Makine / teknik bilgi"></div>
               </div>
             </div>
+            <div class="contacts-panel">
+              <div class="contacts-head">
+                <h3>Yetkili Kişiler</h3>
+                <button type="button" class="btn small primary" onclick="addContactPerson()">＋ Yetkili Ekle</button>
+              </div>
+              <div id="contactPeople" class="contacts-list"></div>
+            </div>
             <div class="notes-panel"><div class="notes-title"><span>✓ Notlar</span><span>↗</span></div><div id="noteList" class="note-list"></div><div class="add-note"><input id="newNote" placeholder="Yeni not yazın..."><button class="btn small primary" onclick="addNote()">＋ Ekle</button></div></div>
             <div class="follow-grid"><div><label>Sonraki İşlem Tarihi</label><input id="dFollow" type="date"></div><div><label>Saat</label><input id="dFollowTime" type="time" value="10:00"></div><div class="wide"><label>Hatırlatma Notu</label><input id="dReminderNote" placeholder="Örn. Teklif sonucunu sor"></div><button class="btn primary" onclick="createReminder()">🔔 Bildirim Ekle</button></div>
             <div class="savebar"><button class="btn soft" onclick="loadSelected()">İptal</button><button class="btn primary" onclick="saveCustomer()">Kaydet</button></div>
@@ -301,11 +332,70 @@ body.customer-open .tabs{grid-template-columns:repeat(5,minmax(120px,1fr))}
 </main>
 </div>
 <script>
-const $=id=>document.getElementById(id);let customers=[],meetings=[],selected=null,selectedHistory=null,notes=[],visibleRows=[];
+const $=id=>document.getElementById(id);let customers=[],meetings=[],selected=null,selectedHistory=null,notes=[],contacts=[],visibleRows=[];
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
 async function api(url,opt={}){const r=await fetch(url,{credentials:'same-origin',headers:{'content-type':'application/json',...(opt.headers||{})},...opt});if(r.status===401){location.href='/';throw new Error('Oturum gerekli')}let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||'İşlem başarısız');return d}
 function parsed(v){try{const a=JSON.parse(v||'');return Array.isArray(a)?a:[]}catch{return []}}
+function customerContacts(c){
+  const list=parsed(c?.contacts_json).map(x=>({name:String(x?.name||''),role:String(x?.role||''),phone:String(x?.phone||''),email:String(x?.email||'')})).filter(x=>x.name||x.role||x.phone||x.email);
+  if(list.length)return list;
+  const fallback={name:String(c?.contact_name||''),role:'',phone:String(c?.phone||parsed(c?.phones_json)[0]||''),email:String(c?.email||parsed(c?.emails_json)[0]||'')};
+  return (fallback.name||fallback.phone||fallback.email)?[fallback]:[];
+}
+function renderContacts(){
+  const box=$('contactPeople');if(!box)return;
+  if(!contacts.length){box.innerHTML='<div class="contact-empty">Henüz yetkili kişi eklenmemiş.</div>';return}
+  box.innerHTML=contacts.map((c,i)=>`<div class="contact-card ${i===0?'open':''}" id="contactCard${i}">
+    <button type="button" class="contact-summary" onclick="toggleContactPerson(${i})">
+      <span class="contact-name">${esc(c.name||'İsimsiz Yetkili')}</span>
+      <span class="contact-role">${esc(c.role||'Görev belirtilmedi')}</span>
+      <span class="contact-arrow">›</span>
+    </button>
+    <div class="contact-details">
+      <div class="contact-fields">
+        <div class="contact-field"><label>Yetkili Adı Soyadı</label><input value="${esc(c.name)}" oninput="updateContactPerson(${i},'name',this.value)"></div>
+        <div class="contact-field"><label>Görevi</label><input value="${esc(c.role)}" placeholder="Örn. Satın Alma Müdürü" oninput="updateContactPerson(${i},'role',this.value)"></div>
+        <div class="contact-field"><label>Telefon</label><input value="${esc(c.phone)}" oninput="updateContactPerson(${i},'phone',this.value)"></div>
+        <div class="contact-field"><label>Mail</label><input value="${esc(c.email)}" oninput="updateContactPerson(${i},'email',this.value)"></div>
+      </div>
+      <div class="contact-actions">
+        <div class="contact-links">
+          ${c.phone?`<a class="contact-link" href="tel:${esc(c.phone.replace(/\s+/g,''))}" onclick="event.stopPropagation()">☎ Ara</a>`:''}
+          ${c.email?`<a class="contact-link" href="mailto:${esc(c.email)}" onclick="event.stopPropagation()">✉ Mail Gönder</a>`:''}
+        </div>
+        <button type="button" class="btn small" onclick="removeContactPerson(${i})">Sil</button>
+      </div>
+    </div>
+  </div>`).join('');
+}
+function toggleContactPerson(i){$('contactCard'+i)?.classList.toggle('open')}
+function updateContactPerson(i,key,value){
+  if(!contacts[i])return;
+  contacts[i][key]=value;
+  if(i===0){
+    if(key==='name')$('dContact').value=value;
+    if(key==='phone')$('dPhone').value=value;
+    if(key==='email')$('dEmail').value=value;
+  }
+}
+function addContactPerson(){
+  contacts.push({name:'',role:'',phone:'',email:''});
+  renderContacts();
+  const i=contacts.length-1;
+  $('contactCard'+i)?.classList.add('open');
+}
+function removeContactPerson(i){
+  contacts.splice(i,1);
+  renderContacts();
+  syncPrimaryFromContacts();
+}
+function syncPrimaryFromContacts(){
+  const first=contacts[0]||{name:'',phone:'',email:''};
+  $('dContact').value=first.name||'';
+  $('dPhone').value=first.phone||'';
+  $('dEmail').value=first.email||'';
+}
 function resultOf(c){if(c.stage==='Kazanıldı')return'positive';if(c.stage==='Kaybedildi'||c.record_status==='Pasif')return'negative';if(c.stage==='Beklemede')return'waiting';return'open'}
 function resultLabel(c){return({positive:'Olumlu',negative:'Olumsuz',waiting:'Beklemede',open:'Sonuçlanmamış'})[resultOf(c)]}
 function resultBadge(c){return({positive:'pos',negative:'neg',waiting:'wait',open:'open'})[resultOf(c)]}
@@ -337,7 +427,7 @@ function firstNote(c){const m=lastMeeting(c);if(m?.note)return String(m.note).sp
 function monthRange(){const d=new Date(),y=d.getFullYear(),m=d.getMonth();const a=new Date(y,m,1),b=new Date(y,m+1,0);const f=x=>String(x.getDate()).padStart(2,'0')+'.'+String(x.getMonth()+1).padStart(2,'0')+'.'+x.getFullYear();$('rangeBox').textContent='▣ '+f(a)+' - '+f(b)}
 function fillFilters(){const cities=[...new Set(customers.map(c=>String(c.region||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr'));$('city').innerHTML='<option value="">Tümü</option>'+cities.map(x=>`<option>${esc(x)}</option>`).join('');const secs=[...new Set(customers.flatMap(c=>String(c.categories||c.sector||'').split(',').map(x=>x.trim()).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'tr'));$('sector').innerHTML='<option value="">Tümü</option>'+secs.map(x=>`<option>${esc(x)}</option>`).join('')}
 function counts(){const all=customers.filter(c=>c.record_status!=='Silindi');$('sTotal').textContent=all.length;$('sPositive').textContent=all.filter(c=>resultOf(c)==='positive').length;$('sWaiting').textContent=all.filter(c=>resultOf(c)==='waiting').length;$('sNegative').textContent=all.filter(c=>resultOf(c)==='negative').length;$('sOffer').textContent=all.filter(c=>String(c.stage||'').toLocaleLowerCase('tr').includes('teklif')).length;$('sFollow').textContent=all.filter(c=>c.follow_date&&!['positive','negative'].includes(resultOf(c))).length;$('sOrder').textContent=all.filter(c=>resultOf(c)==='positive').length;$('sOverdue').textContent=all.filter(isOverdue).length;const due=all.filter(isOverdue).slice(0,3);$('sideReminders').innerHTML=due.length?due.map(c=>`<div style="margin:6px 0">🔴 <b>${esc(c.company)}</b><br><span>${esc(c.follow_date)}</span></div>`).join(''):'Bugün geciken takip yok.'}
-function filterRows(){const q=$('search').value.trim().toLocaleLowerCase('tr'),city=$('city').value,sector=$('sector').value,prio=$('priority').value,res=$('result').value,follow=$('followFilter').value;return customers.filter(c=>c.record_status!=='Silindi').filter(c=>!city||c.region===city).filter(c=>!sector||String(c.categories||c.sector||'').includes(sector)).filter(c=>!prio||c.priority===prio).filter(c=>!res||resultOf(c)===res).filter(c=>{if(!follow)return true;if(follow==='overdue')return isOverdue(c);if(follow==='today')return isToday(c);if(follow==='future')return c.follow_date>today();return true}).filter(c=>!q||[c.company,c.contact_name,c.phone,c.email,c.region,c.categories,c.sector].join(' ').toLocaleLowerCase('tr').includes(q))}
+function filterRows(){const q=$('search').value.trim().toLocaleLowerCase('tr'),city=$('city').value,sector=$('sector').value,prio=$('priority').value,res=$('result').value,follow=$('followFilter').value;return customers.filter(c=>c.record_status!=='Silindi').filter(c=>!city||c.region===city).filter(c=>!sector||String(c.categories||c.sector||'').includes(sector)).filter(c=>!prio||c.priority===prio).filter(c=>!res||resultOf(c)===res).filter(c=>{if(!follow)return true;if(follow==='overdue')return isOverdue(c);if(follow==='today')return isToday(c);if(follow==='future')return c.follow_date>today();return true}).filter(c=>!q||[c.company,c.contact_name,c.phone,c.email,c.contacts_json,c.region,c.categories,c.sector].join(' ').toLocaleLowerCase('tr').includes(q))}
 function render(){visibleRows=filterRows();$('rowCount').textContent=`${visibleRows.length} firma`;const tbody=$('rows');tbody.innerHTML=visibleRows.map(c=>{const lm=lastMeeting(c),note=firstNote(c),cls=isOverdue(c)?'overdue ':'';const sel=selected&&Number(selected.id)===Number(c.id)?'selected':'';const followClass=isOverdue(c)?'over':isToday(c)?'today':'';return `<tr class="${cls}${sel}"><td><span class="dot ${resultOf(c)==='negative'?'red':resultOf(c)==='waiting'?'amber':''}"></span><button type="button" class="company company-open-btn" onclick="selectCustomer(${c.id})">${esc(c.company)}</button></td><td>${esc(c.contact_name||'—')}<span class="person-role">${esc(c.invoice_title||'')}</span></td><td>${esc(c.phone||parsed(c.phones_json)[0]||'—')}</td><td><a class="mail" onclick="event.stopPropagation()" href="mailto:${esc(c.email||parsed(c.emails_json)[0]||'')}">${esc(c.email||parsed(c.emails_json)[0]||'—')}</a></td><td>${esc(c.categories||c.sector||'—')}</td><td>${esc((lm?.meeting_date||'—').slice(0,10))}</td><td><span class="badge ${priorityClass(c)}">${priorityLabel(c)}</span></td><td><span class="badge ${resultBadge(c)}">${resultLabel(c)}</span></td><td class="follow ${followClass}">${esc(c.follow_date||'—')}</td><td><span class="note-check">${note?'☑':'□'}</span></td><td><button class="btn small" onclick="event.stopPropagation();selectCustomer(${c.id})">Detay</button></td></tr>`}).join('');if(selected&&!visibleRows.some(c=>Number(c.id)===Number(selected.id))){selected=null;$('detailContent').classList.add('hidden');$('detailEmpty').classList.remove('hidden')}}
 function clearFilters(){['search','city','sector','priority','result','followFilter'].forEach(id=>$(id).value='');render()}
 function renderNotes(){if(!notes.length){$('noteList').innerHTML='<div style="font-size:10px;color:#64748b">Henüz not yok.</div>';return}$('noteList').innerHTML=notes.map((n,i)=>`<div class="note-row"><input type="checkbox" ${n.done?'checked':''} onchange="toggleNote(${i},this.checked)"><span style="${n.done?'text-decoration:line-through;color:#94a3b8':''}">${esc(n.text)}</span><button onclick="removeNote(${i})">×</button></div>`).join('')}
@@ -375,7 +465,7 @@ function closeCustomerDetail(){
   document.body.classList.remove('customer-open');
   window.scrollTo({top:0,behavior:'instant'});
 }
-function loadSelected(){if(!selected)return;$('detailEmpty').classList.add('hidden');$('detailContent').classList.remove('hidden');$('dCompany').textContent=selected.company;$('dContact').value=selected.contact_name||'';$('dPhone').value=selected.phone||parsed(selected.phones_json)[0]||'';$('dEmail').value=selected.email||parsed(selected.emails_json)[0]||'';$('dRegion').value=selected.region||'';$('dCategories').value=selected.categories||selected.sector||'';$('dPriority').value=selected.priority||'NORMAL';$('dResultSelect').value=resultOf(selected);$('dMachine').value=selected.machine_info||'';$('dFollow').value=selected.follow_date||'';$('dLastMeeting').textContent=(lastMeeting(selected)?.meeting_date||'—').slice(0,10);$('dResultLabel').textContent=resultLabel(selected);$('dFollowLabel').textContent=selected.follow_date||'—';$('dPotential').textContent=priorityLabel(selected);notes=parseNotes(selected.special_notes);renderNotes();loadAnalysisFields();$('overdueAlert').classList.toggle('show',isOverdue(selected));renderHistory();renderAnalysis()}
+function loadSelected(){if(!selected)return;$('detailEmpty').classList.add('hidden');$('detailContent').classList.remove('hidden');$('dCompany').textContent=selected.company;$('dContact').value=selected.contact_name||'';$('dPhone').value=selected.phone||parsed(selected.phones_json)[0]||'';$('dEmail').value=selected.email||parsed(selected.emails_json)[0]||'';$('dRegion').value=selected.region||'';$('dCategories').value=selected.categories||selected.sector||'';$('dPriority').value=selected.priority||'NORMAL';$('dResultSelect').value=resultOf(selected);$('dMachine').value=selected.machine_info||'';$('dFollow').value=selected.follow_date||'';$('dLastMeeting').textContent=(lastMeeting(selected)?.meeting_date||'—').slice(0,10);$('dResultLabel').textContent=resultLabel(selected);$('dFollowLabel').textContent=selected.follow_date||'—';$('dPotential').textContent=priorityLabel(selected);contacts=customerContacts(selected);renderContacts();syncPrimaryFromContacts();notes=parseNotes(selected.special_notes);renderNotes();loadAnalysisFields();$('overdueAlert').classList.toggle('show',isOverdue(selected));renderHistory();renderAnalysis()}
 function renderHistory(){const h=selectedHistory||{meetings:[],offers:[],mails:[]};$('meetingHistory').innerHTML=h.meetings?.length?h.meetings.slice().reverse().map(m=>`<div class="history-item"><b>${esc((m.meeting_date||m.created_at||'').slice(0,10))}</b> · ${esc(m.result||'Beklemede')}<div style="margin-top:4px">${esc(m.note||'Not yok')}</div></div>`).join(''):'<div class="history-item">Görüşme kaydı yok.</div>';$('offerHistory').innerHTML=h.offers?.length?h.offers.map(o=>`<div class="history-item"><b>${esc(o.offer_no||'Teklif')}</b> · ${esc(o.status||'')} · ${Number(o.amount||0).toLocaleString('tr-TR')} ${esc(o.currency||'TRY')}<div style="margin-top:4px">${esc(o.subject||o.note||'')}</div></div>`).join(''):'<div class="history-item">Teklif kaydı yok.</div>';const mails=Array.isArray(h.mails)?h.mails:[];$('mailHistory').innerHTML=mails.length?mails.map(mail=>{const raw=String(mail.direction||'').toLocaleLowerCase('tr');const incoming=raw.includes('gelen')||raw.includes('in');const dir=incoming?'Gelen':'Giden';const cls=incoming?'incoming':'outgoing';return `<div class="mail-item ${cls}"><div class="mail-head"><div class="mail-subject">${esc(mail.subject||'(Konu yok)')}</div><span class="mail-dir ${cls}">${dir}</span></div><div class="mail-meta">${esc((mail.mail_date||mail.created_at||'').slice(0,16))} · ${esc(mail.email||'')}</div><div class="mail-summary">${esc(mail.summary||'İçerik özeti yok.')}</div></div>`}).join(''):'<div class="history-item">Bu müşteriye ait mail kaydı yok.</div>'}
 function renderAnalysis(){if(!selected)return;const lm=lastMeeting(selected),offerCount=selectedHistory?.offers?.length||0,meetingCount=selectedHistory?.meetings?.length||0;let lines=[];lines.push(`<b>${esc(selected.company)}</b> için ${meetingCount} görüşme ve ${offerCount} teklif kaydı var.`);lines.push(`Potansiyel: <b>${priorityLabel(selected)}</b>. Sonuç: <b>${resultLabel(selected)}</b>.`);if(isOverdue(selected))lines.push(`<span style="color:#c51e34"><b>Takip süresi geçmiş.</b> Öncelikli işlem gerekiyor.</span>`);else if(selected.follow_date)lines.push(`Sonraki takip: <b>${esc(selected.follow_date)}</b>.`);if(lm?.note)lines.push(`Son görüşme notu: ${esc(String(lm.note).slice(0,180))}`);$('analysisBox').innerHTML=lines.join('<br>')}
 async function saveCustomerAnalysis(){
@@ -391,7 +481,7 @@ async function saveCustomerAnalysis(){
   }
 }
 function focusEdit(){$('dContact').focus()}
-async function saveCustomer(){if(!selected)return;const desired=$('dResultSelect').value,phones=parsed(selected.phones_json),emails=parsed(selected.emails_json);if($('dPhone').value.trim())phones[0]=$('dPhone').value.trim();if($('dEmail').value.trim())emails[0]=$('dEmail').value.trim();let stage=selected.stage||'Yeni Lead';if(desired==='waiting')stage='Beklemede';else if(desired==='open'&&['Kazanıldı','Kaybedildi','Beklemede'].includes(stage))stage='İlk Görüşme';const payload={company:selected.company,contact_name:$('dContact').value.trim(),phones,emails,region:$('dRegion').value.trim(),categories:$('dCategories').value.split(',').map(x=>x.trim()).filter(Boolean),priority:$('dPriority').value,stage,follow_date:$('dFollow').value,invoice_title:selected.invoice_title||'',tax_office:selected.tax_office||'',tax_number:selected.tax_number||'',invoice_address:selected.invoice_address||'',special_notes:notesText(),machine_info:$('dMachine').value.trim()};await api('/api/customers/'+selected.id,{method:'PUT',body:JSON.stringify(payload)});if(desired==='positive'||desired==='negative')await api('/api/customers/'+selected.id+'/result',{method:'PUT',body:JSON.stringify({result:desired==='positive'?'Olumlu':'Olumsuz'})});await loadAll(selected.id)}
+async function saveCustomer(){if(!selected)return;const desired=$('dResultSelect').value;const cleanContacts=contacts.map(x=>({name:String(x.name||'').trim(),role:String(x.role||'').trim(),phone:String(x.phone||'').trim(),email:String(x.email||'').trim()})).filter(x=>x.name||x.role||x.phone||x.email);if(!cleanContacts.length&&($('dContact').value.trim()||$('dPhone').value.trim()||$('dEmail').value.trim()))cleanContacts.push({name:$('dContact').value.trim(),role:'',phone:$('dPhone').value.trim(),email:$('dEmail').value.trim()});const phones=cleanContacts.map(x=>x.phone).filter(Boolean),emails=cleanContacts.map(x=>x.email).filter(Boolean);let stage=selected.stage||'Yeni Lead';if(desired==='waiting')stage='Beklemede';else if(desired==='open'&&['Kazanıldı','Kaybedildi','Beklemede'].includes(stage))stage='İlk Görüşme';const primary=cleanContacts[0]||{name:$('dContact').value.trim(),phone:$('dPhone').value.trim(),email:$('dEmail').value.trim()};const payload={company:selected.company,contact_name:primary.name||'',phones,emails,contacts:cleanContacts,region:$('dRegion').value.trim(),categories:$('dCategories').value.split(',').map(x=>x.trim()).filter(Boolean),priority:$('dPriority').value,stage,follow_date:$('dFollow').value,invoice_title:selected.invoice_title||'',tax_office:selected.tax_office||'',tax_number:selected.tax_number||'',invoice_address:selected.invoice_address||'',special_notes:notesText(),machine_info:$('dMachine').value.trim()};await api('/api/customers/'+selected.id,{method:'PUT',body:JSON.stringify(payload)});if(desired==='positive'||desired==='negative')await api('/api/customers/'+selected.id+'/result',{method:'PUT',body:JSON.stringify({result:desired==='positive'?'Olumlu':'Olumsuz'})});await loadAll(selected.id)}
 async function createReminder(){if(!selected)return;const date=$('dFollow').value,time=$('dFollowTime').value||'10:00';if(!date){alert('Önce sonraki işlem tarihini seçin.');return}const note=$('dReminderNote').value.trim()||selected.company+' takip';await api('/api/meetings',{method:'POST',body:JSON.stringify({customer_id:selected.id,meeting_date:today(),note:'Takip hatırlatması oluşturuldu: '+note,next_follow_date:date,remind_at:date+'T'+time,remind_note:note,result:'Beklemede'})});await loadAll(selected.id)}
 function switchTab(name){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));document.querySelectorAll('.tabpane').forEach(x=>x.classList.add('hidden'));$('tab'+name[0].toUpperCase()+name.slice(1)).classList.remove('hidden')}
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));['search','city','sector','priority','result','followFilter'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
