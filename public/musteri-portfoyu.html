@@ -52,6 +52,22 @@ th,td{font-size:12.5px!important}
 .empty-detail{font-size:14px!important}
 .pager{font-size:12px!important}
 
+
+/* V9: eski Müşteri Analizi alanları geri getirildi. */
+.analysis-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.analysis-field{display:grid;gap:6px}
+.analysis-field.full{grid-column:1/-1}
+.analysis-field label{font-size:12px;font-weight:900;color:#475569}
+.analysis-field select,.analysis-field textarea{
+  width:100%;border:1px solid var(--line);border-radius:8px;background:#fff;
+  padding:9px 10px;font-size:13px;color:#0f172a
+}
+.analysis-field select{height:38px}
+.analysis-field textarea{min-height:92px;resize:vertical;line-height:1.45}
+.analysis-save-row{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:10px}
+.analysis-save-status{font-size:12px;font-weight:800;color:#15814b}
+@media(max-width:900px){.analysis-form{grid-template-columns:1fr}.analysis-field.full{grid-column:auto}}
+
 /* V7: tablo boşken tüm alanı kullanır; müşteri seçilince geniş sağ detay paneli açılır. */
 .app{grid-template-columns:178px minmax(0,1fr)!important}
 .main{padding:12px 10px 16px!important}
@@ -124,7 +140,7 @@ body.customer-open .tabs{grid-template-columns:repeat(5,minmax(120px,1fr))}
 @media(max-width:720px){body.customer-open .detail{min-height:calc(100vh - 20px)!important}}
 </style>
 </head>
-<body><div id="buildMarker">PORTFOY RICH V8</div>
+<body><div id="buildMarker">PORTFOY RICH V9</div>
 <div class="app">
 <aside class="side">
   <div class="brand"><img src="/notes-logo-ag-v1.webp" alt="AG"><span>CRM Müşteri<br>Takip</span></div>
@@ -216,7 +232,49 @@ body.customer-open .tabs{grid-template-columns:repeat(5,minmax(120px,1fr))}
           <div id="tabNotes" class="tabpane hidden"><div class="panel"><h3>Görüşme Geçmişi</h3><div id="meetingHistory" class="history"></div></div></div>
           <div id="tabOffers" class="tabpane hidden"><div class="panel"><h3>Teklifler</h3><div id="offerHistory" class="history"></div></div></div>
           <div id="tabOrders" class="tabpane hidden"><div class="panel"><h3>Sipariş Durumu</h3><div id="orderSummary" class="analysis-box"></div></div></div>
-          <div id="tabAnalysis" class="tabpane hidden"><div class="panel"><h3>Müşteri Analizi</h3><div id="analysisBox" class="analysis-box"></div></div></div>
+          <div id="tabAnalysis" class="tabpane hidden">
+            <div class="panel">
+              <h3>Müşteri Analizi</h3>
+              <div class="analysis-form">
+                <div class="analysis-field">
+                  <label>Memnuniyet Durumu</label>
+                  <select id="aSatisfaction">
+                    <option value="">Belirtilmedi</option>
+                    <option value="Çok Memnun">Çok Memnun</option>
+                    <option value="Memnun">Memnun</option>
+                    <option value="Nötr">Nötr</option>
+                    <option value="Memnun Değil">Memnun Değil</option>
+                  </select>
+                </div>
+                <div class="analysis-field">
+                  <label>Şikayet Durumu</label>
+                  <select id="aComplaintStatus">
+                    <option value="">Belirtilmedi</option>
+                    <option value="Yok">Yok</option>
+                    <option value="Açık">Açık</option>
+                    <option value="Takip Ediliyor">Takip Ediliyor</option>
+                    <option value="Çözüldü">Çözüldü</option>
+                  </select>
+                </div>
+                <div class="analysis-field full">
+                  <label>Şikayet / Çözüm Notu</label>
+                  <textarea id="aComplaintNote" placeholder="Şikayet, alınan aksiyon ve çözüm bilgisini yazın..."></textarea>
+                </div>
+                <div class="analysis-field full">
+                  <label>Kaybedilme Sebebi</label>
+                  <textarea id="aLossReason" placeholder="Müşteri kaybedildiyse sebebini yazın..."></textarea>
+                </div>
+              </div>
+              <div class="analysis-save-row">
+                <span id="analysisSaveStatus" class="analysis-save-status"></span>
+                <button class="btn primary" onclick="saveCustomerAnalysis()">Müşteri Analizini Kaydet</button>
+              </div>
+            </div>
+            <div class="panel" style="margin-top:12px">
+              <h3>Otomatik Analiz</h3>
+              <div id="analysisBox" class="analysis-box"></div>
+            </div>
+          </div>
         </div>
       </div>
     </aside>
@@ -237,7 +295,26 @@ function priorityClass(c){const p=String(c.priority||'NORMAL');return p==='KRİT
 function lastMeeting(c){return meetings.filter(m=>Number(m.customer_id)===Number(c.id)).sort((a,b)=>String(b.meeting_date||b.created_at||'').localeCompare(String(a.meeting_date||a.created_at||'')))[0]||null}
 function isOverdue(c){return !!(c.follow_date&&c.follow_date<today()&&!['positive','negative'].includes(resultOf(c)))}
 function isToday(c){return c.follow_date===today()&&!['positive','negative'].includes(resultOf(c))}
-function firstNote(c){const m=lastMeeting(c);if(m?.note)return String(m.note).split('\n')[0];return String(c.special_notes||'').replace(/^\[[ xX]\]\s*/m,'').split('\n')[0]||''}
+const ANALYSIS_MARKER='[[CRM_ANALYSIS]]';
+function stripAnalysisMeta(text){return String(text||'').split('\n').filter(line=>!line.startsWith(ANALYSIS_MARKER)).join('\n')}
+function readCustomerAnalysis(customer){
+  const base={satisfaction:'',complaintStatus:'',complaintNote:'',lossReason:''};
+  const line=String(customer?.special_notes||'').split('\n').find(x=>x.startsWith(ANALYSIS_MARKER));
+  if(!line)return base;
+  try{return {...base,...JSON.parse(decodeURIComponent(line.slice(ANALYSIS_MARKER.length)))}}catch{return base}
+}
+function currentAnalysis(){
+  return {
+    satisfaction:$('aSatisfaction')?.value||'',
+    complaintStatus:$('aComplaintStatus')?.value||'',
+    complaintNote:$('aComplaintNote')?.value.trim()||'',
+    lossReason:$('aLossReason')?.value.trim()||''
+  };
+}
+function analysisMetaLine(){
+  return ANALYSIS_MARKER+encodeURIComponent(JSON.stringify(currentAnalysis()));
+}
+function firstNote(c){const m=lastMeeting(c);if(m?.note)return String(m.note).split('\n')[0];return stripAnalysisMeta(c.special_notes).replace(/^\[[ xX]\]\s*/m,'').split('\n')[0]||''}
 function monthRange(){const d=new Date(),y=d.getFullYear(),m=d.getMonth();const a=new Date(y,m,1),b=new Date(y,m+1,0);const f=x=>String(x.getDate()).padStart(2,'0')+'.'+String(x.getMonth()+1).padStart(2,'0')+'.'+x.getFullYear();$('rangeBox').textContent='▣ '+f(a)+' - '+f(b)}
 function fillFilters(){const cities=[...new Set(customers.map(c=>String(c.region||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr'));$('city').innerHTML='<option value="">Tümü</option>'+cities.map(x=>`<option>${esc(x)}</option>`).join('');const secs=[...new Set(customers.flatMap(c=>String(c.categories||c.sector||'').split(',').map(x=>x.trim()).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'tr'));$('sector').innerHTML='<option value="">Tümü</option>'+secs.map(x=>`<option>${esc(x)}</option>`).join('')}
 function counts(){const all=customers.filter(c=>c.record_status!=='Silindi');$('sTotal').textContent=all.length;$('sPositive').textContent=all.filter(c=>resultOf(c)==='positive').length;$('sWaiting').textContent=all.filter(c=>resultOf(c)==='waiting').length;$('sNegative').textContent=all.filter(c=>resultOf(c)==='negative').length;$('sOffer').textContent=all.filter(c=>String(c.stage||'').toLocaleLowerCase('tr').includes('teklif')).length;$('sFollow').textContent=all.filter(c=>c.follow_date&&!['positive','negative'].includes(resultOf(c))).length;$('sOrder').textContent=all.filter(c=>resultOf(c)==='positive').length;$('sOverdue').textContent=all.filter(isOverdue).length;const due=all.filter(isOverdue).slice(0,3);$('sideReminders').innerHTML=due.length?due.map(c=>`<div style="margin:6px 0">🔴 <b>${esc(c.company)}</b><br><span>${esc(c.follow_date)}</span></div>`).join(''):'Bugün geciken takip yok.'}
@@ -245,8 +322,21 @@ function filterRows(){const q=$('search').value.trim().toLocaleLowerCase('tr'),c
 function render(){visibleRows=filterRows();$('rowCount').textContent=`${visibleRows.length} firma`;const tbody=$('rows');tbody.innerHTML=visibleRows.map(c=>{const lm=lastMeeting(c),note=firstNote(c),cls=isOverdue(c)?'overdue ':'';const sel=selected&&Number(selected.id)===Number(c.id)?'selected':'';const followClass=isOverdue(c)?'over':isToday(c)?'today':'';return `<tr class="${cls}${sel}"><td><span class="dot ${resultOf(c)==='negative'?'red':resultOf(c)==='waiting'?'amber':''}"></span><button type="button" class="company company-open-btn" onclick="selectCustomer(${c.id})">${esc(c.company)}</button></td><td>${esc(c.contact_name||'—')}<span class="person-role">${esc(c.invoice_title||'')}</span></td><td>${esc(c.phone||parsed(c.phones_json)[0]||'—')}</td><td><a class="mail" onclick="event.stopPropagation()" href="mailto:${esc(c.email||parsed(c.emails_json)[0]||'')}">${esc(c.email||parsed(c.emails_json)[0]||'—')}</a></td><td>${esc(c.categories||c.sector||'—')}</td><td>${esc((lm?.meeting_date||'—').slice(0,10))}</td><td><span class="badge ${priorityClass(c)}">${priorityLabel(c)}</span></td><td><span class="badge ${resultBadge(c)}">${resultLabel(c)}</span></td><td class="follow ${followClass}">${esc(c.follow_date||'—')}</td><td><span class="note-check">${note?'☑':'□'}</span></td><td><button class="btn small" onclick="event.stopPropagation();selectCustomer(${c.id})">Detay</button></td></tr>`}).join('');if(selected&&!visibleRows.some(c=>Number(c.id)===Number(selected.id))){selected=null;$('detailContent').classList.add('hidden');$('detailEmpty').classList.remove('hidden')}}
 function clearFilters(){['search','city','sector','priority','result','followFilter'].forEach(id=>$(id).value='');render()}
 function renderNotes(){if(!notes.length){$('noteList').innerHTML='<div style="font-size:10px;color:#64748b">Henüz not yok.</div>';return}$('noteList').innerHTML=notes.map((n,i)=>`<div class="note-row"><input type="checkbox" ${n.done?'checked':''} onchange="toggleNote(${i},this.checked)"><span style="${n.done?'text-decoration:line-through;color:#94a3b8':''}">${esc(n.text)}</span><button onclick="removeNote(${i})">×</button></div>`).join('')}
-function parseNotes(text){return String(text||'').split('\n').map(x=>x.trim()).filter(Boolean).map(x=>({done:/^\[[xX]\]/.test(x),text:x.replace(/^\[[ xX]\]\s*/, '')}))}
-function notesText(){return notes.map(n=>`[${n.done?'x':' '}] ${n.text}`).join('\n')}
+function parseNotes(text){return stripAnalysisMeta(text).split('\n').map(x=>x.trim()).filter(Boolean).map(x=>({done:/^\[[xX]\]/.test(x),text:x.replace(/^\[[ xX]\]\s*/, '')}))}
+function notesText(){
+  const normal=notes.map(n=>`[${n.done?'x':' '}] ${n.text}`).join('\n');
+  const meta=analysisMetaLine();
+  return [normal,meta].filter(Boolean).join('\n');
+}
+function loadAnalysisFields(){
+  if(!selected)return;
+  const a=readCustomerAnalysis(selected);
+  $('aSatisfaction').value=a.satisfaction||'';
+  $('aComplaintStatus').value=a.complaintStatus||'';
+  $('aComplaintNote').value=a.complaintNote||'';
+  $('aLossReason').value=a.lossReason||'';
+  $('analysisSaveStatus').textContent='';
+}
 function addNote(){const v=$('newNote').value.trim();if(!v)return;notes.push({done:false,text:v});$('newNote').value='';renderNotes()}
 function toggleNote(i,v){notes[i].done=v;renderNotes()}function removeNote(i){notes.splice(i,1);renderNotes()}
 async function selectCustomer(id){
@@ -266,9 +356,21 @@ function closeCustomerDetail(){
   document.body.classList.remove('customer-open');
   window.scrollTo({top:0,behavior:'instant'});
 }
-function loadSelected(){if(!selected)return;$('detailEmpty').classList.add('hidden');$('detailContent').classList.remove('hidden');$('dCompany').textContent=selected.company;$('dContact').value=selected.contact_name||'';$('dPhone').value=selected.phone||parsed(selected.phones_json)[0]||'';$('dEmail').value=selected.email||parsed(selected.emails_json)[0]||'';$('dRegion').value=selected.region||'';$('dCategories').value=selected.categories||selected.sector||'';$('dPriority').value=selected.priority||'NORMAL';$('dResultSelect').value=resultOf(selected);$('dMachine').value=selected.machine_info||'';$('dFollow').value=selected.follow_date||'';$('dLastMeeting').textContent=(lastMeeting(selected)?.meeting_date||'—').slice(0,10);$('dResultLabel').textContent=resultLabel(selected);$('dFollowLabel').textContent=selected.follow_date||'—';$('dPotential').textContent=priorityLabel(selected);notes=parseNotes(selected.special_notes);renderNotes();$('overdueAlert').classList.toggle('show',isOverdue(selected));renderHistory();renderAnalysis()}
+function loadSelected(){if(!selected)return;$('detailEmpty').classList.add('hidden');$('detailContent').classList.remove('hidden');$('dCompany').textContent=selected.company;$('dContact').value=selected.contact_name||'';$('dPhone').value=selected.phone||parsed(selected.phones_json)[0]||'';$('dEmail').value=selected.email||parsed(selected.emails_json)[0]||'';$('dRegion').value=selected.region||'';$('dCategories').value=selected.categories||selected.sector||'';$('dPriority').value=selected.priority||'NORMAL';$('dResultSelect').value=resultOf(selected);$('dMachine').value=selected.machine_info||'';$('dFollow').value=selected.follow_date||'';$('dLastMeeting').textContent=(lastMeeting(selected)?.meeting_date||'—').slice(0,10);$('dResultLabel').textContent=resultLabel(selected);$('dFollowLabel').textContent=selected.follow_date||'—';$('dPotential').textContent=priorityLabel(selected);notes=parseNotes(selected.special_notes);renderNotes();loadAnalysisFields();$('overdueAlert').classList.toggle('show',isOverdue(selected));renderHistory();renderAnalysis()}
 function renderHistory(){const h=selectedHistory||{meetings:[],offers:[]};$('meetingHistory').innerHTML=h.meetings?.length?h.meetings.slice().reverse().map(m=>`<div class="history-item"><b>${esc((m.meeting_date||m.created_at||'').slice(0,10))}</b> · ${esc(m.result||'Beklemede')}<div style="margin-top:4px">${esc(m.note||'Not yok')}</div></div>`).join(''):'<div class="history-item">Görüşme kaydı yok.</div>';$('offerHistory').innerHTML=h.offers?.length?h.offers.map(o=>`<div class="history-item"><b>${esc(o.offer_no||'Teklif')}</b> · ${esc(o.status||'')} · ${Number(o.amount||0).toLocaleString('tr-TR')} ${esc(o.currency||'TRY')}<div style="margin-top:4px">${esc(o.subject||o.note||'')}</div></div>`).join(''):'<div class="history-item">Teklif kaydı yok.</div>';$('orderSummary').innerHTML=resultOf(selected)==='positive'?'Bu müşteri <b>olumlu/kazanılmış</b> durumda. Teklif ve görüşme geçmişi üzerinden sipariş takibi yapılabilir.':'Henüz olumlu sonuçlanmış sipariş görünmüyor.'}
 function renderAnalysis(){if(!selected)return;const lm=lastMeeting(selected),offerCount=selectedHistory?.offers?.length||0,meetingCount=selectedHistory?.meetings?.length||0;let lines=[];lines.push(`<b>${esc(selected.company)}</b> için ${meetingCount} görüşme ve ${offerCount} teklif kaydı var.`);lines.push(`Potansiyel: <b>${priorityLabel(selected)}</b>. Sonuç: <b>${resultLabel(selected)}</b>.`);if(isOverdue(selected))lines.push(`<span style="color:#c51e34"><b>Takip süresi geçmiş.</b> Öncelikli işlem gerekiyor.</span>`);else if(selected.follow_date)lines.push(`Sonraki takip: <b>${esc(selected.follow_date)}</b>.`);if(lm?.note)lines.push(`Son görüşme notu: ${esc(String(lm.note).slice(0,180))}`);$('analysisBox').innerHTML=lines.join('<br>')}
+async function saveCustomerAnalysis(){
+  if(!selected)return;
+  $('analysisSaveStatus').textContent='Kaydediliyor...';
+  try{
+    await saveCustomer();
+    switchTab('analysis');
+    $('analysisSaveStatus').textContent='Müşteri analizi kaydedildi.';
+  }catch(e){
+    $('analysisSaveStatus').textContent='Kaydedilemedi: '+(e?.message||e);
+    throw e;
+  }
+}
 function focusEdit(){$('dContact').focus()}
 async function saveCustomer(){if(!selected)return;const desired=$('dResultSelect').value,phones=parsed(selected.phones_json),emails=parsed(selected.emails_json);if($('dPhone').value.trim())phones[0]=$('dPhone').value.trim();if($('dEmail').value.trim())emails[0]=$('dEmail').value.trim();let stage=selected.stage||'Yeni Lead';if(desired==='waiting')stage='Beklemede';else if(desired==='open'&&['Kazanıldı','Kaybedildi','Beklemede'].includes(stage))stage='İlk Görüşme';const payload={company:selected.company,contact_name:$('dContact').value.trim(),phones,emails,region:$('dRegion').value.trim(),categories:$('dCategories').value.split(',').map(x=>x.trim()).filter(Boolean),priority:$('dPriority').value,stage,follow_date:$('dFollow').value,invoice_title:selected.invoice_title||'',tax_office:selected.tax_office||'',tax_number:selected.tax_number||'',invoice_address:selected.invoice_address||'',special_notes:notesText(),machine_info:$('dMachine').value.trim()};await api('/api/customers/'+selected.id,{method:'PUT',body:JSON.stringify(payload)});if(desired==='positive'||desired==='negative')await api('/api/customers/'+selected.id+'/result',{method:'PUT',body:JSON.stringify({result:desired==='positive'?'Olumlu':'Olumsuz'})});await loadAll(selected.id)}
 async function createReminder(){if(!selected)return;const date=$('dFollow').value,time=$('dFollowTime').value||'10:00';if(!date){alert('Önce sonraki işlem tarihini seçin.');return}const note=$('dReminderNote').value.trim()||selected.company+' takip';await api('/api/meetings',{method:'POST',body:JSON.stringify({customer_id:selected.id,meeting_date:today(),note:'Takip hatırlatması oluşturuldu: '+note,next_follow_date:date,remind_at:date+'T'+time,remind_note:note,result:'Beklemede'})});await loadAll(selected.id)}
