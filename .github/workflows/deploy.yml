@@ -56,22 +56,37 @@ jobs:
 
       - name: Clean portfolio screen smoke
         run: |
-          curl --fail --silent --show-error --retry 5 --retry-delay 2 \
-            -D /tmp/portfolio-headers.txt \
-            -o /tmp/portfolio.html \
-            https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html
+          ok=0
+          for attempt in $(seq 1 15); do
+            echo "portfolio smoke attempt $attempt/15"
+            curl --fail --silent --show-error \
+              -D /tmp/portfolio-headers.txt \
+              -o /tmp/portfolio.html \
+              "https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html?smoke=$attempt"
+            if grep -Fq 'PORTFOY CLEAN V2' /tmp/portfolio.html \
+              && grep -Fq 'data-open-customer' /tmp/portfolio.html \
+              && grep -Fq 'function openCustomerCard(id)' /tmp/portfolio.html \
+              && grep -Fq "customerRows').addEventListener('click'" /tmp/portfolio.html \
+              && grep -qi '^x-crm-portfolio-screen: clean-v3-inline' /tmp/portfolio-headers.txt \
+              && ! grep -q 'portfolio-fullscreen-detail.js\|portfolio-fullscreen-stable.js\|onclick="selectCustomer' /tmp/portfolio.html; then
+              ok=1
+              break
+            fi
+            sleep 2
+          done
+
           echo '--- portfolio headers ---'
           grep -i 'x-crm-portfolio-screen\|content-type\|cache-control' /tmp/portfolio-headers.txt || true
-          echo '--- clean portfolio markers ---'
-          grep -Fq 'PORTFOY CLEAN V2' /tmp/portfolio.html && echo 'clean screen marker: OK' || (echo 'clean screen marker: MISSING'; exit 1)
-          grep -Fq 'data-open-customer' /tmp/portfolio.html && echo 'customer buttons: OK' || (echo 'customer buttons: MISSING'; exit 1)
-          grep -Fq 'function openCustomerCard(id)' /tmp/portfolio.html && echo 'customer opener: OK' || (echo 'customer opener: MISSING'; exit 1)
-          grep -Fq "customerRows').addEventListener('click'" /tmp/portfolio.html && echo 'isolated click handler: OK' || (echo 'isolated click handler: MISSING'; exit 1)
-          grep -qi '^x-crm-portfolio-screen: clean-v3-inline' /tmp/portfolio-headers.txt && echo 'clean response header: OK' || (echo 'clean response header: MISSING'; exit 1)
-          if grep -q 'portfolio-fullscreen-detail.js\|portfolio-fullscreen-stable.js\|onclick="selectCustomer' /tmp/portfolio.html; then
-            echo 'legacy portfolio click layer still present'
+          echo '--- portfolio markers ---'
+          grep -F 'PORTFOY CLEAN V2' /tmp/portfolio.html | head -1 || true
+          grep -F 'function openCustomerCard(id)' /tmp/portfolio.html | head -1 || true
+
+          if [ "$ok" -ne 1 ]; then
+            echo 'clean portfolio production smoke FAILED after propagation wait'
+            head -40 /tmp/portfolio.html || true
             exit 1
           fi
+
           echo 'clean portfolio production smoke OK'
 
       - name: Reminder diagnostics
