@@ -8,9 +8,11 @@ test('CRM sayfa geçişi önce görünümü değiştirir ve ağır işleri ertel
   assert.match(source,/const CRM_PAGE_CACHE_MS=900000/);
   assert.match(source,/let crmSwitching=false/);
   assert.match(source,/function beginCrmSwitch\(page\)/);
-  assert.match(source,/requestAnimationFrame\(\(\)=>requestAnimationFrame/);
+  assert.doesNotMatch(source,/requestAnimationFrame\(\(\)=>requestAnimationFrame/);
+  assert.match(source,/requestAnimationFrame\(\(\)=>\{/);
   assert.match(source,/setTimeout\(\(\)=>\{/);
-  assert.match(source,/\},120\)/);
+  assert.match(source,/\},16\)/);
+  assert.doesNotMatch(source,/\},120\)/);
   assert.match(source,/if\(generation!==crmSwitchGeneration\|\|crmActivePage!==page\)return/);
   assert.match(source,/if\(!crmSwitching&&\$\('graphicJobs'\)/);
   assert.match(source,/if\(!crmSwitching&&\$\('tracking'\)/);
