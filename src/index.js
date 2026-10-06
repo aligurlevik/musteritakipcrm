@@ -89,7 +89,7 @@ async function ensureSchema(env) {
     ['invoice_title',"TEXT DEFAULT ''"],['tax_office',"TEXT DEFAULT ''"],['tax_number',"TEXT DEFAULT ''"],
     ['invoice_address',"TEXT DEFAULT ''"],['record_status',"TEXT DEFAULT 'Aktif'"],
     ['special_notes',"TEXT DEFAULT ''"],['machine_info',"TEXT DEFAULT ''"],
-    ['phones_json',"TEXT DEFAULT '[]'"],['emails_json',"TEXT DEFAULT '[]'"],
+    ['phones_json',"TEXT DEFAULT '[]'"],['emails_json',"TEXT DEFAULT '[]'"],['contacts_json',"TEXT DEFAULT '[]'"],
     ['categories',"TEXT DEFAULT ''"],['note_image_data',"TEXT DEFAULT ''"]
   ]) await ensureColumn(env,'customers',name,def);
 
@@ -339,47 +339,49 @@ async function api(request, env) {
     else if(result==='Sonuçlanmadı')where.push("COALESCE(stage,'') NOT IN ('Kazanıldı','Kaybedildi')");
     if(category){where.push('categories LIKE ?');vals.push(`%${category}%`)}
     if(q){
-      where.push('(company LIKE ? OR contact_name LIKE ? OR sector LIKE ? OR email LIKE ? OR phones_json LIKE ? OR emails_json LIKE ?)');
-      vals.push(`%${q}%`,`%${q}%`,`%${q}%`,`%${q}%`,`%${q}%`,`%${q}%`);
+      where.push('(company LIKE ? OR contact_name LIKE ? OR sector LIKE ? OR email LIKE ? OR phones_json LIKE ? OR emails_json LIKE ? OR contacts_json LIKE ?)');
+      vals.push(`%${q}%`,`%${q}%`,`%${q}%`,`%${q}%`,`%${q}%`,`%${q}%`,`%${q}%`);
     }
     const sql=`SELECT * FROM customers ${where.length?'WHERE '+where.join(' AND '):''} ORDER BY CASE priority WHEN 'KRİTİK' THEN 1 WHEN 'YÜKSEK' THEN 2 WHEN 'NORMAL' THEN 3 ELSE 4 END, company`;
     return json((await env.DB.prepare(sql).bind(...vals).all()).results);
   }
   if(path==='/api/customers' && request.method==='POST') {
     const b=await body(request); if(!b.company)return json({error:'Firma adı zorunlu'},400);
-    const phones=Array.isArray(b.phones)?b.phones:[], emails=Array.isArray(b.emails)?b.emails:[];
+    const contacts=Array.isArray(b.contacts)?b.contacts.slice(0,20).map(x=>({name:String(x?.name||'').trim(),role:String(x?.role||'').trim(),phone:String(x?.phone||'').trim(),email:String(x?.email||'').trim()})).filter(x=>x.name||x.role||x.phone||x.email):[];
+    const phones=Array.isArray(b.phones)?b.phones:contacts.map(x=>x.phone).filter(Boolean), emails=Array.isArray(b.emails)?b.emails:contacts.map(x=>x.email).filter(Boolean);
     const categories=Array.isArray(b.categories)?b.categories.join(','):(b.categories||'');
     const imageData=validAgendaImage(b.note_image_data);if(imageData===null)return json({error:'Resim geçersiz veya çok büyük.'},400);
     const r=await env.DB.prepare(`INSERT INTO customers(
       company,contact_name,phone,email,region,sector,priority,stage,follow_date,
       invoice_title,tax_office,tax_number,invoice_address,record_status,
-      special_notes,machine_info,phones_json,emails_json,categories,note_image_data
-    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+      special_notes,machine_info,phones_json,emails_json,contacts_json,categories,note_image_data
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
       .bind(
         b.company,b.contact_name||'',phones[0]||'',emails[0]||'',b.region||'',categories,
         b.priority||'NORMAL',b.stage||'Yeni Lead',b.follow_date||'',
         b.invoice_title||'',b.tax_office||'',b.tax_number||'',b.invoice_address||'','Aktif',
-        b.special_notes||'',b.machine_info||'',JSON.stringify(phones),JSON.stringify(emails),categories,imageData
+        b.special_notes||'',b.machine_info||'',JSON.stringify(phones),JSON.stringify(emails),JSON.stringify(contacts),categories,imageData
       ).run();
     return json({id:r.meta.last_row_id},201);
   }
   const cm=path.match(/^\/api\/customers\/(\d+)$/);
   if(cm && request.method==='PUT') {
     const b=await body(request);
-    const phones=Array.isArray(b.phones)?b.phones:[], emails=Array.isArray(b.emails)?b.emails:[];
+    const contacts=Array.isArray(b.contacts)?b.contacts.slice(0,20).map(x=>({name:String(x?.name||'').trim(),role:String(x?.role||'').trim(),phone:String(x?.phone||'').trim(),email:String(x?.email||'').trim()})).filter(x=>x.name||x.role||x.phone||x.email):[];
+    const phones=Array.isArray(b.phones)?b.phones:contacts.map(x=>x.phone).filter(Boolean), emails=Array.isArray(b.emails)?b.emails:contacts.map(x=>x.email).filter(Boolean);
     const categories=Array.isArray(b.categories)?b.categories.join(','):(b.categories||'');
     const existingCustomer=await env.DB.prepare('SELECT note_image_data FROM customers WHERE id=?').bind(Number(cm[1])).first();
     const imageData=b.note_image_data===undefined?String(existingCustomer?.note_image_data||''):validAgendaImage(b.note_image_data);if(imageData===null)return json({error:'Resim geçersiz veya çok büyük.'},400);
     await env.DB.prepare(`UPDATE customers SET
       company=?,contact_name=?,phone=?,email=?,region=?,sector=?,priority=?,stage=?,follow_date=?,
       invoice_title=?,tax_office=?,tax_number=?,invoice_address=?,
-      special_notes=?,machine_info=?,phones_json=?,emails_json=?,categories=?,note_image_data=?,
+      special_notes=?,machine_info=?,phones_json=?,emails_json=?,contacts_json=?,categories=?,note_image_data=?,
       updated_at=CURRENT_TIMESTAMP WHERE id=?`)
       .bind(
         b.company||'',b.contact_name||'',phones[0]||'',emails[0]||'',b.region||'',categories,
         b.priority||'NORMAL',b.stage||'Yeni Lead',b.follow_date||'',
         b.invoice_title||'',b.tax_office||'',b.tax_number||'',b.invoice_address||'',
-        b.special_notes||'',b.machine_info||'',JSON.stringify(phones),JSON.stringify(emails),categories,imageData,
+        b.special_notes||'',b.machine_info||'',JSON.stringify(phones),JSON.stringify(emails),JSON.stringify(contacts),categories,imageData,
         Number(cm[1])
       ).run();
     return json({ok:true});
