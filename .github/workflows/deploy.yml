@@ -54,6 +54,18 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
+      - name: Portfolio company click smoke
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 \
+            -D /tmp/portfolio-headers.txt \
+            -o /tmp/portfolio.html \
+            https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html
+          grep -qi '^x-crm-company-open: direct-inline-v1' /tmp/portfolio-headers.txt
+          grep -q 'PORTFÖY 06.10-B' /tmp/portfolio.html
+          grep -q 'crmOpenPortfolioCustomer' /tmp/portfolio.html
+          grep -q 'class="company crm-company-open"' /tmp/portfolio.html
+          echo 'portfolio company click production smoke OK'
+
       - name: Reminder diagnostics
         run: |
           curl --fail --silent --show-error --retry 5 --retry-delay 2 https://musteri-takip-crm.musteritakipcrm.workers.dev/api/push/health
