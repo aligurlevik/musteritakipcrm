@@ -5,7 +5,7 @@
 <title>CRM Müşteri Takip</title>
 <style>
 :root{--nav:#0f172a;--blue:#2563eb;--bg:#f3f4f6;--panel:#fff;--line:#dbe2ea;--muted:#64748b;--red:#dc2626;--amber:#d97706;--green:#059669}
-*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial;background:var(--bg);color:#111827}.app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}.side{background:var(--nav);color:white;padding:20px}.logo{font-size:20px;font-weight:800;margin-bottom:24px}.menu{display:grid;gap:8px}.menu button{border:0;background:transparent;color:#cbd5e1;padding:12px;border-radius:9px;text-align:left;cursor:pointer}.menu button.active,.menu button:hover{background:var(--blue);color:white}.customer-folder-group{display:grid;gap:0;margin:-4px 0 2px 10px;border-left:2px solid #334155;background:#111c31;border-radius:0 9px 9px 0;overflow:hidden}.customer-folder-group button{border-radius:0!important;padding:10px 12px!important;font-size:13px}.customer-folder-group button+button{border-top:1px solid #26344d}.main{padding:24px}.top{display:flex;justify-content:space-between;align-items:center}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:18px 0}.card{background:white;border:1px solid var(--line);border-radius:14px;padding:16px}.kpi b{font-size:28px;display:block}.kpi span{font-size:12px;color:var(--muted)}.section{display:none}.section.active{display:block}.table{overflow:auto;background:white;border:1px solid var(--line);border-radius:14px}table{width:100%;border-collapse:collapse;min-width:900px}th,td{padding:11px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:top}th{background:#eef2f7}.btn{border:0;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer}.primary{background:var(--blue);color:white}.green{background:var(--green);color:white}.red{background:var(--red);color:white}.toolbar{display:flex;justify-content:space-between;gap:10px;margin:14px 0;align-items:center;flex-wrap:wrap}.toolbar input{max-width:320px}.modal{display:none;position:fixed;inset:0;background:#0006;align-items:center;justify-content:center;z-index:30}.modal.open{display:flex}.box{width:min(760px,94vw);max-height:90vh;overflow:auto;background:white;border-radius:14px;padding:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}input,select,textarea{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px}.login{display:none;position:fixed;inset:0;background:var(--nav);align-items:center;justify-content:center;z-index:50}.login.show{display:flex}.loginbox{background:white;width:min(400px,92vw);padding:26px;border-radius:16px}.due{background:#fef3c7}.overdue{background:#fee2e2}.small{font-size:12px;color:var(--muted)}.filterbar{display:flex;gap:8px;flex-wrap:wrap}
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial;background:var(--bg);color:#111827}.app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}.side{background:var(--nav);color:white;padding:20px}.logo{font-size:20px;font-weight:800;margin-bottom:24px}.menu{display:grid;gap:8px}.menu button{border:0;background:transparent;color:#cbd5e1;padding:12px;border-radius:9px;text-align:left;cursor:pointer}.menu button.active,.menu button:hover{background:var(--blue);color:white}.customer-folder-group{display:grid;gap:0;margin:-4px 0 2px 10px;border-left:2px solid #334155;background:#111c31;border-radius:0 9px 9px 0;overflow:hidden}.customer-folder-group button{border-radius:0!important;padding:10px 12px!important;font-size:13px}.customer-folder-group button+button{border-top:1px solid #26344d}.main{padding:24px}.top{display:flex;justify-content:space-between;align-items:center}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:18px 0}.card{background:white;border:1px solid var(--line);border-radius:14px;padding:16px}.kpi b{font-size:28px;display:block}.kpi span{font-size:12px;color:var(--muted)}.section{display:none}.section.active{display:block}.portfolio-frame{display:block;width:100%;height:100vh;border:0;background:#f4f7fb}.portfolio-mode .main{padding:0!important}.portfolio-mode .top{display:none!important}.portfolio-mode #portfolio{height:100vh;overflow:hidden}.table{overflow:auto;background:white;border:1px solid var(--line);border-radius:14px}table{width:100%;border-collapse:collapse;min-width:900px}th,td{padding:11px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:top}th{background:#eef2f7}.btn{border:0;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer}.primary{background:var(--blue);color:white}.green{background:var(--green);color:white}.red{background:var(--red);color:white}.toolbar{display:flex;justify-content:space-between;gap:10px;margin:14px 0;align-items:center;flex-wrap:wrap}.toolbar input{max-width:320px}.modal{display:none;position:fixed;inset:0;background:#0006;align-items:center;justify-content:center;z-index:30}.modal.open{display:flex}.box{width:min(760px,94vw);max-height:90vh;overflow:auto;background:white;border-radius:14px;padding:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}input,select,textarea{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px}.login{display:none;position:fixed;inset:0;background:var(--nav);align-items:center;justify-content:center;z-index:50}.login.show{display:flex}.loginbox{background:white;width:min(400px,92vw);padding:26px;border-radius:16px}.due{background:#fef3c7}.overdue{background:#fee2e2}.small{font-size:12px;color:var(--muted)}.filterbar{display:flex;gap:8px;flex-wrap:wrap}
 .meeting-main-row td{vertical-align:middle;padding:6px 8px;line-height:1.15}.meeting-main-row .btn{padding:5px 8px;font-size:11px}.meeting-main-row+.meeting-detail-row td{padding:0!important}#meetings thead th{padding:7px 8px}.meeting-detail-row{display:none}.meeting-detail-row.open{display:table-row}.meeting-detail-row>td{padding:0!important;background:white!important;color:#111827!important}.meeting-detail-row .meeting-card-body{display:block;border-top:0}.meeting-time-edit{white-space:nowrap;background:#eaf0ff;color:#1e3a8a;border:1px solid #93c5fd}.meeting-time-edit.urgency-watch{background:#fffbea;color:#854d0e;border-color:#fde047}.meeting-time-edit.urgency-soon{background:#ffedb5;color:#78350f;border-color:#fbbf24}.meeting-time-edit.urgency-near{background:#ffc66d;color:#7c2d12;border-color:#f97316}.meeting-time-edit.urgency-today{background:#ef7b55;color:#3f0b00;border-color:#dc2626}.meeting-time-edit.urgency-overdue{background:#991b1b;color:white;border-color:#7f1d1d}.meeting-recent-notes{display:grid;gap:2px;min-width:200px;max-width:310px}.meeting-recent-note{padding:3px 5px;background:#f8fafc;border-left:3px solid var(--blue);border-radius:5px;font-size:11px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meeting-recent-note .small{display:inline;margin:0 5px 0 0;font-size:10px}.meeting-time-cell{white-space:nowrap;font-weight:800}.meeting-note-open{white-space:nowrap}
 .meeting-summary-button{width:100%;min-width:250px;border:1px solid #bfdbfe;border-radius:9px;background:#f8fafc;padding:5px 7px;cursor:pointer;text-align:left;color:#111827}.meeting-summary-button:hover{background:#dbeafe}.meeting-summary-button .meeting-open-label{display:block;margin-top:4px;color:#1d4ed8;font-size:11px;font-weight:900}
 .meeting-cards{display:grid;gap:12px}.meeting-customer-card{background:white;border:1px solid var(--line);border-radius:14px;overflow:hidden}.meeting-customer-card.urgency-watch{border-left:6px solid #facc15}.meeting-customer-card.urgency-soon{border-left:6px solid #f59e0b}.meeting-customer-card.urgency-near{border-left:6px solid #f97316}.meeting-customer-card.urgency-today{border-left:6px solid #ef4444}.meeting-customer-card.urgency-overdue{border-left:6px solid #991b1b}.meeting-card-head{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:14px 16px;background:#f8fafc}.meeting-card-contact{display:flex;gap:12px;flex-wrap:wrap;margin-top:5px}.meeting-card-contact span{display:inline-flex;align-items:center;gap:4px}.meeting-card-title{display:flex;align-items:flex-start;gap:10px;min-width:0}.meeting-card-title h4{margin:0;font-size:16px}.meeting-card-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.meeting-card-body{display:none;padding:14px 16px;border-top:1px solid var(--line);background:white}.meeting-card-body.open{display:block}.meeting-date-list{display:grid;gap:7px}.meeting-date-group{border:1px solid var(--line);border-radius:10px;overflow:hidden}.meeting-date-button{width:100%;display:flex;justify-content:space-between;align-items:center;border:0;background:#eaf0ff;color:#1e3a8a;padding:10px 12px;font-weight:900;cursor:pointer;text-align:left}.meeting-date-button:hover{background:#dbeafe}.meeting-date-detail{display:none;padding:10px;background:white}.meeting-date-detail.open{display:grid;gap:8px}.meeting-timeline{display:grid;gap:9px}.meeting-timeline-item{border-left:4px solid var(--blue);background:#f8fafc;border-radius:8px;padding:11px 12px}.meeting-participants{display:grid;gap:7px;margin:5px 0}.meeting-participant-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(160px,.8fr);gap:8px;align-items:end;padding:8px;background:#f8fafc;border:1px solid var(--line);border-radius:9px}.meeting-participant-row label{font-size:12px;font-weight:800}.meeting-participant-list{display:flex;gap:6px;flex-wrap:wrap;margin:7px 0}.meeting-participant-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:999px;background:#dbeafe;color:#1e3a8a;font-size:12px;font-weight:800}.meeting-participant-chip a{color:inherit;text-decoration:none}.meeting-timeline-note{white-space:pre-wrap;margin:6px 0}.meeting-timeline-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}@media(max-width:700px){.meeting-card-head{align-items:flex-start;flex-direction:column}.meeting-card-actions{justify-content:flex-start}}
@@ -140,7 +140,7 @@
 <div id="login" class="login show"><div class="loginbox"><h2>CRM Giriş</h2><label>Kullanıcı</label><select id="loginUser" style="margin:6px 0 10px"><option>Ali</option><option>Çağatay</option><option>Recep</option></select><input id="pw" type="password" autocomplete="current-password" placeholder="Şifre" onkeydown="if(event.key==='Enter')login()"><button class="btn primary" style="width:100%;margin-top:10px" onclick="login()">Giriş Yap</button><div id="loginErr" class="small" style="color:#b91c1c;margin-top:8px"></div></div></div>
 <div class="app">
 <aside class="side"><div class="logo">CRM Müşteri Takip</div><div class="menu">
-<button data-page="dash">Ana Ekran</button><button data-page="customers" data-result="">Müşteriler</button><div class="customer-folder-group"><button data-page="customers" data-result="Olumlu" data-title="Olumlu Müşteriler">📁 Olumlu</button><button data-page="customers" data-result="Olumsuz" data-title="Olumsuz Müşteriler">📁 Olumsuz</button></div><button data-page="meetings">Görüşmeler</button><button data-page="mails">Mailler</button><button class="active" data-page="graphicJobs">Grafik İşleri</button><button data-page="tracking">Takip</button><button data-page="reports">Raporlama</button><button data-page="agenda">Ajanda</button><button onclick="logout()">Çıkış</button>
+<button data-page="dash">Ana Ekran</button><button data-page="customers" data-result="">Müşteriler</button><button data-page="portfolio">Müşteri Portföyü</button><div class="customer-folder-group"><button data-page="customers" data-result="Olumlu" data-title="Olumlu Müşteriler">📁 Olumlu</button><button data-page="customers" data-result="Olumsuz" data-title="Olumsuz Müşteriler">📁 Olumsuz</button></div><button data-page="meetings">Görüşmeler</button><button data-page="mails">Mailler</button><button class="active" data-page="graphicJobs">Grafik İşleri</button><button data-page="tracking">Takip</button><button data-page="reports">Raporlama</button><button data-page="agenda">Ajanda</button><button onclick="logout()">Çıkış</button>
 </div></aside>
 <main class="main">
 <div class="top"><div><h1 id="title">Grafik İşleri</h1><div class="small" id="date"></div></div><div style="display:flex;gap:8px"><button id="passwordButton" class="btn" style="display:none;background:#ede9fe;color:#5b21b6" onclick="openPasswordModal()">🔐 Şifreleri Değiştir</button><button class="btn primary" onclick="openCustomer()">+ Yeni Müşteri</button></div></div>
@@ -168,6 +168,8 @@
 </div>
 <div class="table"><table><thead><tr><th>Öncelik</th><th>Firma</th><th>Kişi</th><th>Telefonlar</th><th>Mailler</th><th>Bölge</th><th>Kategori</th><th>Aşama</th><th>Sonuç</th><th>Takip</th><th>Aksiyon</th></tr></thead><tbody id="customerRows"></tbody></table></div>
 </section>
+
+<section id="portfolio" class="section"><iframe id="portfolioFrame" class="portfolio-frame" title="Müşteri Portföyü" data-src="/musteri-portfoyu.html?embedded=1"></iframe></section>
 
 <section id="meetings" class="section">
 <div class="toolbar">
@@ -268,10 +270,10 @@ function openPasswordModal(){$('passwordUser').value='Ali';$('newPassword').valu
 async function savePassword(){const user=$('passwordUser').value,password=$('newPassword').value,again=$('newPasswordAgain').value,error=$('passwordError');error.textContent='';if(password.length<8){error.textContent='Şifre en az 8 karakter olmalıdır.';return}if(password!==again){error.textContent='Yazdığınız iki şifre aynı değil.';return}try{await req('/api/password',{method:'POST',body:JSON.stringify({user,password})});$('newPassword').value='';$('newPasswordAgain').value='';closeM('passwordModal');showMsg(user+' kullanıcısının şifresi değiştirildi.')}catch(e){error.textContent=e.message}}
 async function login(){const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({user:$('loginUser').value,password:$('pw').value})});if(r.ok){const d=await r.json();$('pw').value='';$('loginErr').textContent='';$('login').classList.remove('show');applyAccess(d.role);loadAll()}else $('loginErr').textContent='Şifre hatalı.'}
 async function logout(){await fetch('/api/logout');location.reload()}
-const CRM_PAGE_CACHE_MS=30000;
+const CRM_PAGE_CACHE_MS=300000;
 const crmPageLoadedAt=new Map();
 const crmPageLoadPromises=new Map();
-const CRM_PAGES=new Set(['dash','customers','meetings','mails','graphicJobs','tracking','reports','agenda']);
+const CRM_PAGES=new Set(['dash','customers','portfolio','meetings','mails','graphicJobs','tracking','reports','agenda']);
 
 function requestedCrmPage(){
   const params=new URLSearchParams(location.search);
@@ -283,13 +285,14 @@ function requestedCrmPage(){
 
 function setCrmPageView(page,button=null){
   if(!CRM_PAGES.has(page))page='dash';
+  document.body.classList.toggle('portfolio-mode',page==='portfolio');
   document.querySelectorAll('.menu button').forEach(x=>x.classList.remove('active'));
   const targetButton=button||document.querySelector(`.menu button[data-page="${page}"]`);
   if(targetButton)targetButton.classList.add('active');
   document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
   $(page)?.classList.add('active');
   $('title').textContent=targetButton?.dataset.title||targetButton?.textContent||({
-    dash:'Ana Ekran',customers:'Müşteriler',meetings:'Görüşmeler',mails:'Mailler',
+    dash:'Ana Ekran',customers:'Müşteriler',portfolio:'Müşteri Portföyü',meetings:'Görüşmeler',mails:'Mailler',
     graphicJobs:'Grafik İşleri',tracking:'Takip',reports:'Raporlama',agenda:'Ajanda'
   })[page]||'CRM';
   const topCustomerButton=document.querySelector('.top .primary');
@@ -307,6 +310,10 @@ async function loadCrmPageData(page,{force=false}={}){
   const task=(async()=>{
     if(page==='dash')await loadDashboard();
     else if(page==='customers')await loadCustomers();
+    else if(page==='portfolio'){
+      const frame=$('portfolioFrame');
+      if(frame&&!frame.src)frame.src=frame.dataset.src;
+    }
     else if(page==='meetings')await loadMeetings();
     else if(page==='mails')await loadMails();
     else if(page==='agenda'){agendaView='month';$('agendaViewTitle').textContent='Aylık Yapılacaklar';$('agendaViewSubtitle').textContent='Bir güne basarak günlük ajandayı açın';$('agendaMonthControls').style.display='flex';$('agendaDayControls').style.display='none';await loadAgenda()}
@@ -320,7 +327,7 @@ async function loadCrmPageData(page,{force=false}={}){
   return task;
 }
 
-async function activateCrmPage(page,button=null,{force=false,updateUrl=true}={}){
+function activateCrmPage(page,button=null,{force=false,updateUrl=true}={}){
   let resultChanged=false;
   if(page==='customers'&&button){
     const nextResult=button.dataset.result||'';
@@ -335,7 +342,12 @@ async function activateCrmPage(page,button=null,{force=false,updateUrl=true}={})
     url.searchParams.delete('editCustomer');
     history.replaceState(null,'',url.pathname+'?'+url.searchParams.toString());
   }
-  try{await loadCrmPageData(page,{force})}catch(e){console.error('Sayfa verisi yüklenemedi:',page,e);showMsg(e.message||'Sayfa yüklenemedi.','err')}
+  requestAnimationFrame(()=>setTimeout(()=>{
+    loadCrmPageData(page,{force}).catch(e=>{
+      console.error('Sayfa verisi yüklenemedi:',page,e);
+      showMsg(e.message||'Sayfa yüklenemedi.','err');
+    });
+  },0));
 }
 
 document.querySelectorAll('.menu button[data-page]').forEach(b=>b.onclick=()=>activateCrmPage(b.dataset.page,b));
@@ -861,7 +873,12 @@ function openRequestedCustomerFromUrl(){
   modal.classList.add('crm-direct-customer');
   editCustomer(customerId);
 }
-let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole==='admin'){openRequestedCustomerFromUrl();setTimeout(()=>{pollMeetingReminders();pollAgendaReminders();checkLocalAgendaAlarms();checkAutomaticEndOfDayReport()},900)}});setInterval(checkAutomaticEndOfDayReport,60000);setInterval(()=>{if(currentAccessRole==='admin')checkLocalAgendaAlarms()},5000); setInterval(()=>{if(currentAccessRole!=='admin')return;const meetingsActive=$('meetings')?.classList.contains('active');if(meetingsActive)loadCrmPageData('meetings',{force:true}).catch(()=>{});pollMeetingReminders();pollAgendaReminders();const newDay=localDateKey();if(newDay!==activeCalendarDay){activeCalendarDay=newDay;agendaDate=new Date();agendaView='month';if($('agenda')?.classList.contains('active'))loadCrmPageData('agenda',{force:true}).catch(()=>{})}},60000);
+function prewarmPortfolioFrame(){
+  if(currentAccessRole!=='admin')return;
+  const frame=$('portfolioFrame');
+  if(frame&&!frame.src)frame.src=frame.dataset.src;
+}
+let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole==='admin'){openRequestedCustomerFromUrl();setTimeout(()=>{pollMeetingReminders();pollAgendaReminders();checkLocalAgendaAlarms();checkAutomaticEndOfDayReport()},900);if('requestIdleCallback' in window)requestIdleCallback(prewarmPortfolioFrame,{timeout:2500});else setTimeout(prewarmPortfolioFrame,1800)}});setInterval(checkAutomaticEndOfDayReport,60000);setInterval(()=>{if(currentAccessRole==='admin')checkLocalAgendaAlarms()},5000); setInterval(()=>{if(currentAccessRole!=='admin')return;const meetingsActive=$('meetings')?.classList.contains('active');if(meetingsActive)loadCrmPageData('meetings',{force:true}).catch(()=>{});pollMeetingReminders();pollAgendaReminders();const newDay=localDateKey();if(newDay!==activeCalendarDay){activeCalendarDay=newDay;agendaDate=new Date();agendaView='month';if($('agenda')?.classList.contains('active'))loadCrmPageData('agenda',{force:true}).catch(()=>{})}},60000);
 </script><!-- deployment-refresh: 2026-08-28-multi-participants -->
 <!-- deployment-refresh: tracking-two-hour-warning -->
 </body></html>
