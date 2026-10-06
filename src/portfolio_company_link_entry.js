@@ -35,7 +35,7 @@ const COMPANY_OPEN_JS=
 "})();"+
 '</script>';
 
-function patchPortfolioHtml(html){
+export function patchPortfolioHtml(html){
   // Önceki firma tıklama/tam ekran katmanlarını final HTML'den tamamen çıkar.
   html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-detail\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
   html=html.replace(/<script\s+[^>]*src=["']\/portfolio-fullscreen-stable\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
