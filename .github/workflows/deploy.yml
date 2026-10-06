@@ -64,7 +64,7 @@ jobs:
               -o /tmp/portfolio.html \
               "https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html?smoke=$attempt"
 
-            if grep -Fq 'PORTFOY RICH V14' /tmp/portfolio.html \
+            if grep -Fq 'PORTFOY RICH V15' /tmp/portfolio.html \
               && grep -Fq 'Günlük Değerlendirme' /tmp/portfolio.html \
               && grep -Fq '<th>Mail</th>' /tmp/portfolio.html \
               && grep -Fq '<th>Son Görüşme</th>' /tmp/portfolio.html \
@@ -115,12 +115,17 @@ jobs:
           grep -Fq "if(name!=='general')ensureSelectedHistory()" /tmp/portfolio.html || (echo 'lazy tab history trigger missing'; exit 1)
           grep -Fq 'function refreshPortfolioDataSilently()' /tmp/portfolio.html || (echo 'silent refresh missing'; exit 1)
           grep -Fq 'const cached=readCustomerCache()' /tmp/portfolio.html || (echo 'cache-first loader missing'; exit 1)
+          grep -Fq 'Yeni Görüşme / Not Ekle' /tmp/portfolio.html || (echo 'meeting note composer missing'; exit 1)
+          grep -Fq 'id="meetingNoteDate"' /tmp/portfolio.html || (echo 'meeting note date missing'; exit 1)
+          grep -Fq 'function saveMeetingNote()' /tmp/portfolio.html || (echo 'meeting note save function missing'; exit 1)
+          grep -Fq 'note-date' /tmp/portfolio.html || (echo 'dated normal note renderer missing'; exit 1)
+          echo 'dated notes composer: OK'
           echo 'instant interaction mode: OK'
           echo 'performance guards: OK'
           echo 'multiple contact people: OK'
           echo 'rightmost mail tab: OK'
           echo 'orders tab removed: OK'
-          echo 'portfolio page V14: OK'
+          echo 'portfolio page V15: OK'
           echo 'portfolio bootstrap route: OK'
           curl --fail --silent --show-error \
             'https://musteri-takip-crm.musteritakipcrm.workers.dev/api/portfolio-health' \
