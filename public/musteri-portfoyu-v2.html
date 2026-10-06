@@ -215,10 +215,26 @@ body.customer-open .detail-close{display:inline-flex!important}
 body.customer-open .detail-body{max-width:1500px;margin:0 auto}
 body.customer-open .tabs{grid-template-columns:repeat(5,minmax(120px,1fr))}
 @media(max-width:720px){body.customer-open .detail{min-height:calc(100vh - 20px)!important}}
+
+body.crm-embedded .app{display:block!important}
+body.crm-embedded .side{display:none!important}
+body.crm-embedded .main{padding:10px!important}
+body.crm-embedded #buildMarker{bottom:6px!important;right:6px!important}
 </style>
 <link rel="prefetch" href="/">
 </head>
-<body><div id="buildMarker">PORTFOY RICH V18</div>
+<body><script>
+(function(){
+  const params=new URLSearchParams(location.search);
+  const embedded=params.get('embedded')==='1'&&window.parent!==window;
+  if(embedded){
+    document.documentElement.classList.add('crm-embedded-root');
+    window.addEventListener('DOMContentLoaded',()=>document.body.classList.add('crm-embedded'));
+  }else if(window.top===window){
+    location.replace('/?page=portfolio');
+  }
+})();
+</script><div id="buildMarker">PORTFOY RICH V19</div>
 <div class="app">
 <aside class="side">
   <div class="brand"><img src="/notes-logo-ag-v1.webp" alt="AG"><span>CRM Müşteri<br>Takip</span></div>
@@ -240,7 +256,7 @@ body.customer-open .tabs{grid-template-columns:repeat(5,minmax(120px,1fr))}
 <main class="main">
   <div class="head">
     <div><h1>Müşteri Portföyü</h1><div class="sub">Şehir özelinde müşteri analizleri, görüşme notları ve satış potansiyeli</div></div>
-    <div class="head-actions"><span id="rangeBox" class="datebox"></span><button class="btn primary" onclick="loadAll()">↻ Yenile</button><a class="btn primary" href="/?page=customers">＋ Yeni Müşteri</a></div>
+    <div class="head-actions"><span id="rangeBox" class="datebox"></span><button class="btn primary" onclick="loadAll()">↻ Yenile</button><a class="btn primary" href="/?page=customers" onclick="if(window.parent!==window&&typeof window.parent.activateCrmPage==='function'){event.preventDefault();window.parent.activateCrmPage('customers')}">＋ Yeni Müşteri</a></div>
   </div>
 
   <div class="filter-grid">
