@@ -29,7 +29,7 @@ body.customer-open .tabs{grid-template-columns:repeat(5,minmax(120px,1fr))}
 @media(max-width:720px){body.customer-open .detail{min-height:calc(100vh - 20px)!important}}
 </style>
 </head>
-<body><div id="buildMarker">PORTFOY RICH V5</div>
+<body><div id="buildMarker">PORTFOY RICH V6</div>
 <div class="app">
 <aside class="side">
   <div class="brand"><img src="/notes-logo-ag-v1.webp" alt="AG"><span>CRM Müşteri<br>Takip</span></div>
@@ -192,13 +192,61 @@ function withTimeout(promise,ms,label){
     new Promise((_,reject)=>setTimeout(()=>reject(new Error(label+' zaman aşımına uğradı')),ms))
   ]);
 }
+const PORTFOLIO_CACHE_KEY='crm_portfolio_customers_v1';
+
+function readCustomerCache(){
+  try{
+    const rows=JSON.parse(localStorage.getItem(PORTFOLIO_CACHE_KEY)||'[]');
+    return Array.isArray(rows)?rows:[];
+  }catch{
+    return [];
+  }
+}
+
+function writeCustomerCache(rows){
+  try{
+    localStorage.setItem(PORTFOLIO_CACHE_KEY,JSON.stringify(rows||[]));
+  }catch{}
+}
+
+async function loadMeetingData(){
+  try{
+    const data=await withTimeout(
+      api('/api/portfolio-meetings?ts='+Date.now()),
+      5000,
+      'Görüşme verisi'
+    );
+    meetings=normalizeRows(data,'meetings');
+    counts();
+    render();
+    if(selected){
+      loadSelected();
+      renderAnalysis();
+    }
+  }catch(e){
+    console.warn('Görüşmeler arka planda yüklenemedi; müşteri listesi korunuyor.',e);
+  }
+}
+
 async function loadAll(reselect){
   $('sideReminders').textContent='Müşteriler yükleniyor...';
 
+  let freshCustomers=[];
   try{
-    const bundle=await withTimeout(api('/api/portfolio-bootstrap'),8000,'Portföy verisi');
-    customers=normalizeRows(bundle,'customers').filter(c=>c&&c.record_status!=='Silindi');
-    meetings=normalizeRows(bundle,'meetings');
+    const bundle=await withTimeout(
+      api('/api/portfolio-bootstrap?ts='+Date.now()),
+      5000,
+      'Portföy verisi'
+    );
+    freshCustomers=normalizeRows(bundle,'customers').filter(c=>c&&c.record_status!=='Silindi');
+
+    if(!freshCustomers.length){
+      throw new Error('Müşteri kaydı dönmedi');
+    }
+
+    customers=freshCustomers;
+    meetings=[];
+    writeCustomerCache(customers);
 
     fillFilters();
     counts();
@@ -206,18 +254,33 @@ async function loadAll(reselect){
 
     if(reselect)await selectCustomer(reselect);
 
-    if(!customers.length){
-      $('sideReminders').innerHTML='<span style="color:#fecaca">Portföy API çalıştı ama müşteri kaydı dönmedi.</span>';
-    }
+    // Liste ekrana geldikten sonra görüşmeleri ayrı yükle.
+    loadMeetingData();
+    return;
   }catch(e){
-    console.error('Portföy yüklenemedi',e);
-    customers=[];
+    console.error('Canlı portföy verisi yüklenemedi',e);
+  }
+
+  const cached=readCustomerCache().filter(c=>c&&c.record_status!=='Silindi');
+  if(cached.length){
+    customers=cached;
     meetings=[];
     fillFilters();
     counts();
     render();
-    $('sideReminders').innerHTML='<span style="color:#fecaca">Portföy verisi alınamadı.<br>'+esc(e.message||e)+'</span>';
+    $('sideReminders').innerHTML='<span style="color:#fde68a">Geçici bağlantı sorunu var.<br>Son başarılı müşteri listesi gösteriliyor.</span>';
+    if(reselect)await selectCustomer(reselect);
+    loadMeetingData();
+    return;
   }
+
+  customers=[];
+  meetings=[];
+  fillFilters();
+  counts();
+  render();
+  $('sideReminders').innerHTML='<span style="color:#fecaca">Portföy verisi alınamadı.<br>Bağlantı yeniden denenecek.</span>';
+  setTimeout(()=>loadAll(reselect),3000);
 }
 monthRange();
 (function(){
