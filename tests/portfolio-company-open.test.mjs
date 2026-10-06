@@ -20,7 +20,7 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   assert.match(wrapper, /x-crm-portfolio-api/);
 
   for (const source of [embedded,page]) {
-    assert.match(source, /PORTFOY RICH V15/);
+    assert.match(source, /PORTFOY RICH V16/);
     assert.match(source, /Günlük Değerlendirme/);
     assert.match(source, /<th>Mail<\/th>/);
     assert.match(source, /<th>Son Görüşme<\/th>/);
@@ -77,6 +77,7 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   assert.match(page, /data-tab="mails"/);
   assert.match(page, /id="tabMails"/);
   assert.match(page, /id="mailHistory"/);
+  assert.doesNotMatch(page, /<th>Mail<\/th>/);
   assert.match(page, /id="meetingNoteDate"/);
   assert.match(page, /id="meetingNoteText"/);
   assert.match(page, /grid-template-columns:repeat\(5,minmax\(120px,1fr\)\)/);
