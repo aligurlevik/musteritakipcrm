@@ -118,6 +118,20 @@ export default{
       return cleanResponse();
     }
 
+    if(request.method==='GET'&&url.pathname==='/api/portfolio-health'){
+      try{
+        await restorePortfolioCustomers(env);
+        const row=await env.DB.prepare(
+          "SELECT COUNT(*) AS n FROM customers WHERE COALESCE(record_status,'Aktif')<>'Silindi'"
+        ).first();
+        const count=Number(row?.n||0);
+        return json({ok:count>=8,ready:count>=8,version:'v5-direct'});
+      }catch(error){
+        console.error('portfolio health failed',error?.stack||error);
+        return json({ok:false,ready:false,version:'v5-direct'},500);
+      }
+    }
+
     if(request.method==='GET'&&url.pathname==='/api/portfolio-bootstrap'){
       const role=await sessionRole(request,env);
       if(role!=='admin')return json({error:'Yetkisiz'},401);
