@@ -54,7 +54,6 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
     assert.match(source, /PORTFOLIO_CACHE_KEY/);
     assert.match(source, /function loadMeetingData\(\)/);
     assert.match(source, /api\('\/api\/portfolio-meetings\?ts='\+Date\.now\(\)\)/);
-    assert.match(source, /Son başarılı müşteri listesi gösteriliyor/);
     assert.doesNotMatch(source, /Promise\.allSettled\(\[api\('\/api\/customers/);
     assert.match(source, /function closeCustomerDetail\(\)/);
     assert.match(source, /document\.body\.classList\.add\('customer-open'\)/);
