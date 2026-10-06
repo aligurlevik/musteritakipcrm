@@ -14,6 +14,8 @@ test('CRM modülleri ağır toplu yükleme yerine sayfa bazlı lazy yüklenir', 
   assert.match(page,/loadCrmPageData\('meetings',\{force:true\}\)/);
   assert.match(page,/\},60000\);/);
   assert.match(page,/rel="prefetch" href="\/musteri-portfoyu\.html"/);
+  assert.match(page,/if\(\$\('meetings'\)\?\.classList\.contains\('active'\)\)renderMeetings\(\)/);
+  assert.match(page,/setTimeout\(\(\)=>\{pollMeetingReminders\(\);pollAgendaReminders\(\);checkLocalAgendaAlarms\(\);checkAutomaticEndOfDayReport\(\)\},900\)/);
 
   const loadAllStart=page.indexOf('async function loadAll(){');
   const loadAllEnd=page.indexOf('function openM(',loadAllStart);
@@ -28,6 +30,8 @@ test('CRM modülleri ağır toplu yükleme yerine sayfa bazlı lazy yüklenir', 
   const inlineScript=page.slice(start+'<script>'.length,end);
   assert.doesNotThrow(()=>new Function(inlineScript));
 });
+
+// hidden meetings DOM is not rebuilt while the Mail module is active.
 
 test('Portföy ekranı ana CRM kabuğunu önceden yükler', async () => {
   const page=await readFile(new URL('../public/musteri-portfoyu-v2.html',import.meta.url),'utf8');
