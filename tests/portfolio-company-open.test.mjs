@@ -15,7 +15,7 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   assert.match(recovery, /async function directCustomers\(env\)\{\n  await restorePortfolioCustomers\(env\);/);
 
   for (const source of [embedded,page]) {
-    assert.match(source, /PORTFOY RICH V3/);
+    assert.match(source, /PORTFOY RICH V4/);
     assert.match(source, /Günlük Değerlendirme/);
     assert.match(source, /<th>Mail<\/th>/);
     assert.match(source, /<th>Son Görüşme<\/th>/);
@@ -24,6 +24,9 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
     assert.match(source, /Siparişler/);
     assert.match(source, /Müşteri Analizi/);
     assert.match(source, /company-open-btn/);
+    assert.match(source, /function normalizeRows\(data,key\)/);
+    assert.match(source, /Müşteriler yüklenemedi/);
+    assert.doesNotMatch(source, /Promise\.allSettled\(\[api\('\/api\/customers/);
     assert.match(source, /function closeCustomerDetail\(\)/);
     assert.match(source, /document\.body\.classList\.add\('customer-open'\)/);
     assert.doesNotMatch(source, /portfolio-fullscreen-detail\.js/);
