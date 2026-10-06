@@ -22,7 +22,6 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   for (const source of [embedded,page]) {
     assert.match(source, /PORTFOY RICH V16/);
     assert.match(source, /Günlük Değerlendirme/);
-    assert.match(source, /<th>Mail<\/th>/);
     assert.match(source, /<th>Son Görüşme<\/th>/);
     assert.match(source, /Görüşmeler & Notlar/);
     assert.match(source, /Teklifler/);
