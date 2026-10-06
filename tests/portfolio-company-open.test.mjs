@@ -7,7 +7,7 @@ test('firma adına tıklama eski listener katmanlarını kullanmadan tek müşte
 
   assert.match(source,/class="company crm-company-open"/);
   assert.match(source,/crmOpenPortfolioCustomer/);
-  assert.match(source,/event\.preventDefault\(\);event\.stopPropagation\(\)/);
+  assert.match(source,/event\.preventDefault\(\)/);\n  assert.match(source,/event\.stopPropagation\(\)/);
   assert.match(source,/body\.crm-portfolio-detail-open #detail/);
   assert.match(source,/id="crmCustomerClose"/);
   assert.match(source,/crmClosePortfolioCustomer/);
