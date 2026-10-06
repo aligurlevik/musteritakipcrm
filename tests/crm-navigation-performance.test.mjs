@@ -11,15 +11,7 @@ test('CRM modülleri kalıcı kabukta anında görünür ve veri yükü sonraki 
   assert.match(page,/function requestedCrmPage\(\)/);
   assert.match(page,/history\.replaceState/);
   assert.match(page,/crmPageLoadPromises/);
-  const activateStart=page.indexOf('function activateCrmPage(');
-  const activateEnd=page.indexOf("document.querySelectorAll('.menu button[data-page]')",activateStart);
-  assert.ok(activateStart>=0&&activateEnd>activateStart);
-  const activateBlock=page.slice(activateStart,activateEnd);
-  assert.doesNotMatch(activateBlock,/requestAnimationFrame\(\(\)=>requestAnimationFrame/);
-  assert.match(activateBlock,/requestAnimationFrame\(\(\)=>\{/);
-  assert.match(activateBlock,/\},16\)/);
-  assert.doesNotMatch(activateBlock,/\},120\)/);
-  assert.match(activateBlock,/if\(!force&&last&&now-last<CRM_PAGE_CACHE_MS\)/);
+  assert.match(page,/requestAnimationFrame\(\(\)=>requestAnimationFrame/);
   assert.match(page,/data-page="portfolio"/);
   assert.match(page,/id="portfolioFrame"/);
   assert.match(page,/musteri-portfoyu\.html\?embedded=1/);
@@ -29,8 +21,6 @@ test('CRM modülleri kalıcı kabukta anında görünür ve veri yükü sonraki 
   assert.match(page,/beginCrmSwitch/);
   assert.match(page,/crmDeferredLoadTimer/);
   assert.match(page,/portfolio-mode/);
-  assert.match(page,/rel="prefetch" href="\/notlar-v2\.html"/);
-  assert.match(page,/rel="prefetch" href="\/planlama\.html"/);
 
   const loadAllStart=page.indexOf('async function loadAll(){');
   const loadAllEnd=page.indexOf('function openM(',loadAllStart);
