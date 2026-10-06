@@ -53,6 +53,7 @@ th,td{font-size:12.5px!important}
 .pager{font-size:12px!important}
 
 
+/* V14: Instant mod - müşteri kartı anında açılır, ağır geçmiş verisi sekmede yüklenir. */
 /* V13: Performans - yetkili detayları yalnızca tıklanınca DOM'a eklenir. */
 .contact-card{contain:layout paint style}
 .contacts-list{content-visibility:auto}
@@ -180,7 +181,7 @@ body.customer-open .tabs{grid-template-columns:repeat(5,minmax(120px,1fr))}
 @media(max-width:720px){body.customer-open .detail{min-height:calc(100vh - 20px)!important}}
 </style>
 </head>
-<body><div id="buildMarker">PORTFOY RICH V13</div>
+<body><div id="buildMarker">PORTFOY RICH V14</div>
 <div class="app">
 <aside class="side">
   <div class="brand"><img src="/notes-logo-ag-v1.webp" alt="AG"><span>CRM Müşteri<br>Takip</span></div>
@@ -335,7 +336,7 @@ body.customer-open .tabs{grid-template-columns:repeat(5,minmax(120px,1fr))}
 </main>
 </div>
 <script>
-const $=id=>document.getElementById(id);let customers=[],meetings=[],selected=null,selectedHistory=null,notes=[],contacts=[],visibleRows=[],openContactIndex=-1,portfolioLoadInFlight=false,meetingLoadInFlight=false,portfolioRetryTimer=null;
+const $=id=>document.getElementById(id);let customers=[],meetings=[],selected=null,selectedHistory=null,notes=[],contacts=[],visibleRows=[],openContactIndex=-1,portfolioLoadInFlight=false,meetingLoadInFlight=false,historyLoadInFlight=false,historyLoadedId=0,meetingDelayTimer=null;
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
 async function api(url,opt={}){const r=await fetch(url,{credentials:'same-origin',headers:{'content-type':'application/json',...(opt.headers||{})},...opt});if(r.status===401){location.href='/';throw new Error('Oturum gerekli')}let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||'İşlem başarısız');return d}
@@ -450,24 +451,45 @@ function loadAnalysisFields(){
 }
 function addNote(){const v=$('newNote').value.trim();if(!v)return;notes.push({done:false,text:v});$('newNote').value='';renderNotes()}
 function toggleNote(i,v){notes[i].done=v;renderNotes()}function removeNote(i){notes.splice(i,1);renderNotes()}
-async function selectCustomer(id){
+function selectCustomer(id){
   selected=customers.find(c=>Number(c.id)===Number(id));
   if(!selected)return;
   selectedHistory={meetings:[],offers:[],mails:[]};
+  historyLoadedId=0;
   loadSelected();
-  render();
   document.body.classList.add('customer-open');
   window.scrollTo({top:0,behavior:'instant'});
+}
+async function ensureSelectedHistory(){
+  if(!selected)return;
+  const id=Number(selected.id);
+  if(historyLoadedId===id||historyLoadInFlight)return;
+  historyLoadInFlight=true;
+  const meetingBox=$('meetingHistory'),offerBox=$('offerHistory'),mailBox=$('mailHistory');
+  if(meetingBox)meetingBox.innerHTML='<div class="history-item">Yükleniyor...</div>';
+  if(offerBox)offerBox.innerHTML='<div class="history-item">Yükleniyor...</div>';
+  if(mailBox)mailBox.innerHTML='<div class="history-item">Yükleniyor...</div>';
   try{
-    selectedHistory=await api('/api/customers/'+id+'/history');
-    if(selected&&Number(selected.id)===Number(id)){renderHistory();renderAnalysis()}
-  }catch(e){console.warn('Müşteri geçmişi yüklenemedi',e)}
+    const data=await withTimeout(api('/api/customers/'+id+'/history?ts='+Date.now()),5000,'Müşteri geçmişi');
+    if(!selected||Number(selected.id)!==id)return;
+    selectedHistory=data||{meetings:[],offers:[],mails:[]};
+    historyLoadedId=id;
+    renderHistory();
+    renderAnalysis();
+  }catch(e){
+    console.warn('Müşteri geçmişi yüklenemedi',e);
+    if(meetingBox)meetingBox.innerHTML='<div class="history-item">Geçmiş şu an alınamadı. Sekmeye tekrar basarak yeniden deneyin.</div>';
+    if(offerBox)offerBox.innerHTML='<div class="history-item">Geçmiş şu an alınamadı.</div>';
+    if(mailBox)mailBox.innerHTML='<div class="history-item">Mail geçmişi şu an alınamadı.</div>';
+  }finally{
+    historyLoadInFlight=false;
+  }
 }
 function closeCustomerDetail(){
   document.body.classList.remove('customer-open');
   window.scrollTo({top:0,behavior:'instant'});
 }
-function loadSelected(){if(!selected)return;$('detailEmpty').classList.add('hidden');$('detailContent').classList.remove('hidden');$('dCompany').textContent=selected.company;$('dContact').value=selected.contact_name||'';$('dPhone').value=selected.phone||parsed(selected.phones_json)[0]||'';$('dEmail').value=selected.email||parsed(selected.emails_json)[0]||'';$('dRegion').value=selected.region||'';$('dCategories').value=selected.categories||selected.sector||'';$('dPriority').value=selected.priority||'NORMAL';$('dResultSelect').value=resultOf(selected);$('dMachine').value=selected.machine_info||'';$('dFollow').value=selected.follow_date||'';$('dLastMeeting').textContent=(lastMeeting(selected)?.meeting_date||'—').slice(0,10);$('dResultLabel').textContent=resultLabel(selected);$('dFollowLabel').textContent=selected.follow_date||'—';$('dPotential').textContent=priorityLabel(selected);contacts=customerContacts(selected);openContactIndex=-1;renderContacts();syncPrimaryFromContacts();notes=parseNotes(selected.special_notes);renderNotes();loadAnalysisFields();$('overdueAlert').classList.toggle('show',isOverdue(selected));renderHistory();renderAnalysis()}
+function loadSelected(){if(!selected)return;$('detailEmpty').classList.add('hidden');$('detailContent').classList.remove('hidden');$('dCompany').textContent=selected.company;$('dContact').value=selected.contact_name||'';$('dPhone').value=selected.phone||parsed(selected.phones_json)[0]||'';$('dEmail').value=selected.email||parsed(selected.emails_json)[0]||'';$('dRegion').value=selected.region||'';$('dCategories').value=selected.categories||selected.sector||'';$('dPriority').value=selected.priority||'NORMAL';$('dResultSelect').value=resultOf(selected);$('dMachine').value=selected.machine_info||'';$('dFollow').value=selected.follow_date||'';$('dLastMeeting').textContent=(lastMeeting(selected)?.meeting_date||'—').slice(0,10);$('dResultLabel').textContent=resultLabel(selected);$('dFollowLabel').textContent=selected.follow_date||'—';$('dPotential').textContent=priorityLabel(selected);contacts=customerContacts(selected);openContactIndex=-1;renderContacts();syncPrimaryFromContacts();notes=parseNotes(selected.special_notes);renderNotes();loadAnalysisFields();$('overdueAlert').classList.toggle('show',isOverdue(selected));const mb=$('meetingHistory'),ob=$('offerHistory'),mailb=$('mailHistory');if(mb)mb.innerHTML='<div class="history-item">Sekme açıldığında yüklenecek.</div>';if(ob)ob.innerHTML='<div class="history-item">Sekme açıldığında yüklenecek.</div>';if(mailb)mailb.innerHTML='<div class="history-item">Sekme açıldığında yüklenecek.</div>';renderAnalysis()}
 function renderHistory(){const h=selectedHistory||{meetings:[],offers:[],mails:[]};$('meetingHistory').innerHTML=h.meetings?.length?h.meetings.slice().reverse().map(m=>`<div class="history-item"><b>${esc((m.meeting_date||m.created_at||'').slice(0,10))}</b> · ${esc(m.result||'Beklemede')}<div style="margin-top:4px">${esc(m.note||'Not yok')}</div></div>`).join(''):'<div class="history-item">Görüşme kaydı yok.</div>';$('offerHistory').innerHTML=h.offers?.length?h.offers.map(o=>`<div class="history-item"><b>${esc(o.offer_no||'Teklif')}</b> · ${esc(o.status||'')} · ${Number(o.amount||0).toLocaleString('tr-TR')} ${esc(o.currency||'TRY')}<div style="margin-top:4px">${esc(o.subject||o.note||'')}</div></div>`).join(''):'<div class="history-item">Teklif kaydı yok.</div>';const mails=Array.isArray(h.mails)?h.mails:[];$('mailHistory').innerHTML=mails.length?mails.map(mail=>{const raw=String(mail.direction||'').toLocaleLowerCase('tr');const incoming=raw.includes('gelen')||raw.includes('in');const dir=incoming?'Gelen':'Giden';const cls=incoming?'incoming':'outgoing';return `<div class="mail-item ${cls}"><div class="mail-head"><div class="mail-subject">${esc(mail.subject||'(Konu yok)')}</div><span class="mail-dir ${cls}">${dir}</span></div><div class="mail-meta">${esc((mail.mail_date||mail.created_at||'').slice(0,16))} · ${esc(mail.email||'')}</div><div class="mail-summary">${esc(mail.summary||'İçerik özeti yok.')}</div></div>`}).join(''):'<div class="history-item">Bu müşteriye ait mail kaydı yok.</div>'}
 function renderAnalysis(){if(!selected)return;const lm=lastMeeting(selected),offerCount=selectedHistory?.offers?.length||0,meetingCount=selectedHistory?.meetings?.length||0;let lines=[];lines.push(`<b>${esc(selected.company)}</b> için ${meetingCount} görüşme ve ${offerCount} teklif kaydı var.`);lines.push(`Potansiyel: <b>${priorityLabel(selected)}</b>. Sonuç: <b>${resultLabel(selected)}</b>.`);if(isOverdue(selected))lines.push(`<span style="color:#c51e34"><b>Takip süresi geçmiş.</b> Öncelikli işlem gerekiyor.</span>`);else if(selected.follow_date)lines.push(`Sonraki takip: <b>${esc(selected.follow_date)}</b>.`);if(lm?.note)lines.push(`Son görüşme notu: ${esc(String(lm.note).slice(0,180))}`);$('analysisBox').innerHTML=lines.join('<br>')}
 async function saveCustomerAnalysis(){
@@ -483,9 +505,33 @@ async function saveCustomerAnalysis(){
   }
 }
 function focusEdit(){$('dContact').focus()}
-async function saveCustomer(){if(!selected)return;const desired=$('dResultSelect').value;const cleanContacts=contacts.map(x=>({name:String(x.name||'').trim(),role:String(x.role||'').trim(),phone:String(x.phone||'').trim(),email:String(x.email||'').trim()})).filter(x=>x.name||x.role||x.phone||x.email);if(!cleanContacts.length&&($('dContact').value.trim()||$('dPhone').value.trim()||$('dEmail').value.trim()))cleanContacts.push({name:$('dContact').value.trim(),role:'',phone:$('dPhone').value.trim(),email:$('dEmail').value.trim()});const phones=cleanContacts.map(x=>x.phone).filter(Boolean),emails=cleanContacts.map(x=>x.email).filter(Boolean);let stage=selected.stage||'Yeni Lead';if(desired==='waiting')stage='Beklemede';else if(desired==='open'&&['Kazanıldı','Kaybedildi','Beklemede'].includes(stage))stage='İlk Görüşme';const primary=cleanContacts[0]||{name:$('dContact').value.trim(),phone:$('dPhone').value.trim(),email:$('dEmail').value.trim()};const payload={company:selected.company,contact_name:primary.name||'',phones,emails,contacts:cleanContacts,region:$('dRegion').value.trim(),categories:$('dCategories').value.split(',').map(x=>x.trim()).filter(Boolean),priority:$('dPriority').value,stage,follow_date:$('dFollow').value,invoice_title:selected.invoice_title||'',tax_office:selected.tax_office||'',tax_number:selected.tax_number||'',invoice_address:selected.invoice_address||'',special_notes:notesText(),machine_info:$('dMachine').value.trim()};await api('/api/customers/'+selected.id,{method:'PUT',body:JSON.stringify(payload)});if(desired==='positive'||desired==='negative')await api('/api/customers/'+selected.id+'/result',{method:'PUT',body:JSON.stringify({result:desired==='positive'?'Olumlu':'Olumsuz'})});await loadAll(selected.id)}
-async function createReminder(){if(!selected)return;const date=$('dFollow').value,time=$('dFollowTime').value||'10:00';if(!date){alert('Önce sonraki işlem tarihini seçin.');return}const note=$('dReminderNote').value.trim()||selected.company+' takip';await api('/api/meetings',{method:'POST',body:JSON.stringify({customer_id:selected.id,meeting_date:today(),note:'Takip hatırlatması oluşturuldu: '+note,next_follow_date:date,remind_at:date+'T'+time,remind_note:note,result:'Beklemede'})});await loadAll(selected.id)}
-function switchTab(name){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));document.querySelectorAll('.tabpane').forEach(x=>x.classList.add('hidden'));$('tab'+name[0].toUpperCase()+name.slice(1)).classList.remove('hidden')}
+async function saveCustomer(){
+  if(!selected)return;
+  const desired=$('dResultSelect').value;
+  const cleanContacts=contacts.map(x=>({name:String(x.name||'').trim(),role:String(x.role||'').trim(),phone:String(x.phone||'').trim(),email:String(x.email||'').trim()})).filter(x=>x.name||x.role||x.phone||x.email);
+  if(!cleanContacts.length&&($('dContact').value.trim()||$('dPhone').value.trim()||$('dEmail').value.trim()))cleanContacts.push({name:$('dContact').value.trim(),role:'',phone:$('dPhone').value.trim(),email:$('dEmail').value.trim()});
+  const phones=cleanContacts.map(x=>x.phone).filter(Boolean),emails=cleanContacts.map(x=>x.email).filter(Boolean);
+  let stage=selected.stage||'Yeni Lead';
+  if(desired==='waiting')stage='Beklemede';
+  else if(desired==='open'&&['Kazanıldı','Kaybedildi','Beklemede'].includes(stage))stage='İlk Görüşme';
+  const primary=cleanContacts[0]||{name:$('dContact').value.trim(),phone:$('dPhone').value.trim(),email:$('dEmail').value.trim()};
+  const payload={company:selected.company,contact_name:primary.name||'',phones,emails,contacts:cleanContacts,region:$('dRegion').value.trim(),categories:$('dCategories').value.split(',').map(x=>x.trim()).filter(Boolean),priority:$('dPriority').value,stage,follow_date:$('dFollow').value,invoice_title:selected.invoice_title||'',tax_office:selected.tax_office||'',tax_number:selected.tax_number||'',invoice_address:selected.invoice_address||'',special_notes:notesText(),machine_info:$('dMachine').value.trim()};
+
+  await api('/api/customers/'+selected.id,{method:'PUT',body:JSON.stringify(payload)});
+  if(desired==='positive'||desired==='negative')await api('/api/customers/'+selected.id+'/result',{method:'PUT',body:JSON.stringify({result:desired==='positive'?'Olumlu':'Olumsuz'})});
+
+  selected={...selected,...payload,phone:phones[0]||'',email:emails[0]||'',phones_json:JSON.stringify(phones),emails_json:JSON.stringify(emails),contacts_json:JSON.stringify(cleanContacts)};
+  if(desired==='positive')selected.stage='Kazanıldı';
+  if(desired==='negative'){selected.stage='Kaybedildi';selected.record_status='Pasif'}
+  const pos=customers.findIndex(c=>Number(c.id)===Number(selected.id));
+  if(pos>=0)customers[pos]=selected;
+  writeCustomerCache(customers);
+  contacts=cleanContacts;
+  loadSelected();
+  setTimeout(refreshPortfolioDataSilently,0);
+}
+async function createReminder(){if(!selected)return;const date=$('dFollow').value,time=$('dFollowTime').value||'10:00';if(!date){alert('Önce sonraki işlem tarihini seçin.');return}const note=$('dReminderNote').value.trim()||selected.company+' takip';await api('/api/meetings',{method:'POST',body:JSON.stringify({customer_id:selected.id,meeting_date:today(),note:'Takip hatırlatması oluşturuldu: '+note,next_follow_date:date,remind_at:date+'T'+time,remind_note:note,result:'Beklemede'})});selected.follow_date=date;const pos=customers.findIndex(c=>Number(c.id)===Number(selected.id));if(pos>=0)customers[pos]=selected;writeCustomerCache(customers);loadSelected();setTimeout(loadMeetingData,0)}
+function switchTab(name){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));document.querySelectorAll('.tabpane').forEach(x=>x.classList.add('hidden'));$('tab'+name[0].toUpperCase()+name.slice(1)).classList.remove('hidden');if(name!=='general')ensureSelectedHistory()}
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));['search','city','sector','priority','result','followFilter'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
 function exportCsv(){const head=['Firma','Kişi','Telefon','Mail','Bölge','İş Alanı','Sonuç','Takip'];const body=visibleRows.map(c=>[c.company,c.contact_name,c.phone,c.email,c.region,c.categories||c.sector,resultLabel(c),c.follow_date]);const csv=[head,...body].map(r=>r.map(v=>'"'+String(v||'').replaceAll('"','""')+'"').join(';')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download='musteri-portfoyu.csv';a.click();URL.revokeObjectURL(a.href)}
 function normalizeRows(data,key){
@@ -541,62 +587,69 @@ async function loadMeetingData(){
   }
 }
 
-async function loadAll(reselect){
+async function refreshPortfolioDataSilently(){
   if(portfolioLoadInFlight)return;
   portfolioLoadInFlight=true;
-  if(portfolioRetryTimer){clearTimeout(portfolioRetryTimer);portfolioRetryTimer=null}
-  $('sideReminders').textContent='Müşteriler yükleniyor...';
-
   try{
-    let freshCustomers=[];
-    try{
-      const bundle=await withTimeout(
-        api('/api/portfolio-bootstrap?ts='+Date.now()),
-        5000,
-        'Portföy verisi'
-      );
-      freshCustomers=normalizeRows(bundle,'customers').filter(c=>c&&c.record_status!=='Silindi');
+    const bundle=await withTimeout(api('/api/portfolio-bootstrap?ts='+Date.now()),4000,'Portföy verisi');
+    const fresh=normalizeRows(bundle,'customers').filter(c=>c&&c.record_status!=='Silindi');
+    if(!fresh.length)return;
+    customers=fresh;
+    writeCustomerCache(customers);
+    fillFilters();
+    counts();
+    if(!document.body.classList.contains('customer-open'))render();
+  }catch(e){
+    console.warn('Sessiz portföy yenilemesi atlandı',e);
+  }finally{
+    portfolioLoadInFlight=false;
+  }
+}
+async function loadAll(reselect){
+  if(portfolioLoadInFlight)return;
 
-      if(!freshCustomers.length)throw new Error('Müşteri kaydı dönmedi');
-
-      customers=freshCustomers;
-      meetings=[];
-      writeCustomerCache(customers);
-      fillFilters();
-      counts();
-      render();
-
-      if(reselect)await selectCustomer(reselect);
-
-      loadMeetingData();
-      return;
-    }catch(e){
-      console.error('Canlı portföy verisi yüklenemedi',e);
-    }
-
-    const cached=readCustomerCache().filter(c=>c&&c.record_status!=='Silindi');
-    if(cached.length){
-      customers=cached;
-      meetings=[];
-      fillFilters();
-      counts();
-      render();
-      $('sideReminders').innerHTML='<span style="color:#fde68a">Geçici bağlantı sorunu var.<br>Son başarılı müşteri listesi gösteriliyor.</span>';
-      if(reselect)await selectCustomer(reselect);
-      loadMeetingData();
-      return;
-    }
-
-    customers=[];
+  const cached=readCustomerCache().filter(c=>c&&c.record_status!=='Silindi');
+  if(cached.length&&!customers.length){
+    customers=cached;
     meetings=[];
     fillFilters();
     counts();
     render();
-    $('sideReminders').innerHTML='<span style="color:#fecaca">Portföy verisi alınamadı.<br>3 saniye sonra tek kez yeniden denenecek.</span>';
-    portfolioRetryTimer=setTimeout(()=>{portfolioRetryTimer=null;loadAll(reselect)},3000);
+    $('sideReminders').innerHTML='<span style="color:#bfdbfe">Son müşteri listesi hazır. Güncel veri kontrol ediliyor...</span>';
+  }else if(!customers.length){
+    $('sideReminders').textContent='Müşteriler yükleniyor...';
+  }
+
+  portfolioLoadInFlight=true;
+  try{
+    const bundle=await withTimeout(api('/api/portfolio-bootstrap?ts='+Date.now()),4000,'Portföy verisi');
+    const fresh=normalizeRows(bundle,'customers').filter(c=>c&&c.record_status!=='Silindi');
+    if(fresh.length){
+      customers=fresh;
+      writeCustomerCache(customers);
+      fillFilters();
+      counts();
+      if(!document.body.classList.contains('customer-open'))render();
+      $('sideReminders').textContent='';
+    }
+  }catch(e){
+    console.warn('Canlı portföy verisi alınamadı; mevcut liste korunuyor.',e);
+    if(customers.length){
+      $('sideReminders').innerHTML='<span style="color:#fde68a">Bağlantı yavaş. Mevcut müşteri listesi kullanılmaya devam ediyor.</span>';
+    }else{
+      $('sideReminders').innerHTML='<span style="color:#fecaca">Portföy verisi şu an alınamadı. Yenile düğmesiyle tekrar deneyin.</span>';
+    }
   }finally{
     portfolioLoadInFlight=false;
   }
+
+  if(reselect){
+    const current=customers.find(c=>Number(c.id)===Number(reselect));
+    if(current)selectCustomer(reselect);
+  }
+
+  if(meetingDelayTimer)clearTimeout(meetingDelayTimer);
+  meetingDelayTimer=setTimeout(()=>{meetingDelayTimer=null;loadMeetingData()},700);
 }
 monthRange();
 (function(){
