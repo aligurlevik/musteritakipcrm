@@ -64,13 +64,15 @@ jobs:
               -o /tmp/portfolio.html \
               "https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html?smoke=$attempt"
 
-            if grep -Fq 'PORTFOY RICH V5' /tmp/portfolio.html \
+            if grep -Fq 'PORTFOY RICH V6' /tmp/portfolio.html \
               && grep -Fq 'Günlük Değerlendirme' /tmp/portfolio.html \
               && grep -Fq '<th>Mail</th>' /tmp/portfolio.html \
               && grep -Fq '<th>Son Görüşme</th>' /tmp/portfolio.html \
               && grep -Fq 'Müşteri Analizi' /tmp/portfolio.html \
               && grep -Fq 'company-open-btn' /tmp/portfolio.html \
-              && grep -Fq "api('/api/portfolio-bootstrap')" /tmp/portfolio.html \
+              && grep -Fq "api('/api/portfolio-bootstrap?ts='+Date.now())" /tmp/portfolio.html \
+              && grep -Fq "api('/api/portfolio-meetings?ts='+Date.now())" /tmp/portfolio.html \
+              && grep -Fq 'PORTFOLIO_CACHE_KEY' /tmp/portfolio.html \
               && grep -Fq "classList.add('customer-open')" /tmp/portfolio.html \
               && grep -qi '^x-crm-portfolio-screen: clean-v3-inline' /tmp/portfolio-headers.txt \
               && ! grep -q 'portfolio-fullscreen-detail.js\|portfolio-fullscreen-stable.js' /tmp/portfolio.html; then
@@ -89,13 +91,13 @@ jobs:
             'https://musteri-takip-crm.musteritakipcrm.workers.dev/api/portfolio-bootstrap')
           [ "$http_code" = "401" ] || (echo "portfolio bootstrap unauth expected 401, got $http_code"; cat /tmp/bootstrap-unauth.json; exit 1)
 
-          echo 'portfolio page V5: OK'
+          echo 'portfolio page V6: OK'
           echo 'portfolio bootstrap route: OK'
           curl --fail --silent --show-error \
             'https://musteri-takip-crm.musteritakipcrm.workers.dev/api/portfolio-health' \
             -o /tmp/portfolio-health.json
           cat /tmp/portfolio-health.json
-          node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync('/tmp/portfolio-health.json','utf8'));if(!d.ok||!d.ready){console.error('portfolio health not ready',d);process.exit(1)}console.log('portfolio D1 health: OK')"
+          node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync('/tmp/portfolio-health.json','utf8'));if(!d.ok||!d.ready||d.version!=='v6-split'){console.error('portfolio health not ready',d);process.exit(1)}console.log('portfolio D1 health: OK')"
           echo 'rich portfolio production smoke OK'
 
       - name: Reminder diagnostics
