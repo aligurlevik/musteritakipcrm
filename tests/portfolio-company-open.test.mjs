@@ -12,7 +12,7 @@ test('temiz portföy ekranı firma butonundan müşteri kartını aynı sayfada 
   assert.doesNotMatch(wrapper, /crmOpenPortfolioCustomer/);
   assert.doesNotMatch(wrapper, /patchPortfolioHtml/);
 
-  assert.match(page, /PORTFÖY CLEAN V2/);
+  assert.match(page, /PORTFOY CLEAN V2/);
   assert.match(page, /id="listView"/);
   assert.match(page, /id="detailView"/);
   assert.match(page, /data-open-customer/);
@@ -25,4 +25,9 @@ test('temiz portföy ekranı firma butonundan müşteri kartını aynı sayfada 
   assert.doesNotMatch(page, /portfolio-fullscreen-detail\.js/);
   assert.doesNotMatch(page, /portfolio-fullscreen-stable\.js/);
   assert.doesNotMatch(page, /onclick="selectCustomer/);
+
+  const scripts=[...page.matchAll(/<script>([\\s\\S]*?)<\\/script>/g)];
+  assert.ok(scripts.length>0,'portföy sayfasında inline script bulunmalı');
+  const inlineScript=scripts.at(-1)[1];
+  assert.doesNotThrow(()=>new Function(inlineScript));
 });
