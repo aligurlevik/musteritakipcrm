@@ -11,7 +11,7 @@ function rebuild(response,html){
 const COMPANY_OPEN_CSS=
 '<style data-crm-company-open-final="20261006-v1">'+
 '.crm-company-open{appearance:none!important;border:0!important;background:transparent!important;padding:0!important;margin:0!important;color:#1769f6!important;text-decoration:underline!important;text-underline-offset:2px!important;font:inherit!important;font-weight:900!important;cursor:pointer!important;text-align:left!important}'+
-'#crmCustomerClose{display:none!important}'+
+'#crmCustomerClose{display:none!important}#crmPortfolioBuild{position:fixed!important;right:8px!important;bottom:8px!important;z-index:2147483646!important;background:#0b1730!important;color:#fff!important;border-radius:6px!important;padding:4px 7px!important;font:700 10px Segoe UI,Arial,sans-serif!important;opacity:.82!important;pointer-events:none!important}'+
 'body.crm-portfolio-detail-open{overflow:hidden!important}'+
 'body.crm-portfolio-detail-open #detail{position:fixed!important;inset:0!important;top:0!important;left:0!important;right:0!important;bottom:0!important;z-index:2147483000!important;width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;overflow:auto!important;background:#f4f7fb!important;box-shadow:none!important}'+
 'body.crm-portfolio-detail-open #detail .detail-head{position:sticky!important;top:0!important;z-index:60!important;background:#fff!important}'+
@@ -46,7 +46,7 @@ export function patchPortfolioHtml(html){
   html=html.replace(/<script[^>]*data-portfolio-customer-jump[^>]*>[\s\S]*?<\/script>\s*/gi,'');
   html=html.replace(/<script[^>]*data-last-contact-auto[^>]*>[\s\S]*?<\/script>\s*/gi,'');
 
-  // Firma ismi artık link veya global listener değil: doğrudan tek buton.
+  // Bu görünür işaret, masaüstü uygulamasının gerçekten yeni HTML'i aldığını kanıtlar.\n  if(!html.includes('id="crmPortfolioBuild"')){\n    html=html.replace('<body>','<body><div id="crmPortfolioBuild">PORTFÖY 06.10-B</div>');\n  }\n\n  // Firma ismi artık link veya global listener değil: doğrudan tek buton.
   const plainCompany='<span class="company">${esc(c.company)}</span>';
   const linkedCompany='<a class="company" href="/?page=customers&editCustomer=${c.id}" onclick="event.stopPropagation()">${esc(c.company)}</a>';
   const directCompany='<button type="button" class="company crm-company-open" onclick="return crmOpenPortfolioCustomer(${c.id},event)">${esc(c.company)}</button>';
@@ -69,8 +69,13 @@ export default{
   async fetch(request,env,ctx){
     const response=await worker.fetch(request,env,ctx);
     const url=new URL(request.url);
-    if(request.method==='GET'&&url.pathname==='/musteri-portfoyu.html'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
-      return rebuild(response,patchPortfolioHtml(await response.text()));
+    if(request.method==='GET'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
+      const html=await response.text();
+      const isPortfolio=url.pathname==='/musteri-portfoyu.html'||(
+        html.includes('Müşteri Portföyü')&&html.includes('id="rows"')&&html.includes('id="detail"')
+      );
+      if(isPortfolio)return rebuild(response,patchPortfolioHtml(html));
+      return rebuild(response,html);
     }
     return response;
   },
