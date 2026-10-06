@@ -95,9 +95,9 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   assert.match(index, /data-page="portfolio"/);
   assert.match(index, /id="portfolioFrame"/);
   assert.match(index, /musteri-portfoyu\.html\?embedded=1/);
-  assert.match(index, /CRM_PAGE_CACHE_MS=300000/);
-  assert.match(index, /requestAnimationFrame\(\(\)=>setTimeout/);
-  assert.match(index, /prewarmPortfolioFrame/);
+  assert.match(index, /CRM_PAGE_CACHE_MS=900000/);
+  assert.match(index, /requestAnimationFrame\(\(\)=>requestAnimationFrame/);
+  assert.match(index, /prewarmPortfolioFrame/);\n  assert.doesNotMatch(index, /requestIdleCallback\(prewarmPortfolioFrame/);\n  assert.match(index, /crmSwitching/);
 
   const start = page.lastIndexOf('<script>');
   const end = page.indexOf('</script>', start);
