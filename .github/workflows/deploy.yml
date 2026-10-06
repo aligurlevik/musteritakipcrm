@@ -63,13 +63,15 @@ jobs:
               -D /tmp/portfolio-headers.txt \
               -o /tmp/portfolio.html \
               "https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html?smoke=$attempt"
-            if grep -Fq 'PORTFOY RICH V3' /tmp/portfolio.html \
+            if grep -Fq 'PORTFOY RICH V4' /tmp/portfolio.html \
               && grep -Fq 'Günlük Değerlendirme' /tmp/portfolio.html \
               && grep -Fq '<th>Mail</th>' /tmp/portfolio.html \
               && grep -Fq '<th>Son Görüşme</th>' /tmp/portfolio.html \
               && grep -Fq 'Görüşmeler &amp; Notlar' /tmp/portfolio.html || grep -Fq 'Görüşmeler & Notlar' /tmp/portfolio.html; then
               if grep -Fq 'Müşteri Analizi' /tmp/portfolio.html \
                 && grep -Fq 'company-open-btn' /tmp/portfolio.html \
+              && grep -Fq 'function normalizeRows(data,key)' /tmp/portfolio.html \
+              && grep -Fq "loadedCustomers=await withTimeout(api('/api/customers?status=Tümü')" /tmp/portfolio.html \
                 && grep -Fq "classList.add('customer-open')" /tmp/portfolio.html \
                 && grep -qi '^x-crm-portfolio-screen: clean-v3-inline' /tmp/portfolio-headers.txt \
                 && ! grep -q 'portfolio-fullscreen-detail.js\|portfolio-fullscreen-stable.js' /tmp/portfolio.html; then
@@ -83,7 +85,7 @@ jobs:
           echo '--- portfolio headers ---'
           grep -i 'x-crm-portfolio-screen\|content-type\|cache-control' /tmp/portfolio-headers.txt || true
           echo '--- rich portfolio markers ---'
-          grep -F 'PORTFOY RICH V3' /tmp/portfolio.html | head -1 || true
+          grep -F 'PORTFOY RICH V4' /tmp/portfolio.html | head -1 || true
           grep -F 'Günlük Değerlendirme' /tmp/portfolio.html | head -1 || true
 
           if [ "$ok" -ne 1 ]; then
