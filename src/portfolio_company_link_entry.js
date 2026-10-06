@@ -39,21 +39,10 @@ function cleanResponse(){
     status:200,
     headers:{
       'content-type':'text/html; charset=utf-8',
-      'cache-control':'private, max-age=30, stale-while-revalidate=300',
+      'cache-control':'no-cache, no-store, must-revalidate',
       'x-crm-portfolio-screen':'clean-v3-inline'
     }
   });
-}
-
-function tuneHtmlCache(response,path,method){
-  if(method!=='GET'||!response.ok)return response;
-  const type=response.headers.get('content-type')||'';
-  if(!type.includes('text/html'))return response;
-  const cacheable=new Set(['/','/index.html','/notlar-v2','/notlar-v2/','/notlar-v2.html','/planlama','/planlama/','/planlama.html']);
-  if(!cacheable.has(path))return response;
-  const headers=new Headers(response.headers);
-  headers.set('cache-control','private, max-age=30, stale-while-revalidate=300');
-  return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
 }
 
 async function directBootstrap(env){
@@ -173,8 +162,7 @@ export default{
       }
     }
 
-    const response=await worker.fetch(request,env,ctx);
-    return tuneHtmlCache(response,url.pathname,request.method);
+    return worker.fetch(request,env,ctx);
   },
 
   async scheduled(controller,env,ctx){
