@@ -19,7 +19,7 @@ export default{
     // Müşteri Portföyü artık eski wrapper/tıklama katmanlarından tamamen bağımsız.
     // Bu sayfa doğrudan temiz statik dosyadan servis edilir.
     if(request.method==='GET'&&url.pathname==='/musteri-portfoyu.html'){
-      return noCache(await env.ASSETS.fetch(request));
+      const assetUrl=new URL(request.url);\n      assetUrl.pathname='/musteri-portfoyu-v2.html';\n      return noCache(await env.ASSETS.fetch(new Request(assetUrl.toString(),request)));
     }
 
     return worker.fetch(request,env,ctx);
