@@ -29,7 +29,7 @@ body.customer-open .tabs{grid-template-columns:repeat(5,minmax(120px,1fr))}
 @media(max-width:720px){body.customer-open .detail{min-height:calc(100vh - 20px)!important}}
 </style>
 </head>
-<body><div id="buildMarker">PORTFOY RICH V3</div>
+<body><div id="buildMarker">PORTFOY RICH V4</div>
 <div class="app">
 <aside class="side">
   <div class="brand"><img src="/notes-logo-ag-v1.webp" alt="AG"><span>CRM Müşteri<br>Takip</span></div>
@@ -180,14 +180,49 @@ async function createReminder(){if(!selected)return;const date=$('dFollow').valu
 function switchTab(name){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));document.querySelectorAll('.tabpane').forEach(x=>x.classList.add('hidden'));$('tab'+name[0].toUpperCase()+name.slice(1)).classList.remove('hidden')}
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));['search','city','sector','priority','result','followFilter'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
 function exportCsv(){const head=['Firma','Kişi','Telefon','Mail','Bölge','İş Alanı','Sonuç','Takip'];const body=visibleRows.map(c=>[c.company,c.contact_name,c.phone,c.email,c.region,c.categories||c.sector,resultLabel(c),c.follow_date]);const csv=[head,...body].map(r=>r.map(v=>'"'+String(v||'').replaceAll('"','""')+'"').join(';')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download='musteri-portfoyu.csv';a.click();URL.revokeObjectURL(a.href)}
-async function loadAll(reselect){try{
-  const results=await Promise.allSettled([api('/api/customers?status=Tümü'),api('/api/meetings?status=Tümü')]);
-  customers=results[0].status==='fulfilled'&&Array.isArray(results[0].value)?results[0].value:[];
-  meetings=results[1].status==='fulfilled'&&Array.isArray(results[1].value)?results[1].value:[];
-  customers=customers.filter(c=>c.record_status!=='Silindi');
-  fillFilters();counts();render();
+function normalizeRows(data,key){
+  if(Array.isArray(data))return data;
+  if(data&&Array.isArray(data[key]))return data[key];
+  if(data&&Array.isArray(data.results))return data.results;
+  return [];
+}
+function withTimeout(promise,ms,label){
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error(label+' zaman aşımına uğradı')),ms))
+  ]);
+}
+async function loadAll(reselect){
+  $('sideReminders').textContent='Müşteriler yükleniyor...';
+
+  let loadedCustomers;
+  try{
+    loadedCustomers=await withTimeout(api('/api/customers?status=Tümü'),8000,'Müşteri listesi');
+  }catch(e){
+    console.error('Müşteriler yüklenemedi',e);
+    customers=[];meetings=[];
+    fillFilters();counts();render();
+    $('sideReminders').innerHTML='<span style="color:#fecaca">Müşteri verisi alınamadı.<br>'+esc(e.message||e)+'</span>';
+    return;
+  }
+
+  customers=normalizeRows(loadedCustomers,'customers').filter(c=>c&&c.record_status!=='Silindi');
+  fillFilters();
+  counts();
+  render();
+
   if(reselect)await selectCustomer(reselect);
-}catch(e){console.error(e)}}
+
+  // Görüşmeler ayrı yüklenir. Bu istek yavaşlasa bile müşteri listesi ekranda kalır.
+  try{
+    const loadedMeetings=await withTimeout(api('/api/meetings?status=Tümü'),5000,'Görüşmeler');
+    meetings=normalizeRows(loadedMeetings,'meetings');
+    counts();
+    render();
+  }catch(e){
+    console.warn('Görüşmeler yüklenemedi; müşteri listesi açık kalacak.',e);
+  }
+}
 monthRange();
 (function(){
   const el=document.getElementById('dailyEvalDate');
