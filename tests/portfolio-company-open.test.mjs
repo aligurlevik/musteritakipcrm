@@ -7,7 +7,7 @@ test('temiz portföy ekranı firma butonundan müşteri kartını aynı sayfada 
   const page = await readFile(new URL('../public/musteri-portfoyu.html', import.meta.url), 'utf8');
 
   assert.match(wrapper, /clean-v2/);
-  assert.match(wrapper, /env\.ASSETS\.fetch\(request\)/);
+  assert.match(wrapper, /musteri-portfoyu-v2\\.html/);\n  assert.match(wrapper, /env\\.ASSETS\\.fetch/);
   assert.doesNotMatch(wrapper, /crmOpenPortfolioCustomer/);
   assert.doesNotMatch(wrapper, /patchPortfolioHtml/);
 
