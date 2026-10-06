@@ -29,7 +29,7 @@ body.customer-open .tabs{grid-template-columns:repeat(5,minmax(120px,1fr))}
 @media(max-width:720px){body.customer-open .detail{min-height:calc(100vh - 20px)!important}}
 </style>
 </head>
-<body><div id="buildMarker">PORTFOY RICH V4</div>
+<body><div id="buildMarker">PORTFOY RICH V5</div>
 <div class="app">
 <aside class="side">
   <div class="brand"><img src="/notes-logo-ag-v1.webp" alt="AG"><span>CRM Müşteri<br>Takip</span></div>
@@ -195,32 +195,28 @@ function withTimeout(promise,ms,label){
 async function loadAll(reselect){
   $('sideReminders').textContent='Müşteriler yükleniyor...';
 
-  let loadedCustomers;
   try{
-    loadedCustomers=await withTimeout(api('/api/customers?status=Tümü'),8000,'Müşteri listesi');
-  }catch(e){
-    console.error('Müşteriler yüklenemedi',e);
-    customers=[];meetings=[];
-    fillFilters();counts();render();
-    $('sideReminders').innerHTML='<span style="color:#fecaca">Müşteri verisi alınamadı.<br>'+esc(e.message||e)+'</span>';
-    return;
-  }
+    const bundle=await withTimeout(api('/api/portfolio-bootstrap'),8000,'Portföy verisi');
+    customers=normalizeRows(bundle,'customers').filter(c=>c&&c.record_status!=='Silindi');
+    meetings=normalizeRows(bundle,'meetings');
 
-  customers=normalizeRows(loadedCustomers,'customers').filter(c=>c&&c.record_status!=='Silindi');
-  fillFilters();
-  counts();
-  render();
-
-  if(reselect)await selectCustomer(reselect);
-
-  // Görüşmeler ayrı yüklenir. Bu istek yavaşlasa bile müşteri listesi ekranda kalır.
-  try{
-    const loadedMeetings=await withTimeout(api('/api/meetings?status=Tümü'),5000,'Görüşmeler');
-    meetings=normalizeRows(loadedMeetings,'meetings');
+    fillFilters();
     counts();
     render();
+
+    if(reselect)await selectCustomer(reselect);
+
+    if(!customers.length){
+      $('sideReminders').innerHTML='<span style="color:#fecaca">Portföy API çalıştı ama müşteri kaydı dönmedi.</span>';
+    }
   }catch(e){
-    console.warn('Görüşmeler yüklenemedi; müşteri listesi açık kalacak.',e);
+    console.error('Portföy yüklenemedi',e);
+    customers=[];
+    meetings=[];
+    fillFilters();
+    counts();
+    render();
+    $('sideReminders').innerHTML='<span style="color:#fecaca">Portföy verisi alınamadı.<br>'+esc(e.message||e)+'</span>';
   }
 }
 monthRange();
