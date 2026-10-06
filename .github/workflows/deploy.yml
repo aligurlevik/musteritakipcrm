@@ -64,11 +64,16 @@ jobs:
           grep -i 'x-crm-company-open\|content-type\|cache-control' /tmp/portfolio-headers.txt || true
           echo '--- portfolio markers ---'
           grep -o -m3 '.\{0,80\}class="company".\{0,180\}' /tmp/portfolio.html || true
-          grep -Fq 'PORTFÖY 06.10-D' /tmp/portfolio.html && echo 'build marker: OK' || (echo 'build marker: MISSING'; exit 1)
-          grep -Fq 'crmOpenPortfolioCustomer' /tmp/portfolio.html && echo 'open function: OK' || (echo 'open function: MISSING'; exit 1)
-          grep -Fq 'class="company crm-company-open"' /tmp/portfolio.html && echo 'company button: OK' || (echo 'company button: MISSING'; exit 1)
-          grep -qi '^x-crm-company-open: direct-inline-v2' /tmp/portfolio-headers.txt && echo 'response header: OK' || (echo 'response header: MISSING'; exit 1)
-          echo 'portfolio company click production smoke OK'
+          grep -Fq 'PORTFÖY 06.10-E' /tmp/portfolio.html && echo 'build marker: OK' || (echo 'build marker: MISSING'; exit 1)
+          grep -Fq 'href="/?page=customers&editCustomer=${c.id}"' /tmp/portfolio.html && echo 'native company link: OK' || (echo 'native company link: MISSING'; exit 1)
+          grep -Fq 'crm-company-native-link' /tmp/portfolio.html && echo 'native link class: OK' || (echo 'native link class: MISSING'; exit 1)
+          grep -qi '^x-crm-company-open: native-link-v3' /tmp/portfolio-headers.txt && echo 'response header: OK' || (echo 'response header: MISSING'; exit 1)
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 \
+            -o /tmp/index.html \
+            'https://musteri-takip-crm.musteritakipcrm.workers.dev/?page=customers&editCustomer=1'
+          grep -Fq 'openRequestedCustomerFromUrl' /tmp/index.html && echo 'customer URL opener: OK' || (echo 'customer URL opener: MISSING'; exit 1)
+          grep -Fq 'crm-direct-customer' /tmp/index.html && echo 'fullscreen customer modal: OK' || (echo 'fullscreen customer modal: MISSING'; exit 1)
+          echo 'portfolio native company navigation production smoke OK'
 
       - name: Reminder diagnostics
         run: |
