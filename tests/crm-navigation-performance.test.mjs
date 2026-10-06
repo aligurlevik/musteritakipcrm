@@ -5,17 +5,17 @@ import {readFile} from 'node:fs/promises';
 test('CRM modülleri kalıcı kabukta anında görünür ve veri yükü sonraki framee bırakılır', async () => {
   const page=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
 
-  assert.match(page,/const CRM_PAGE_CACHE_MS=300000/);
+  assert.match(page,/const CRM_PAGE_CACHE_MS=900000/);
   assert.match(page,/async function loadCrmPageData\(page,/);
   assert.match(page,/function activateCrmPage\(page,/);
   assert.match(page,/function requestedCrmPage\(\)/);
   assert.match(page,/history\.replaceState/);
   assert.match(page,/crmPageLoadPromises/);
-  assert.match(page,/requestAnimationFrame\(\(\)=>setTimeout/);
+  assert.match(page,/requestAnimationFrame\(\(\)=>requestAnimationFrame/);
   assert.match(page,/data-page="portfolio"/);
   assert.match(page,/id="portfolioFrame"/);
   assert.match(page,/musteri-portfoyu\.html\?embedded=1/);
-  assert.match(page,/function prewarmPortfolioFrame\(\)/);
+  assert.match(page,/function prewarmPortfolioFrame\(\)/);\n  assert.doesNotMatch(page,/requestIdleCallback\(prewarmPortfolioFrame/);\n  assert.match(page,/crmSwitching/);\n  assert.match(page,/beginCrmSwitch/);\n  assert.match(page,/crmDeferredLoadTimer/);
   assert.match(page,/portfolio-mode/);
 
   const loadAllStart=page.indexOf('async function loadAll(){');
