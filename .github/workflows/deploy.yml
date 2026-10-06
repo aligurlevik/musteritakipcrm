@@ -64,7 +64,7 @@ jobs:
               -o /tmp/portfolio.html \
               "https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html?smoke=$attempt"
 
-            if grep -Fq 'PORTFOY RICH V13' /tmp/portfolio.html \
+            if grep -Fq 'PORTFOY RICH V14' /tmp/portfolio.html \
               && grep -Fq 'Günlük Değerlendirme' /tmp/portfolio.html \
               && grep -Fq '<th>Mail</th>' /tmp/portfolio.html \
               && grep -Fq '<th>Son Görüşme</th>' /tmp/portfolio.html \
@@ -111,11 +111,16 @@ jobs:
           grep -Fq 'if(portfolioLoadInFlight)return' /tmp/portfolio.html || (echo 'portfolio load guard missing'; exit 1)
           grep -Fq 'if(meetingLoadInFlight)return' /tmp/portfolio.html || (echo 'meeting load guard missing'; exit 1)
           grep -Fq 'content-visibility:auto' /tmp/portfolio.html || (echo 'contact lazy-render CSS missing'; exit 1)
+          grep -Fq 'async function ensureSelectedHistory()' /tmp/portfolio.html || (echo 'lazy history loader missing'; exit 1)
+          grep -Fq "if(name!=='general')ensureSelectedHistory()" /tmp/portfolio.html || (echo 'lazy tab history trigger missing'; exit 1)
+          grep -Fq 'function refreshPortfolioDataSilently()' /tmp/portfolio.html || (echo 'silent refresh missing'; exit 1)
+          grep -Fq 'const cached=readCustomerCache()' /tmp/portfolio.html || (echo 'cache-first loader missing'; exit 1)
+          echo 'instant interaction mode: OK'
           echo 'performance guards: OK'
           echo 'multiple contact people: OK'
           echo 'rightmost mail tab: OK'
           echo 'orders tab removed: OK'
-          echo 'portfolio page V13: OK'
+          echo 'portfolio page V14: OK'
           echo 'portfolio bootstrap route: OK'
           curl --fail --silent --show-error \
             'https://musteri-takip-crm.musteritakipcrm.workers.dev/api/portfolio-health' \
