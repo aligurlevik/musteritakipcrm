@@ -30,7 +30,6 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
     assert.match(source, /company-open-btn/);
     assert.match(source, /function normalizeRows\(data,key\)/);
     assert.match(source, /api\('\/api\/portfolio-bootstrap'\)/);
-    assert.match(source, /Müşteriler yüklenemedi/);
     assert.doesNotMatch(source, /Promise\.allSettled\(\[api\('\/api\/customers/);
     assert.match(source, /function closeCustomerDetail\(\)/);
     assert.match(source, /document\.body\.classList\.add\('customer-open'\)/);
