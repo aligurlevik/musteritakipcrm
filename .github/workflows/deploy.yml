@@ -64,7 +64,7 @@ jobs:
               -o /tmp/portfolio.html \
               "https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html?smoke=$attempt"
 
-            if grep -Fq 'PORTFOY RICH V18' /tmp/portfolio.html \
+            if grep -Fq 'PORTFOY RICH V19' /tmp/portfolio.html \
               && grep -Fq 'Günlük Değerlendirme' /tmp/portfolio.html \
               && grep -Fq '<th>Son Görüşme</th>' /tmp/portfolio.html \
               && grep -Fq 'Müşteri Analizi' /tmp/portfolio.html \
@@ -133,7 +133,7 @@ jobs:
           echo 'main mail column removed: OK'
           echo 'rightmost mail tab: OK'
           echo 'orders tab removed: OK'
-          echo 'portfolio page V18: OK'
+          echo 'portfolio page V19: OK'
           echo 'portfolio bootstrap route: OK'
           curl --fail --silent --show-error \
             'https://musteri-takip-crm.musteritakipcrm.workers.dev/api/portfolio-health' \
@@ -147,15 +147,19 @@ jobs:
           curl --fail --silent --show-error --retry 5 --retry-delay 2 \
             -o /tmp/crm-index.html \
             'https://musteri-takip-crm.musteritakipcrm.workers.dev/?page=customers&nav-smoke=1'
-          grep -Fq 'const CRM_PAGE_CACHE_MS=30000' /tmp/crm-index.html || (echo 'page cache marker missing'; exit 1)
+          grep -Fq 'const CRM_PAGE_CACHE_MS=300000' /tmp/crm-index.html || (echo 'page cache marker missing'; exit 1)
           grep -Fq 'async function loadCrmPageData(page' /tmp/crm-index.html || (echo 'lazy page loader missing'; exit 1)
-          grep -Fq 'async function activateCrmPage(page' /tmp/crm-index.html || (echo 'instant page activator missing'; exit 1)
+          grep -Fq 'function activateCrmPage(page' /tmp/crm-index.html || (echo 'instant page activator missing'; exit 1)
           grep -Fq 'crmPageLoadPromises' /tmp/crm-index.html || (echo 'duplicate load guard missing'; exit 1)
-          grep -Fq 'rel="prefetch" href="/musteri-portfoyu.html"' /tmp/crm-index.html || (echo 'portfolio prefetch missing'; exit 1)
+          grep -Fq 'id="portfolioFrame"' /tmp/crm-index.html || (echo 'persistent portfolio frame missing'; exit 1)
+          grep -Fq 'musteri-portfoyu.html?embedded=1' /tmp/crm-index.html || (echo 'embedded portfolio source missing'; exit 1)
+          grep -Fq 'requestAnimationFrame(()=>setTimeout' /tmp/crm-index.html || (echo 'deferred page loading missing'; exit 1)
+          grep -Fq 'prewarmPortfolioFrame' /tmp/crm-index.html || (echo 'portfolio prewarm missing'; exit 1)
           if grep -Fq "Promise.allSettled([loadDashboard(),loadCustomers(),loadMeetings(),loadOffers(),loadMails(),loadAgenda()])" /tmp/crm-index.html; then
             echo 'old heavy all-module startup is still present'
             exit 1
           fi
+          echo 'persistent CRM shell: OK'
           echo 'CRM lazy navigation smoke OK'
 
       - name: Reminder diagnostics
