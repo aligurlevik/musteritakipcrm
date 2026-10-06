@@ -54,7 +54,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-      - name: Clean portfolio screen smoke
+      - name: Rich portfolio screen smoke
         run: |
           ok=0
           for attempt in $(seq 1 15); do
@@ -63,31 +63,35 @@ jobs:
               -D /tmp/portfolio-headers.txt \
               -o /tmp/portfolio.html \
               "https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html?smoke=$attempt"
-            if grep -Fq 'PORTFOY CLEAN V2' /tmp/portfolio.html \
-              && grep -Fq 'data-open-customer' /tmp/portfolio.html \
-              && grep -Fq 'function openCustomerCard(id)' /tmp/portfolio.html \
-              && grep -Fq "customerRows').addEventListener('click'" /tmp/portfolio.html \
-              && grep -qi '^x-crm-portfolio-screen: clean-v3-inline' /tmp/portfolio-headers.txt \
-              && ! grep -q 'portfolio-fullscreen-detail.js\|portfolio-fullscreen-stable.js\|onclick="selectCustomer' /tmp/portfolio.html; then
-              ok=1
-              break
+            if grep -Fq 'PORTFOY RICH V3' /tmp/portfolio.html \
+              && grep -Fq 'Günlük Değerlendirme' /tmp/portfolio.html \
+              && grep -Fq '<th>Mail</th>' /tmp/portfolio.html \
+              && grep -Fq '<th>Son Görüşme</th>' /tmp/portfolio.html \
+              && grep -Fq 'Görüşmeler &amp; Notlar' /tmp/portfolio.html || grep -Fq 'Görüşmeler & Notlar' /tmp/portfolio.html; then
+              if grep -Fq 'Müşteri Analizi' /tmp/portfolio.html \
+                && grep -Fq 'company-open-btn' /tmp/portfolio.html \
+                && grep -Fq "classList.add('customer-open')" /tmp/portfolio.html \
+                && grep -qi '^x-crm-portfolio-screen: clean-v3-inline' /tmp/portfolio-headers.txt \
+                && ! grep -q 'portfolio-fullscreen-detail.js\|portfolio-fullscreen-stable.js' /tmp/portfolio.html; then
+                ok=1
+                break
+              fi
             fi
             sleep 2
           done
 
           echo '--- portfolio headers ---'
           grep -i 'x-crm-portfolio-screen\|content-type\|cache-control' /tmp/portfolio-headers.txt || true
-          echo '--- portfolio markers ---'
-          grep -F 'PORTFOY CLEAN V2' /tmp/portfolio.html | head -1 || true
-          grep -F 'function openCustomerCard(id)' /tmp/portfolio.html | head -1 || true
+          echo '--- rich portfolio markers ---'
+          grep -F 'PORTFOY RICH V3' /tmp/portfolio.html | head -1 || true
+          grep -F 'Günlük Değerlendirme' /tmp/portfolio.html | head -1 || true
 
           if [ "$ok" -ne 1 ]; then
-            echo 'clean portfolio production smoke FAILED after propagation wait'
-            head -40 /tmp/portfolio.html || true
+            echo 'rich portfolio production smoke FAILED'
             exit 1
           fi
 
-          echo 'clean portfolio production smoke OK'
+          echo 'rich portfolio production smoke OK'
 
       - name: Reminder diagnostics
         run: |
