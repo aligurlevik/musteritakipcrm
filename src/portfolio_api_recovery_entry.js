@@ -1,4 +1,5 @@
 import worker from './sales_care_bridge_entry.js';
+import {restorePortfolioCustomers} from './restore_portfolio_customers.js';
 
 function json(data,status=200){
   return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-cache, no-store, must-revalidate','x-crm-portfolio-recovery':'direct-d1-v6'}});
@@ -22,16 +23,19 @@ async function sessionOk(request,env,ctx){
 }
 
 async function directCustomers(env){
+  await restorePortfolioCustomers(env);
   const r=await env.DB.prepare(`SELECT * FROM customers WHERE COALESCE(record_status,'Aktif')<>'Silindi' ORDER BY CASE priority WHEN 'KRİTİK' THEN 1 WHEN 'YÜKSEK' THEN 2 WHEN 'NORMAL' THEN 3 ELSE 4 END, company COLLATE NOCASE`).all();
   return r.results||[];
 }
 
 async function directMeetings(env){
+  await restorePortfolioCustomers(env);
   const r=await env.DB.prepare(`SELECT m.* FROM meetings m LEFT JOIN customers c ON c.id=m.customer_id WHERE COALESCE(c.record_status,'Aktif')<>'Silindi' ORDER BY COALESCE(m.meeting_date,m.created_at) DESC`).all();
   return r.results||[];
 }
 
 async function directHistory(customerId,env){
+  await restorePortfolioCustomers(env);
   const customer=await env.DB.prepare('SELECT * FROM customers WHERE id=? AND COALESCE(record_status,\'Aktif\')<>\'Silindi\'').bind(customerId).first();
   if(!customer)return null;
   const [meetings,mails,offers]=await Promise.all([
