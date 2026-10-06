@@ -64,7 +64,7 @@ jobs:
               -o /tmp/portfolio.html \
               "https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html?smoke=$attempt"
 
-            if grep -Fq 'PORTFOY RICH V10' /tmp/portfolio.html \
+            if grep -Fq 'PORTFOY RICH V11' /tmp/portfolio.html \
               && grep -Fq 'Günlük Değerlendirme' /tmp/portfolio.html \
               && grep -Fq '<th>Mail</th>' /tmp/portfolio.html \
               && grep -Fq '<th>Son Görüşme</th>' /tmp/portfolio.html \
@@ -100,8 +100,13 @@ jobs:
           [ "$http_code" = "401" ] || (echo "portfolio bootstrap unauth expected 401, got $http_code"; cat /tmp/bootstrap-unauth.json; exit 1)
 
           if grep -q 'data-tab="orders"\|id="tabOrders"\|orderSummary' /tmp/portfolio.html; then echo 'orders tab still present'; exit 1; fi
+          grep -Fq 'data-tab="mails"' /tmp/portfolio.html || (echo 'mail tab missing'; exit 1)
+          grep -Fq 'id="tabMails"' /tmp/portfolio.html || (echo 'mail pane missing'; exit 1)
+          grep -Fq 'id="mailHistory"' /tmp/portfolio.html || (echo 'mail history missing'; exit 1)
+          grep -Fq 'grid-template-columns:repeat(5,minmax(120px,1fr))' /tmp/portfolio.html || (echo 'five-column tabs missing'; exit 1)
+          echo 'rightmost mail tab: OK'
           echo 'orders tab removed: OK'
-          echo 'portfolio page V10: OK'
+          echo 'portfolio page V11: OK'
           echo 'portfolio bootstrap route: OK'
           curl --fail --silent --show-error \
             'https://musteri-takip-crm.musteritakipcrm.workers.dev/api/portfolio-health' \
