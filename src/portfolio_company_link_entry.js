@@ -1,14 +1,14 @@
 import worker from './portfolio_api_recovery_entry.js';
+import {CLEAN_PORTFOLIO_HTML} from './portfolio_clean_page.js';
 
-function noCache(response){
-  const headers=new Headers(response.headers);
-  for(const name of ['content-length','content-encoding','etag']) headers.delete(name);
-  headers.set('cache-control','no-cache, no-store, must-revalidate');
-  headers.set('x-crm-portfolio-screen','clean-v2');
-  return new Response(response.body,{
-    status:response.status,
-    statusText:response.statusText,
-    headers
+function cleanResponse(){
+  return new Response(CLEAN_PORTFOLIO_HTML,{
+    status:200,
+    headers:{
+      'content-type':'text/html; charset=utf-8',
+      'cache-control':'no-cache, no-store, must-revalidate',
+      'x-crm-portfolio-screen':'clean-v3-inline'
+    }
   });
 }
 
@@ -17,10 +17,7 @@ export default{
     const url=new URL(request.url);
 
     if(request.method==='GET'&&url.pathname==='/musteri-portfoyu.html'){
-      const assetUrl=new URL(request.url);
-      assetUrl.pathname='/musteri-portfoyu-v2.html';
-      const assetRequest=new Request(assetUrl.toString(),request);
-      return noCache(await env.ASSETS.fetch(assetRequest));
+      return cleanResponse();
     }
 
     return worker.fetch(request,env,ctx);
