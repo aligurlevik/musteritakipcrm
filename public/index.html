@@ -141,7 +141,7 @@ body.crm-switching .crm-page-switch-indicator{display:flex}
 #monthlyCiroGraph{margin-top:22px!important;padding:22px!important;border:3px solid #2563eb!important;border-radius:16px!important;background:#f8fbff!important;box-shadow:0 6px 18px #2563eb18!important}#monthlyCiroGraph h3{padding-bottom:10px!important;border-bottom:2px solid #bfdbfe!important;font-size:21px!important}.monthly-job-graph{margin-top:34px!important;padding:22px!important;border:3px solid #7c3aed!important;border-radius:16px!important;background:#faf7ff!important;box-shadow:0 6px 18px #7c3aed18!important}.monthly-job-graph h3{padding-bottom:10px!important;border-bottom:2px solid #ddd6fe!important;color:#5b21b6!important;font-size:21px!important}.monthly-job-summary{margin:14px 0 12px!important}
 #reports .production-chart{border:3px solid #16a34a!important;background:#f7fff9!important}#reports .report-table{margin-bottom:42px!important;border:2px solid #cbd5e1!important}#revenueTargetChart{position:relative!important;margin-top:42px!important;padding-top:58px!important;border:3px solid #2563eb!important;background:#eff6ff!important}#revenueTargetChart:before{content:"CIRO PERFORMANSI";position:absolute;left:0;right:0;top:0;padding:13px 18px;background:#1d4ed8;color:#fff;border-radius:12px 12px 0 0;font-size:20px;font-weight:900;letter-spacing:.4px}.monthly-job-graph{margin:24px 0!important;border:3px solid #dc2626!important;background:#fffafa!important}.monthly-job-graph h3{color:#991b1b!important}
 .report-folder-buttons{display:flex;gap:9px;margin-left:auto}.report-folder-button{padding:11px 16px;border:2px solid #94a3b8;border-radius:10px;background:#fff;color:#334155;font-weight:900;cursor:pointer}.report-folder-button.active[data-folder="production"]{background:#dc2626;border-color:#dc2626;color:#fff}.report-folder-button.active[data-folder="ciro"]{background:#2563eb;border-color:#2563eb;color:#fff}#reports.report-folder-ciro .report-summary,#reports.report-folder-ciro .report-kpis,#reports.report-folder-ciro .production-chart,#reports.report-folder-ciro .report-table,#reports.report-folder-ciro #monthlyJobGraph{display:none!important}#reports.report-folder-production #revenueTargetChart,#reports.report-folder-production #monthlyCiroGraph{display:none!important}#reports.report-folder-ciro #revenueTargetChart,#reports.report-folder-ciro #monthlyCiroGraph,#reports.report-folder-production .report-summary,#reports.report-folder-production .report-kpis,#reports.report-folder-production .production-chart,#reports.report-folder-production .report-table,#reports.report-folder-production #monthlyJobGraph{display:block}.report-folder-title{width:100%;margin:10px 0 2px;padding:11px 15px;border-radius:10px;font-size:20px;font-weight:900}.report-folder-ciro .report-folder-title{background:#dbeafe;color:#1e40af}.report-folder-production .report-folder-title{background:#fee2e2;color:#991b1b}@media(max-width:900px){.report-folder-buttons{width:100%;margin-left:0}.report-folder-button{flex:1;padding:10px 7px}}
-</style><link rel="prefetch" href="/musteri-portfoyu.html">
+</style><link rel="prefetch" href="/musteri-portfoyu.html"><link rel="prefetch" href="/notlar-v2.html"><link rel="prefetch" href="/planlama.html">
 </head>
 <body>
 <div class="crm-page-switch-indicator" aria-hidden="true"><span class="crm-page-switch-dot"></span><span>Hazırlanıyor</span></div>
@@ -292,7 +292,6 @@ function beginCrmSwitch(page){
   crmSwitchGeneration++;
   crmSwitching=true;
   crmActivePage=page;
-  document.body.classList.add('crm-switching');
   return crmSwitchGeneration;
 }
 function endCrmSwitch(generation){
@@ -363,7 +362,7 @@ function activateCrmPage(page,button=null,{force=false,updateUrl=true}={}){
   force=force||resultChanged;
   const generation=beginCrmSwitch(page);
 
-  // Görünümü önce değiştir: kullanıcı tıklamasına anında cevap ver.
+  // Görünümü senkron değiştir: tıklama hissi anında gelsin.
   setCrmPageView(page,button);
 
   if(updateUrl&&currentAccessRole==='admin'){
@@ -373,21 +372,33 @@ function activateCrmPage(page,button=null,{force=false,updateUrl=true}={}){
     history.replaceState(null,'',url.pathname+'?'+url.searchParams.toString());
   }
 
-  if(crmDeferredLoadTimer){clearTimeout(crmDeferredLoadTimer);crmDeferredLoadTimer=null}
+  if(crmDeferredLoadTimer){
+    clearTimeout(crmDeferredLoadTimer);
+    crmDeferredLoadTimer=null;
+  }
 
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  // Cache tazeyse hiçbir veri işine girme.
+  const now=Date.now();
+  const last=Number(crmPageLoadedAt.get(page)||0);
+  if(!force&&last&&now-last<CRM_PAGE_CACHE_MS){
     endCrmSwitch(generation);
+    return;
+  }
 
-    // Veri yükünü ilk boyamadan sonra çalıştır; hızlı sekme geçişinde eski yük başlamaz.
+  // Eski çift frame + 120 ms bekleme yerine tek frame + 16 ms.
+  requestAnimationFrame(()=>{
+    if(generation!==crmSwitchGeneration||crmActivePage!==page)return;
     crmDeferredLoadTimer=setTimeout(()=>{
       crmDeferredLoadTimer=null;
       if(generation!==crmSwitchGeneration||crmActivePage!==page)return;
-      loadCrmPageData(page,{force}).catch(e=>{
-        console.error('Sayfa verisi yüklenemedi:',page,e);
-        showMsg(e.message||'Sayfa yüklenemedi.','err');
-      });
-    },120);
-  }));
+      Promise.resolve(loadCrmPageData(page,{force}))
+        .catch(e=>{
+          console.error('Sayfa verisi yüklenemedi:',page,e);
+          showMsg(e.message||'Sayfa yüklenemedi.','err');
+        })
+        .finally(()=>endCrmSwitch(generation));
+    },16);
+  });
 }
 
 document.querySelectorAll('.menu button[data-page]').forEach(b=>b.onclick=()=>activateCrmPage(b.dataset.page,b));
