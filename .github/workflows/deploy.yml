@@ -153,7 +153,20 @@ jobs:
           grep -Fq 'crmPageLoadPromises' /tmp/crm-index.html || (echo 'duplicate load guard missing'; exit 1)
           grep -Fq 'id="portfolioFrame"' /tmp/crm-index.html || (echo 'persistent portfolio frame missing'; exit 1)
           grep -Fq 'musteri-portfoyu.html?embedded=1' /tmp/crm-index.html || (echo 'embedded portfolio source missing'; exit 1)
-          grep -Fq 'requestAnimationFrame(()=>requestAnimationFrame' /tmp/crm-index.html || (echo 'visual-first page switching missing'; exit 1)
+          node - <<'NODE'
+          const fs=require('fs');
+          const html=fs.readFileSync('/tmp/crm-index.html','utf8');
+          const start=html.indexOf('function activateCrmPage(');
+          const end=html.indexOf("document.querySelectorAll('.menu button[data-page]')",start);
+          if(start<0||end<=start)throw new Error('activateCrmPage block missing');
+          const block=html.slice(start,end);
+          if(!block.includes('requestAnimationFrame(()=>{'))throw new Error('single-frame page switching missing');
+          if(!block.includes('},16);'))throw new Error('16ms deferred load missing');
+          if(block.includes('requestAnimationFrame(()=>requestAnimationFrame'))throw new Error('old double-frame switch still present');
+          if(block.includes('},120);'))throw new Error('old 120ms artificial delay still present');
+          if(!block.includes('if(!force&&last&&now-last<CRM_PAGE_CACHE_MS)'))throw new Error('fresh-cache fast path missing');
+          console.log('instant page switch block: OK');
+          NODE
           grep -Fq 'prewarmPortfolioFrame' /tmp/crm-index.html || (echo 'portfolio lazy loader missing'; exit 1)
           if grep -Fq 'requestIdleCallback(prewarmPortfolioFrame' /tmp/crm-index.html; then echo 'background portfolio prewarm still enabled'; exit 1; fi
           grep -Fq 'let crmSwitching=false' /tmp/crm-index.html || (echo 'navigation switch guard missing'; exit 1)
