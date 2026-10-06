@@ -5,147 +5,467 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Müşteri Portföyü</title>
 <style>
-:root{--nav:#0b1730;--nav2:#101e39;--blue:#1769f6;--blue2:#eaf2ff;--bg:#f4f7fb;--panel:#fff;--line:#dce5ef;--text:#0f172a;--muted:#64748b;--green:#13ad63;--greenbg:#e9f9f0;--red:#ef3b4f;--redbg:#fff0f1;--amber:#f3a600;--amberbg:#fff7df;--purple:#7547e8;--purplebg:#f1ecff}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}button,input,select,textarea{font:inherit}.app{min-height:100vh;display:grid;grid-template-columns:205px minmax(0,1fr)}.side{background:linear-gradient(180deg,var(--nav),#0b1830 72%,#081326);color:#fff;padding:18px 14px;display:flex;flex-direction:column;min-height:100vh}.brand{font-size:18px;font-weight:900;display:flex;align-items:center;gap:10px;margin-bottom:18px}.brand img{width:42px;height:42px;object-fit:contain}.nav{display:grid;gap:4px}.nav a{color:#dbe6f5;text-decoration:none;padding:10px 11px;border-radius:8px;font-weight:700;font-size:13px;display:flex;gap:9px;align-items:center}.nav a:hover,.nav a.active{background:var(--blue);color:#fff}.nav-spacer{height:10px;border-bottom:1px solid #24324b;margin-bottom:8px}.side-foot{margin-top:auto;background:#13233f;border:1px solid #213453;border-radius:12px;padding:12px}.side-foot b{display:block;font-size:12px;margin-bottom:9px}.side-foot .small-line{font-size:11px;color:#cbd5e1;padding:6px 0;border-top:1px solid #243653}.main{padding:18px 16px 20px;min-width:0}.head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}.head h1{margin:0;font-size:27px;line-height:1}.sub{color:var(--muted);font-size:12px;margin-top:7px}.head-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.datebox,.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 12px;font-weight:800;color:#334155}.btn{cursor:pointer}.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}.btn.soft{background:#f8fafc}.btn.small{padding:7px 10px;font-size:12px}.filter-grid{display:grid;grid-template-columns:140px 140px 150px 150px 150px minmax(230px,1fr) 88px 82px;gap:9px;align-items:end;margin-bottom:13px}.filter label{display:block;font-size:10px;font-weight:900;color:#334155;margin:0 0 5px 2px}.filter input,.filter select{width:100%;height:38px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:0 10px;color:#0f172a}.cards{display:grid;grid-template-columns:repeat(8,minmax(118px,1fr));gap:10px;margin-bottom:13px}.stat{border:1px solid var(--line);border-radius:10px;background:#fff;padding:12px;display:grid;grid-template-columns:38px 1fr;gap:9px;align-items:center;min-height:78px}.stat .ico{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:19px;font-weight:900}.stat .label{font-size:11px;font-weight:900;margin-bottom:2px}.stat .num{font-size:22px;font-weight:900;line-height:1}.stat .tiny{font-size:9px;color:var(--muted);margin-top:3px}.stat.total{background:#f4f8ff}.stat.total .ico{background:#dfeeff;color:#1769f6}.stat.pos{background:#f2fcf6}.stat.pos .ico{background:#dff7e9;color:#12a65d}.stat.wait{background:#fffaf0}.stat.wait .ico{background:#fff0c7;color:#d98e00}.stat.neg{background:#fff4f4}.stat.neg .ico{background:#ffe0e3;color:#e72f43}.stat.offer{background:#f7f4ff}.stat.offer .ico{background:#ece4ff;color:#7043dd}.stat.call{background:#fff9ed}.stat.call .ico{background:#ffedc4;color:#e49a00}.stat.order{background:#fff1f1}.stat.order .ico{background:#ffdadd;color:#e93449}.stat.over{background:#fff1f1}.stat.over .ico{background:#ffdadd;color:#e93449}.workbar{background:#fff;border:1px solid var(--line);border-radius:10px 10px 0 0;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px}.views{display:flex;gap:4px;align-items:center}.viewbtn{border:0;background:transparent;border-radius:7px;padding:7px 10px;font-size:11px;font-weight:800;color:#475569;cursor:pointer}.viewbtn.active{background:#eaf2ff;color:#1769f6}.workspace{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(390px,.92fr);gap:10px;align-items:start}.table-card{background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 10px 10px;overflow:auto;min-height:622px}table{border-collapse:collapse;width:100%;min-width:1040px}th,td{padding:9px 8px;border-bottom:1px solid #e7edf4;text-align:left;font-size:11px;vertical-align:middle}th{background:#f8fafc;font-weight:900;position:sticky;top:0;z-index:2;color:#334155}tbody tr{cursor:pointer}tbody tr:hover td,tbody tr.selected td{background:#eef5ff}tbody tr.overdue td{background:#fff1f2}tbody tr.overdue.selected td{background:#ffe4e6}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:#22c55e}.dot.red{background:#ef4444}.dot.amber{background:#f59e0b}.company{font-weight:900;font-size:11px}.person-role{display:block;color:#64748b;font-size:9px;margin-top:2px}.mail{color:#1769f6;text-decoration:none}.badge{display:inline-flex;align-items:center;justify-content:center;padding:4px 7px;border-radius:5px;font-weight:900;font-size:9px;white-space:nowrap}.badge.high{background:#ffdedf;color:#db2b3d}.badge.mid{background:#fff0cf;color:#a86700}.badge.low{background:#ddf7e9;color:#16814c}.badge.pos{background:#dff7e9;color:#15814b}.badge.neg{background:#ffe0e3;color:#b61f31}.badge.wait{background:#fff0cf;color:#a86700}.badge.offer{background:#dfeaff;color:#315ed2}.badge.open{background:#e7edf5;color:#475569}.follow.over{color:#e11d48;font-weight:900}.follow.today{color:#d97706;font-weight:900}.note-check{font-size:13px}.detail{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;min-height:673px;position:sticky;top:10px}.detail-head{display:flex;align-items:center;justify-content:space-between;padding:12px 13px;border-bottom:1px solid var(--line)}.detail-title{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:900}.status-dot{width:10px;height:10px;border-radius:50%;background:#20b467}.detail-actions{display:flex;gap:6px}.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1px solid var(--line);padding:0 10px}.tab{border:0;background:#fff;padding:9px 5px;font-size:10px;font-weight:800;color:#475569;cursor:pointer;border-bottom:2px solid transparent}.tab.active{color:#1769f6;border-bottom-color:#1769f6}.detail-body{padding:12px}.summary4{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px}.mini-card{border:1px solid var(--line);border-radius:8px;padding:9px 7px;background:#fff;min-height:62px}.mini-card .m-label{font-size:9px;color:#64748b;font-weight:800}.mini-card .m-value{font-size:11px;font-weight:900;margin-top:4px}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px}.panel{border:1px solid var(--line);border-radius:9px;padding:11px;background:#fff}.panel h3{font-size:12px;margin:0 0 9px}.info-row{display:grid;grid-template-columns:22px 1fr;gap:5px;align-items:center;margin:7px 0;font-size:11px}.info-row .ico{color:#1769f6;font-size:14px}.info-row input,.info-row select{width:100%;height:30px;border:1px solid var(--line);border-radius:6px;padding:0 7px;font-size:10px}.notes-panel{border:1.5px solid #22c55e;border-radius:9px;margin-top:8px}.notes-title{padding:9px 10px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;font-size:12px;font-weight:900}.note-list{padding:7px 10px;display:grid;gap:6px;max-height:155px;overflow:auto}.note-row{display:grid;grid-template-columns:18px 1fr 22px;gap:5px;align-items:start;font-size:10px}.note-row input{width:14px;height:14px;margin:0}.note-row button{border:0;background:transparent;color:#94a3b8;cursor:pointer}.add-note{display:grid;grid-template-columns:1fr auto;gap:6px;border-top:1px solid var(--line);padding:8px}.add-note input{border:1px solid var(--line);border-radius:6px;padding:7px;font-size:10px}.follow-grid{display:grid;grid-template-columns:1fr 80px 1fr auto;gap:7px;align-items:end;margin-top:10px}.follow-grid label{font-size:9px;font-weight:900;color:#475569}.follow-grid input,.follow-grid select{height:34px;border:1px solid var(--line);border-radius:7px;padding:0 7px;font-size:10px}.savebar{display:flex;justify-content:flex-end;gap:7px;margin-top:10px}.alert{display:none;margin-top:10px;padding:9px 10px;border-radius:8px;background:#fff0f1;color:#b42335;border:1px solid #ffccd1;font-size:10px;font-weight:900}.alert.show{display:block}.history{display:grid;gap:7px}.history-item{border-left:3px solid #1769f6;background:#f8fafc;border-radius:7px;padding:8px 9px;font-size:10px}.empty-detail{padding:50px 20px;color:#64748b;text-align:center}.pager{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;font-size:10px;color:#64748b}.legend{display:flex;gap:12px;flex-wrap:wrap}.legend span:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;margin-right:4px}.legend .l-today:before{background:#f59e0b}.legend .l-over:before{background:#ef4444}.analysis-box{background:#eef5ff;border:1px solid #cddfff;border-radius:8px;padding:10px;font-size:10px;line-height:1.5}.hidden{display:none!important}
-@media(max-width:1380px){.cards{grid-template-columns:repeat(4,1fr)}.filter-grid{grid-template-columns:repeat(4,1fr)}.filter.search{grid-column:span 2}.workspace{grid-template-columns:minmax(0,1.45fr) 400px}}@media(max-width:1000px){.app{grid-template-columns:170px minmax(0,1fr)}.workspace{grid-template-columns:1fr}.detail{position:static}.cards{grid-template-columns:repeat(2,1fr)}.filter-grid{grid-template-columns:1fr 1fr}.filter.search{grid-column:span 2}}@media(max-width:720px){.app{display:block}.side{min-height:auto;padding:8px;position:sticky;top:0;z-index:50}.brand,.side-foot{display:none}.nav{display:flex;overflow:auto}.nav a{white-space:nowrap}.nav-spacer{display:none}.main{padding:10px}.head{align-items:center}.head h1{font-size:21px}.datebox{display:none}.cards{grid-template-columns:1fr 1fr}.filter-grid{grid-template-columns:1fr 1fr}.filter.search{grid-column:1/-1}.workspace{display:block}.detail{margin-top:10px}.summary4{grid-template-columns:1fr 1fr}.two-col{grid-template-columns:1fr}.follow-grid{grid-template-columns:1fr 1fr}.follow-grid .wide{grid-column:1/-1}}
+:root{
+  --nav:#0b1730;--blue:#1769f6;--bg:#f4f7fb;--panel:#fff;--line:#dce5ef;
+  --text:#0f172a;--muted:#64748b;--green:#13ad63;--red:#dc2626;--amber:#d97706;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.app{min-height:100vh;display:grid;grid-template-columns:205px minmax(0,1fr)}
+.side{background:linear-gradient(180deg,var(--nav),#081326);color:#fff;padding:18px 14px;display:flex;flex-direction:column;min-height:100vh}
+.brand{font-size:18px;font-weight:900;margin-bottom:18px}
+.nav{display:grid;gap:4px}
+.nav a{color:#dbe6f5;text-decoration:none;padding:10px 11px;border-radius:8px;font-weight:700;font-size:13px}
+.nav a:hover,.nav a.active{background:var(--blue);color:#fff}
+.main{padding:18px;min-width:0}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.top h1{margin:0;font-size:28px}
+.sub{font-size:12px;color:var(--muted);margin-top:5px}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 12px;font-weight:800;color:#334155}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.danger{background:#fff0f1;border-color:#fecdd3;color:#be123c}
+.toolbar{display:grid;grid-template-columns:minmax(260px,1fr) 160px 150px auto;gap:9px;margin-bottom:12px}
+.toolbar input,.toolbar select,.field input,.field select,.field textarea{
+  width:100%;border:1px solid var(--line);border-radius:8px;background:#fff;padding:9px 10px;color:var(--text)
+}
+.toolbar input,.toolbar select{height:40px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:980px}
+th,td{padding:11px 10px;border-bottom:1px solid #e7edf4;text-align:left;font-size:12px;vertical-align:middle}
+th{background:#f8fafc;color:#334155;font-weight:900;position:sticky;top:0}
+.company-button{
+  appearance:none;border:0;background:transparent;padding:0;color:var(--blue);
+  font-weight:900;text-decoration:underline;text-underline-offset:2px;text-align:left
+}
+.open-button{border:0;border-radius:7px;background:#eaf2ff;color:#174ea6;padding:7px 10px;font-weight:900}
+.badge{display:inline-flex;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:900;background:#eef2f7;color:#475569}
+.badge.high{background:#fee2e2;color:#b91c1c}
+.badge.mid{background:#fef3c7;color:#92400e}
+.badge.good{background:#dcfce7;color:#166534}
+.summary{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;color:var(--muted);font-size:11px}
+.hidden{display:none!important}
+.status{margin:10px 0;padding:10px 12px;border-radius:8px;background:#eff6ff;color:#1d4ed8;font-weight:800;font-size:12px}
+.status.error{background:#fef2f2;color:#b91c1c}
+.detail-shell{min-height:calc(100vh - 36px)}
+.detail-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:linear-gradient(135deg,#0b1730,#1e3a8a);color:white;padding:16px 18px;border-radius:12px 12px 0 0
+}
+.detail-head h2{margin:0;font-size:22px}
+.detail-meta{font-size:12px;color:#cbd5e1;margin-top:5px}
+.detail-body{background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;padding:16px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.panel{border:1px solid var(--line);border-radius:10px;padding:13px;background:#fff}
+.panel h3{margin:0 0 12px;font-size:14px;color:#1e3a8a}
+.field{display:grid;grid-template-columns:125px minmax(0,1fr);gap:8px;align-items:center;margin:8px 0}
+.field label{font-size:12px;font-weight:800;color:#475569}
+.field textarea{min-height:90px;resize:vertical}
+.full{grid-column:1/-1}
+.history-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.history-item{border-left:4px solid var(--blue);background:#f8fafc;border-radius:8px;padding:10px;margin:7px 0;font-size:12px}
+.history-item.offer{border-left-color:var(--amber)}
+.empty{color:var(--muted);font-size:12px;padding:8px 0}
+.detail-actions{display:flex;gap:8px;flex-wrap:wrap}
+.save-line{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+#buildMarker{
+  position:fixed;right:8px;bottom:8px;z-index:9999;background:#0b1730;color:#fff;
+  border-radius:6px;padding:4px 7px;font-size:10px;font-weight:900;opacity:.82;pointer-events:none
+}
+@media(max-width:1100px){.grid{grid-template-columns:1fr 1fr}.history-grid{grid-template-columns:1fr}.toolbar{grid-template-columns:1fr 1fr}.toolbar .wide{grid-column:1/-1}}
+@media(max-width:760px){.app{display:block}.side{min-height:auto}.nav{display:flex;overflow:auto}.nav a{white-space:nowrap}.main{padding:10px}.grid{grid-template-columns:1fr}.toolbar{grid-template-columns:1fr}.toolbar .wide{grid-column:auto}.field{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}.detail-head{align-items:flex-start;flex-direction:column}}
 </style>
 </head>
 <body>
+<div id="buildMarker">PORTFÖY CLEAN V2</div>
 <div class="app">
-<aside class="side">
-  <div class="brand"><img src="/notes-logo-ag-v1.webp" alt="AG"><span>CRM Müşteri<br>Takip</span></div>
-  <nav class="nav">
-    <a href="/">⌂ Ana Ekran</a>
-    <a href="/?page=customers">♟ Müşteriler</a>
-    <a class="active" href="/musteri-portfoyu.html">▣ Müşteri Portföyü</a>
-    <div class="nav-spacer"></div>
-    <a href="/?page=mails">✉ Mailler</a>
-    <a href="/?page=graphicJobs">▤ Grafik İşleri</a>
-    <a href="/?page=tracking">✓ Takip</a>
-    <a href="/?page=reports">▥ Raporlama</a>
-    <div class="nav-spacer"></div>
-    <a href="/?page=agenda">▣ Ajanda</a>
-    <a href="/">⚙ Ayarlar</a>
-  </nav>
-  <div class="side-foot"><b>Bugünün Hatırlatmaları</b><div id="sideReminders" class="small-line">Yükleniyor...</div></div>
-</aside>
-<main class="main">
-  <div class="head">
-    <div><h1>Müşteri Portföyü</h1><div class="sub">Şehir özelinde müşteri analizleri, görüşme notları ve satış potansiyeli</div></div>
-    <div class="head-actions"><span id="rangeBox" class="datebox"></span><button class="btn primary" onclick="loadAll()">↻ Yenile</button><a class="btn primary" href="/?page=customers">＋ Yeni Müşteri</a></div>
-  </div>
+  <aside class="side">
+    <div class="brand">CRM Müşteri Takip</div>
+    <nav class="nav">
+      <a href="/">⌂ Ana Ekran</a>
+      <a href="/?page=customers">♟ Müşteriler</a>
+      <a class="active" href="/musteri-portfoyu.html">▣ Müşteri Portföyü</a>
+      <a href="/?page=meetings">💬 Görüşmeler</a>
+      <a href="/?page=mails">✉ Mailler</a>
+      <a href="/?page=agenda">▣ Ajanda</a>
+    </nav>
+  </aside>
 
-  <div class="filter-grid">
-    <div class="filter"><label>İl / Bölge</label><select id="city"><option value="">Tümü</option></select></div>
-    <div class="filter"><label>İş Alanı</label><select id="sector"><option value="">Tümü</option></select></div>
-    <div class="filter"><label>Potansiyel</label><select id="priority"><option value="">Tümü</option><option>KRİTİK</option><option>YÜKSEK</option><option>NORMAL</option></select></div>
-    <div class="filter"><label>Sonuç</label><select id="result"><option value="">Tümü</option><option value="positive">Olumlu</option><option value="waiting">Beklemede</option><option value="negative">Olumsuz</option><option value="open">Sonuçlanmamış</option></select></div>
-    <div class="filter"><label>Takip</label><select id="followFilter"><option value="">Tümü</option><option value="overdue">Süresi Geçen</option><option value="today">Bugün</option><option value="future">Yaklaşan</option></select></div>
-    <div class="filter search"><label>Arama</label><input id="search" placeholder="Firma, kişi, telefon, mail ara..."></div>
-    <button class="btn primary" onclick="render()">⌕ Ara</button>
-    <button class="btn soft" onclick="clearFilters()">Temizle</button>
-  </div>
-
-  <div class="cards">
-    <div class="stat total"><div class="ico">▦</div><div><div class="label">Toplam Firma</div><div id="sTotal" class="num">0</div><div class="tiny">Portföy</div></div></div>
-    <div class="stat pos"><div class="ico">✓</div><div><div class="label">Olumlu</div><div id="sPositive" class="num">0</div><div class="tiny">Kazanılan</div></div></div>
-    <div class="stat wait"><div class="ico">◷</div><div><div class="label">Beklemede</div><div id="sWaiting" class="num">0</div><div class="tiny">Takipte</div></div></div>
-    <div class="stat neg"><div class="ico">×</div><div><div class="label">Olumsuz</div><div id="sNegative" class="num">0</div><div class="tiny">Sonuçlandı</div></div></div>
-    <div class="stat offer"><div class="ico">▤</div><div><div class="label">Teklif Bekliyor</div><div id="sOffer" class="num">0</div><div class="tiny">Teklif aşaması</div></div></div>
-    <div class="stat call"><div class="ico">☎</div><div><div class="label">Tekrar Aranacak</div><div id="sFollow" class="num">0</div><div class="tiny">Takip tarihi var</div></div></div>
-    <div class="stat order"><div class="ico">◇</div><div><div class="label">Sipariş Alınan</div><div id="sOrder" class="num">0</div><div class="tiny">Olumlu müşteri</div></div></div>
-    <div class="stat over"><div class="ico">●</div><div><div class="label">Süresi Geçen</div><div id="sOverdue" class="num">0</div><div class="tiny">Acil takip</div></div></div>
-  </div>
-
-  <div class="workbar"><div class="views"><button class="viewbtn active">▦ Liste Görünümü</button><button class="viewbtn">▣ Kart Görünümü</button><button class="viewbtn">⌁ Analiz</button><button class="viewbtn">⌖ Harita</button><button class="viewbtn">◷ Zaman Çizelgesi</button></div><div><button class="btn small soft" onclick="exportCsv()">⇩ Dışa Aktar</button></div></div>
-
-  <div class="workspace">
-    <div class="table-card">
-      <table><thead><tr><th>Firma</th><th>Görüşülen Kişi</th><th>Telefon</th><th>Mail</th><th>İş Alanı</th><th>Son Görüşme</th><th>Potansiyel</th><th>Sonuç</th><th>Sonraki İşlem</th><th>Not</th><th>Aksiyon</th></tr></thead><tbody id="rows"></tbody></table>
-      <div class="pager"><div id="rowCount">0 firma</div><div class="legend"><span>Zamanında</span><span class="l-today">Bugün</span><span class="l-over">Süresi Geçti</span></div></div>
-    </div>
-
-    <aside id="detail" class="detail">
-      <div id="detailEmpty" class="empty-detail">Listeden bir müşteri seçin.</div>
-      <div id="detailContent" class="hidden">
-        <div class="detail-head"><div class="detail-title"><span class="status-dot"></span><span id="dCompany">Firma</span></div><div class="detail-actions"><button class="btn small" onclick="focusEdit()">✎ Düzenle</button></div></div>
-        <div class="tabs"><button class="tab active" data-tab="general">Genel</button><button class="tab" data-tab="notes">Görüşmeler & Notlar</button><button class="tab" data-tab="offers">Teklifler</button><button class="tab" data-tab="orders">Siparişler</button><button class="tab" data-tab="analysis">Analiz</button></div>
-        <div class="detail-body">
-          <div id="tabGeneral" class="tabpane">
-            <div class="summary4">
-              <div class="mini-card"><div class="m-label">Son Görüşme</div><div id="dLastMeeting" class="m-value">—</div></div>
-              <div class="mini-card"><div class="m-label">Sonuç</div><div id="dResultLabel" class="m-value">—</div></div>
-              <div class="mini-card"><div class="m-label">Sonraki İşlem</div><div id="dFollowLabel" class="m-value">—</div></div>
-              <div class="mini-card"><div class="m-label">Potansiyel</div><div id="dPotential" class="m-value">—</div></div>
-            </div>
-            <div class="two-col">
-              <div class="panel"><h3>İletişim Bilgileri</h3>
-                <div class="info-row"><span class="ico">●</span><input id="dContact" placeholder="Görüşülen kişi"></div>
-                <div class="info-row"><span class="ico">☎</span><input id="dPhone" placeholder="Telefon"></div>
-                <div class="info-row"><span class="ico">✉</span><input id="dEmail" placeholder="Mail"></div>
-                <div class="info-row"><span class="ico">⌖</span><input id="dRegion" placeholder="İl / Bölge"></div>
-              </div>
-              <div class="panel"><h3>Firma Bilgileri</h3>
-                <div class="info-row"><span class="ico">▦</span><input id="dCategories" placeholder="İş alanı"></div>
-                <div class="info-row"><span class="ico">▥</span><select id="dPriority"><option>KRİTİK</option><option>YÜKSEK</option><option>NORMAL</option></select></div>
-                <div class="info-row"><span class="ico">◉</span><select id="dResultSelect"><option value="open">Sonuçlanmamış</option><option value="waiting">Beklemede</option><option value="positive">Olumlu</option><option value="negative">Olumsuz</option></select></div>
-                <div class="info-row"><span class="ico">▣</span><input id="dMachine" placeholder="Makine / teknik bilgi"></div>
-              </div>
-            </div>
-            <div class="notes-panel"><div class="notes-title"><span>✓ Notlar</span><span>↗</span></div><div id="noteList" class="note-list"></div><div class="add-note"><input id="newNote" placeholder="Yeni not yazın..."><button class="btn small primary" onclick="addNote()">＋ Ekle</button></div></div>
-            <div class="follow-grid"><div><label>Sonraki İşlem Tarihi</label><input id="dFollow" type="date"></div><div><label>Saat</label><input id="dFollowTime" type="time" value="10:00"></div><div class="wide"><label>Hatırlatma Notu</label><input id="dReminderNote" placeholder="Örn. Teklif sonucunu sor"></div><button class="btn primary" onclick="createReminder()">🔔 Bildirim Ekle</button></div>
-            <div class="savebar"><button class="btn soft" onclick="loadSelected()">İptal</button><button class="btn primary" onclick="saveCustomer()">Kaydet</button></div>
-            <div id="overdueAlert" class="alert">🔔 Bu müşterinin takip süresi geçti.</div>
-          </div>
-          <div id="tabNotes" class="tabpane hidden"><div class="panel"><h3>Görüşme Geçmişi</h3><div id="meetingHistory" class="history"></div></div></div>
-          <div id="tabOffers" class="tabpane hidden"><div class="panel"><h3>Teklifler</h3><div id="offerHistory" class="history"></div></div></div>
-          <div id="tabOrders" class="tabpane hidden"><div class="panel"><h3>Sipariş Durumu</h3><div id="orderSummary" class="analysis-box"></div></div></div>
-          <div id="tabAnalysis" class="tabpane hidden"><div class="panel"><h3>Müşteri Analizi</h3><div id="analysisBox" class="analysis-box"></div></div></div>
+  <main class="main">
+    <section id="listView">
+      <div class="top">
+        <div>
+          <h1>Müşteri Portföyü</h1>
+          <div class="sub">Yeni sade ekran — firma adına veya “Aç” düğmesine basınca müşteri kartı bu sayfada açılır.</div>
+        </div>
+        <div class="actions">
+          <button id="refreshButton" class="btn primary" type="button">↻ Yenile</button>
+          <a class="btn" href="/?page=customers">Müşteriler</a>
         </div>
       </div>
-    </aside>
-  </div>
-</main>
+
+      <div class="toolbar">
+        <input id="search" class="wide" placeholder="Firma, kişi, telefon, mail ara...">
+        <select id="regionFilter"><option value="">Tüm Bölgeler</option></select>
+        <select id="priorityFilter"><option value="">Tüm Potansiyeller</option><option>KRİTİK</option><option>YÜKSEK</option><option>NORMAL</option><option>DÜŞÜK</option></select>
+        <button id="clearButton" class="btn" type="button">Temizle</button>
+      </div>
+
+      <div id="listStatus" class="status hidden"></div>
+
+      <div class="card table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Firma</th><th>Görüşülen Kişi</th><th>Telefon</th><th>Mail</th>
+              <th>Bölge</th><th>İş Alanı</th><th>Potansiyel</th><th>Takip</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="customerRows"></tbody>
+        </table>
+        <div class="summary"><span id="rowCount">0 firma</span><span>Firma adına basarak açabilirsiniz.</span></div>
+      </div>
+    </section>
+
+    <section id="detailView" class="hidden detail-shell">
+      <div class="detail-head">
+        <div>
+          <h2 id="detailCompany">Müşteri</h2>
+          <div id="detailMeta" class="detail-meta"></div>
+        </div>
+        <div class="detail-actions">
+          <button id="backButton" class="btn" type="button">← Müşteri Listesine Dön</button>
+          <button id="saveButtonTop" class="btn primary" type="button">✓ Kaydet</button>
+        </div>
+      </div>
+
+      <div class="detail-body">
+        <div id="detailStatus" class="status hidden"></div>
+
+        <div class="grid">
+          <div class="panel">
+            <h3>Müşteri Bilgileri</h3>
+            <div class="field"><label>Firma</label><input id="dCompany"></div>
+            <div class="field"><label>Görüşülen Kişi</label><input id="dContact"></div>
+            <div class="field"><label>Bölge</label><input id="dRegion"></div>
+            <div class="field"><label>Potansiyel</label><select id="dPriority"><option>KRİTİK</option><option>YÜKSEK</option><option>NORMAL</option><option>DÜŞÜK</option></select></div>
+            <div class="field"><label>Aşama</label><select id="dStage"><option>Yeni Lead</option><option>İlk Görüşme</option><option>Teklif</option><option>Pazarlık</option><option>Beklemede</option><option>Kazanıldı</option><option>Kaybedildi</option></select></div>
+            <div class="field"><label>Takip Tarihi</label><input id="dFollow" type="date"></div>
+          </div>
+
+          <div class="panel">
+            <h3>İletişim</h3>
+            <div class="field"><label>Telefon</label><input id="dPhone"></div>
+            <div class="field"><label>Mail</label><input id="dEmail"></div>
+            <div class="field"><label>İş Alanı</label><input id="dCategories"></div>
+            <div class="field"><label>Makine / Teknik</label><textarea id="dMachine"></textarea></div>
+          </div>
+
+          <div class="panel">
+            <h3>Cari / Fatura</h3>
+            <div class="field"><label>Ünvan</label><input id="dInvoiceTitle"></div>
+            <div class="field"><label>Vergi Dairesi</label><input id="dTaxOffice"></div>
+            <div class="field"><label>Vergi No</label><input id="dTaxNumber"></div>
+            <div class="field"><label>Adres</label><textarea id="dInvoiceAddress"></textarea></div>
+          </div>
+
+          <div class="panel full">
+            <h3>Özel Notlar</h3>
+            <textarea id="dNotes" style="width:100%;min-height:120px;border:1px solid var(--line);border-radius:8px;padding:10px"></textarea>
+          </div>
+        </div>
+
+        <div class="history-grid">
+          <div class="panel">
+            <h3>Görüşmeler & Notlar</h3>
+            <div id="meetingHistory"></div>
+          </div>
+          <div class="panel">
+            <h3>Teklifler</h3>
+            <div id="offerHistory"></div>
+          </div>
+        </div>
+
+        <div class="save-line">
+          <button id="backButtonBottom" class="btn" type="button">← Listeye Dön</button>
+          <button id="saveButtonBottom" class="btn primary" type="button">✓ Değişiklikleri Kaydet</button>
+        </div>
+      </div>
+    </section>
+  </main>
 </div>
+
 <script>
-const $=id=>document.getElementById(id);let customers=[],meetings=[],selected=null,selectedHistory=null,notes=[],visibleRows=[];
-const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
-async function api(url,opt={}){const r=await fetch(url,{credentials:'same-origin',headers:{'content-type':'application/json',...(opt.headers||{})},...opt});if(r.status===401){location.href='/';throw new Error('Oturum gerekli')}let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||'İşlem başarısız');return d}
-function parsed(v){try{const a=JSON.parse(v||'');return Array.isArray(a)?a:[]}catch{return []}}
-function resultOf(c){if(c.stage==='Kazanıldı')return'positive';if(c.stage==='Kaybedildi'||c.record_status==='Pasif')return'negative';if(c.stage==='Beklemede')return'waiting';return'open'}
-function resultLabel(c){return({positive:'Olumlu',negative:'Olumsuz',waiting:'Beklemede',open:'Sonuçlanmamış'})[resultOf(c)]}
-function resultBadge(c){return({positive:'pos',negative:'neg',waiting:'wait',open:'open'})[resultOf(c)]}
-function priorityLabel(c){const p=String(c.priority||'NORMAL');return p==='KRİTİK'?'Yüksek':p==='YÜKSEK'?'Orta':'Düşük'}
-function priorityClass(c){const p=String(c.priority||'NORMAL');return p==='KRİTİK'?'high':p==='YÜKSEK'?'mid':'low'}
-function lastMeeting(c){return meetings.filter(m=>Number(m.customer_id)===Number(c.id)).sort((a,b)=>String(b.meeting_date||b.created_at||'').localeCompare(String(a.meeting_date||a.created_at||'')))[0]||null}
-function isOverdue(c){return !!(c.follow_date&&c.follow_date<today()&&!['positive','negative'].includes(resultOf(c)))}
-function isToday(c){return c.follow_date===today()&&!['positive','negative'].includes(resultOf(c))}
-function firstNote(c){const m=lastMeeting(c);if(m?.note)return String(m.note).split('\n')[0];return String(c.special_notes||'').replace(/^\[[ xX]\]\s*/m,'').split('\n')[0]||''}
-function monthRange(){const d=new Date(),y=d.getFullYear(),m=d.getMonth();const a=new Date(y,m,1),b=new Date(y,m+1,0);const f=x=>String(x.getDate()).padStart(2,'0')+'.'+String(x.getMonth()+1).padStart(2,'0')+'.'+x.getFullYear();$('rangeBox').textContent='▣ '+f(a)+' - '+f(b)}
-function fillFilters(){const cities=[...new Set(customers.map(c=>String(c.region||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr'));$('city').innerHTML='<option value="">Tümü</option>'+cities.map(x=>`<option>${esc(x)}</option>`).join('');const secs=[...new Set(customers.flatMap(c=>String(c.categories||c.sector||'').split(',').map(x=>x.trim()).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'tr'));$('sector').innerHTML='<option value="">Tümü</option>'+secs.map(x=>`<option>${esc(x)}</option>`).join('')}
-function counts(){const all=customers.filter(c=>c.record_status!=='Silindi');$('sTotal').textContent=all.length;$('sPositive').textContent=all.filter(c=>resultOf(c)==='positive').length;$('sWaiting').textContent=all.filter(c=>resultOf(c)==='waiting').length;$('sNegative').textContent=all.filter(c=>resultOf(c)==='negative').length;$('sOffer').textContent=all.filter(c=>String(c.stage||'').toLocaleLowerCase('tr').includes('teklif')).length;$('sFollow').textContent=all.filter(c=>c.follow_date&&!['positive','negative'].includes(resultOf(c))).length;$('sOrder').textContent=all.filter(c=>resultOf(c)==='positive').length;$('sOverdue').textContent=all.filter(isOverdue).length;const due=all.filter(isOverdue).slice(0,3);$('sideReminders').innerHTML=due.length?due.map(c=>`<div style="margin:6px 0">🔴 <b>${esc(c.company)}</b><br><span>${esc(c.follow_date)}</span></div>`).join(''):'Bugün geciken takip yok.'}
-function filterRows(){const q=$('search').value.trim().toLocaleLowerCase('tr'),city=$('city').value,sector=$('sector').value,prio=$('priority').value,res=$('result').value,follow=$('followFilter').value;return customers.filter(c=>c.record_status!=='Silindi').filter(c=>!city||c.region===city).filter(c=>!sector||String(c.categories||c.sector||'').includes(sector)).filter(c=>!prio||c.priority===prio).filter(c=>!res||resultOf(c)===res).filter(c=>{if(!follow)return true;if(follow==='overdue')return isOverdue(c);if(follow==='today')return isToday(c);if(follow==='future')return c.follow_date>today();return true}).filter(c=>!q||[c.company,c.contact_name,c.phone,c.email,c.region,c.categories,c.sector].join(' ').toLocaleLowerCase('tr').includes(q))}
-function render(){visibleRows=filterRows();$('rowCount').textContent=`${visibleRows.length} firma`;const tbody=$('rows');tbody.innerHTML=visibleRows.map(c=>{const lm=lastMeeting(c),note=firstNote(c),cls=isOverdue(c)?'overdue ':'';const sel=selected&&Number(selected.id)===Number(c.id)?'selected':'';const followClass=isOverdue(c)?'over':isToday(c)?'today':'';return `<tr class="${cls}${sel}" onclick="selectCustomer(${c.id})"><td><span class="dot ${resultOf(c)==='negative'?'red':resultOf(c)==='waiting'?'amber':''}"></span><span class="company">${esc(c.company)}</span></td><td>${esc(c.contact_name||'—')}<span class="person-role">${esc(c.invoice_title||'')}</span></td><td>${esc(c.phone||parsed(c.phones_json)[0]||'—')}</td><td><a class="mail" onclick="event.stopPropagation()" href="mailto:${esc(c.email||parsed(c.emails_json)[0]||'')}">${esc(c.email||parsed(c.emails_json)[0]||'—')}</a></td><td>${esc(c.categories||c.sector||'—')}</td><td>${esc((lm?.meeting_date||'—').slice(0,10))}</td><td><span class="badge ${priorityClass(c)}">${priorityLabel(c)}</span></td><td><span class="badge ${resultBadge(c)}">${resultLabel(c)}</span></td><td class="follow ${followClass}">${esc(c.follow_date||'—')}</td><td><span class="note-check">${note?'☑':'□'}</span></td><td><button class="btn small" onclick="event.stopPropagation();selectCustomer(${c.id})">Detay</button></td></tr>`}).join('');if(selected&&!visibleRows.some(c=>Number(c.id)===Number(selected.id))){selected=null;$('detailContent').classList.add('hidden');$('detailEmpty').classList.remove('hidden')}}
-function clearFilters(){['search','city','sector','priority','result','followFilter'].forEach(id=>$(id).value='');render()}
-function renderNotes(){if(!notes.length){$('noteList').innerHTML='<div style="font-size:10px;color:#64748b">Henüz not yok.</div>';return}$('noteList').innerHTML=notes.map((n,i)=>`<div class="note-row"><input type="checkbox" ${n.done?'checked':''} onchange="toggleNote(${i},this.checked)"><span style="${n.done?'text-decoration:line-through;color:#94a3b8':''}">${esc(n.text)}</span><button onclick="removeNote(${i})">×</button></div>`).join('')}
-function parseNotes(text){return String(text||'').split('\n').map(x=>x.trim()).filter(Boolean).map(x=>({done:/^\[[xX]\]/.test(x),text:x.replace(/^\[[ xX]\]\s*/, '')}))}
-function notesText(){return notes.map(n=>`[${n.done?'x':' '}] ${n.text}`).join('\n')}
-function addNote(){const v=$('newNote').value.trim();if(!v)return;notes.push({done:false,text:v});$('newNote').value='';renderNotes()}
-function toggleNote(i,v){notes[i].done=v;renderNotes()}function removeNote(i){notes.splice(i,1);renderNotes()}
-async function selectCustomer(id){selected=customers.find(c=>Number(c.id)===Number(id));if(!selected)return;selectedHistory=await api('/api/customers/'+id+'/history');loadSelected();render()}
-function loadSelected(){if(!selected)return;$('detailEmpty').classList.add('hidden');$('detailContent').classList.remove('hidden');$('dCompany').textContent=selected.company;$('dContact').value=selected.contact_name||'';$('dPhone').value=selected.phone||parsed(selected.phones_json)[0]||'';$('dEmail').value=selected.email||parsed(selected.emails_json)[0]||'';$('dRegion').value=selected.region||'';$('dCategories').value=selected.categories||selected.sector||'';$('dPriority').value=selected.priority||'NORMAL';$('dResultSelect').value=resultOf(selected);$('dMachine').value=selected.machine_info||'';$('dFollow').value=selected.follow_date||'';$('dLastMeeting').textContent=(lastMeeting(selected)?.meeting_date||'—').slice(0,10);$('dResultLabel').textContent=resultLabel(selected);$('dFollowLabel').textContent=selected.follow_date||'—';$('dPotential').textContent=priorityLabel(selected);notes=parseNotes(selected.special_notes);renderNotes();$('overdueAlert').classList.toggle('show',isOverdue(selected));renderHistory();renderAnalysis()}
-function renderHistory(){const h=selectedHistory||{meetings:[],offers:[]};$('meetingHistory').innerHTML=h.meetings?.length?h.meetings.slice().reverse().map(m=>`<div class="history-item"><b>${esc((m.meeting_date||m.created_at||'').slice(0,10))}</b> · ${esc(m.result||'Beklemede')}<div style="margin-top:4px">${esc(m.note||'Not yok')}</div></div>`).join(''):'<div class="history-item">Görüşme kaydı yok.</div>';$('offerHistory').innerHTML=h.offers?.length?h.offers.map(o=>`<div class="history-item"><b>${esc(o.offer_no||'Teklif')}</b> · ${esc(o.status||'')} · ${Number(o.amount||0).toLocaleString('tr-TR')} ${esc(o.currency||'TRY')}<div style="margin-top:4px">${esc(o.subject||o.note||'')}</div></div>`).join(''):'<div class="history-item">Teklif kaydı yok.</div>';$('orderSummary').innerHTML=resultOf(selected)==='positive'?'Bu müşteri <b>olumlu/kazanılmış</b> durumda. Teklif ve görüşme geçmişi üzerinden sipariş takibi yapılabilir.':'Henüz olumlu sonuçlanmış sipariş görünmüyor.'}
-function renderAnalysis(){if(!selected)return;const lm=lastMeeting(selected),offerCount=selectedHistory?.offers?.length||0,meetingCount=selectedHistory?.meetings?.length||0;let lines=[];lines.push(`<b>${esc(selected.company)}</b> için ${meetingCount} görüşme ve ${offerCount} teklif kaydı var.`);lines.push(`Potansiyel: <b>${priorityLabel(selected)}</b>. Sonuç: <b>${resultLabel(selected)}</b>.`);if(isOverdue(selected))lines.push(`<span style="color:#c51e34"><b>Takip süresi geçmiş.</b> Öncelikli işlem gerekiyor.</span>`);else if(selected.follow_date)lines.push(`Sonraki takip: <b>${esc(selected.follow_date)}</b>.`);if(lm?.note)lines.push(`Son görüşme notu: ${esc(String(lm.note).slice(0,180))}`);$('analysisBox').innerHTML=lines.join('<br>')}
-function focusEdit(){$('dContact').focus()}
-async function saveCustomer(){if(!selected)return;const desired=$('dResultSelect').value,phones=parsed(selected.phones_json),emails=parsed(selected.emails_json);if($('dPhone').value.trim())phones[0]=$('dPhone').value.trim();if($('dEmail').value.trim())emails[0]=$('dEmail').value.trim();let stage=selected.stage||'Yeni Lead';if(desired==='waiting')stage='Beklemede';else if(desired==='open'&&['Kazanıldı','Kaybedildi','Beklemede'].includes(stage))stage='İlk Görüşme';const payload={company:selected.company,contact_name:$('dContact').value.trim(),phones,emails,region:$('dRegion').value.trim(),categories:$('dCategories').value.split(',').map(x=>x.trim()).filter(Boolean),priority:$('dPriority').value,stage,follow_date:$('dFollow').value,invoice_title:selected.invoice_title||'',tax_office:selected.tax_office||'',tax_number:selected.tax_number||'',invoice_address:selected.invoice_address||'',special_notes:notesText(),machine_info:$('dMachine').value.trim()};await api('/api/customers/'+selected.id,{method:'PUT',body:JSON.stringify(payload)});if(desired==='positive'||desired==='negative')await api('/api/customers/'+selected.id+'/result',{method:'PUT',body:JSON.stringify({result:desired==='positive'?'Olumlu':'Olumsuz'})});await loadAll(selected.id)}
-async function createReminder(){if(!selected)return;const date=$('dFollow').value,time=$('dFollowTime').value||'10:00';if(!date){alert('Önce sonraki işlem tarihini seçin.');return}const note=$('dReminderNote').value.trim()||selected.company+' takip';await api('/api/meetings',{method:'POST',body:JSON.stringify({customer_id:selected.id,meeting_date:today(),note:'Takip hatırlatması oluşturuldu: '+note,next_follow_date:date,remind_at:date+'T'+time,remind_note:note,result:'Beklemede'})});await loadAll(selected.id)}
-function switchTab(name){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));document.querySelectorAll('.tabpane').forEach(x=>x.classList.add('hidden'));$('tab'+name[0].toUpperCase()+name.slice(1)).classList.remove('hidden')}
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));['search','city','sector','priority','result','followFilter'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
-function exportCsv(){const head=['Firma','Kişi','Telefon','Mail','Bölge','İş Alanı','Sonuç','Takip'];const body=visibleRows.map(c=>[c.company,c.contact_name,c.phone,c.email,c.region,c.categories||c.sector,resultLabel(c),c.follow_date]);const csv=[head,...body].map(r=>r.map(v=>'"'+String(v||'').replaceAll('"','""')+'"').join(';')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download='musteri-portfoyu.csv';a.click();URL.revokeObjectURL(a.href)}
-async function loadAll(reselect){try{[customers,meetings]=await Promise.all([api('/api/customers?status=Tümü'),api('/api/meetings?status=Tümü')]);customers=customers.filter(c=>c.record_status!=='Silindi');fillFilters();counts();render();const id=reselect||(selected&&selected.id)||(visibleRows[0]&&visibleRows[0].id);if(id)await selectCustomer(id)}catch(e){console.error(e)}}
-monthRange();loadAll();
+'use strict';
+
+const $ = id => document.getElementById(id);
+const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[ch]));
+
+let customers = [];
+let visibleCustomers = [];
+let selectedCustomer = null;
+let selectedHistory = {meetings:[],offers:[]};
+
+async function api(url, options={}){
+  const response = await fetch(url, {
+    ...options,
+    headers: {'content-type':'application/json', ...(options.headers||{})}
+  });
+  let data = null;
+  try{ data = await response.json(); }catch{ data = null; }
+
+  if(response.status === 401){
+    throw new Error('Oturum süresi dolmuş. Ana ekrandan tekrar giriş yapın.');
+  }
+  if(!response.ok){
+    throw new Error(data?.error || data?.message || ('Sunucu hatası: ' + response.status));
+  }
+  return data;
+}
+
+function showStatus(target, message, isError=false){
+  target.textContent = message;
+  target.classList.remove('hidden','error');
+  if(isError) target.classList.add('error');
+}
+
+function hideStatus(target){
+  target.classList.add('hidden');
+  target.textContent = '';
+}
+
+function parsedList(raw){
+  try{
+    const value = JSON.parse(raw || '[]');
+    return Array.isArray(value) ? value : [];
+  }catch{
+    return [];
+  }
+}
+
+function mainPhone(customer){
+  return customer.phone || parsedList(customer.phones_json)[0] || '';
+}
+
+function mainEmail(customer){
+  return customer.email || parsedList(customer.emails_json)[0] || '';
+}
+
+function priorityClass(customer){
+  const value = String(customer.priority || '').toUpperCase();
+  if(value === 'KRİTİK' || value === 'YÜKSEK') return 'high';
+  if(value === 'NORMAL') return 'mid';
+  return '';
+}
+
+function renderList(){
+  const q = $('search').value.trim().toLocaleLowerCase('tr');
+  const region = $('regionFilter').value;
+  const priority = $('priorityFilter').value;
+
+  visibleCustomers = customers.filter(c => c.record_status !== 'Silindi').filter(c => {
+    if(region && String(c.region || '') !== region) return false;
+    if(priority && String(c.priority || '') !== priority) return false;
+    if(!q) return true;
+    return [c.company,c.contact_name,c.phone,c.email,c.region,c.categories,c.sector]
+      .join(' ').toLocaleLowerCase('tr').includes(q);
+  });
+
+  $('rowCount').textContent = visibleCustomers.length + ' firma';
+
+  $('customerRows').innerHTML = visibleCustomers.map(c => `
+    <tr>
+      <td><button type="button" class="company-button" data-open-customer="${Number(c.id)}">${esc(c.company || 'İsimsiz Firma')}</button></td>
+      <td>${esc(c.contact_name || '—')}</td>
+      <td>${esc(mainPhone(c) || '—')}</td>
+      <td>${esc(mainEmail(c) || '—')}</td>
+      <td>${esc(c.region || '—')}</td>
+      <td>${esc(c.categories || c.sector || '—')}</td>
+      <td><span class="badge ${priorityClass(c)}">${esc(c.priority || 'NORMAL')}</span></td>
+      <td>${esc(c.follow_date || '—')}</td>
+      <td><button type="button" class="open-button" data-open-customer="${Number(c.id)}">Aç</button></td>
+    </tr>
+  `).join('');
+
+  if(!visibleCustomers.length){
+    $('customerRows').innerHTML = '<tr><td colspan="9" class="empty">Filtreye uygun müşteri bulunamadı.</td></tr>';
+  }
+}
+
+function fillRegionFilter(){
+  const current = $('regionFilter').value;
+  const regions = [...new Set(customers.map(c => String(c.region || '').trim()).filter(Boolean))]
+    .sort((a,b) => a.localeCompare(b,'tr'));
+  $('regionFilter').innerHTML = '<option value="">Tüm Bölgeler</option>' +
+    regions.map(r => '<option value="' + esc(r) + '">' + esc(r) + '</option>').join('');
+  if(regions.includes(current)) $('regionFilter').value = current;
+}
+
+async function loadCustomers(){
+  showStatus($('listStatus'),'Müşteriler yükleniyor...');
+  try{
+    const data = await api('/api/customers?status=Tümü');
+    customers = Array.isArray(data) ? data : [];
+    fillRegionFilter();
+    renderList();
+    hideStatus($('listStatus'));
+  }catch(error){
+    showStatus($('listStatus'), error.message, true);
+  }
+}
+
+function setField(id, value){
+  $(id).value = value ?? '';
+}
+
+function renderHistory(){
+  const meetings = Array.isArray(selectedHistory.meetings) ? selectedHistory.meetings : [];
+  const offers = Array.isArray(selectedHistory.offers) ? selectedHistory.offers : [];
+
+  $('meetingHistory').innerHTML = meetings.length
+    ? meetings.slice().reverse().map(m => `
+      <div class="history-item">
+        <b>${esc((m.meeting_date || m.created_at || '').slice(0,16) || 'Tarih yok')}</b>
+        <div style="margin-top:5px">${esc(m.note || 'Not yok')}</div>
+        <div class="empty">Sonuç: ${esc(m.result || 'Beklemede')}</div>
+      </div>
+    `).join('')
+    : '<div class="empty">Henüz görüşme kaydı yok.</div>';
+
+  $('offerHistory').innerHTML = offers.length
+    ? offers.map(o => `
+      <div class="history-item offer">
+        <b>${esc(o.offer_no || 'Teklif')}</b>
+        <div style="margin-top:5px">${esc(o.subject || o.note || '')}</div>
+        <div class="empty">${Number(o.amount || 0).toLocaleString('tr-TR')} ${esc(o.currency || 'TRY')} • ${esc(o.status || '')}</div>
+      </div>
+    `).join('')
+    : '<div class="empty">Henüz teklif kaydı yok.</div>';
+}
+
+function fillDetail(customer){
+  $('detailCompany').textContent = customer.company || 'Müşteri';
+  $('detailMeta').textContent = 'Müşteri No: ' + String(customer.id).padStart(5,'0') + (customer.created_at ? ' • Kayıt: ' + String(customer.created_at).slice(0,16) : '');
+
+  setField('dCompany', customer.company);
+  setField('dContact', customer.contact_name);
+  setField('dRegion', customer.region);
+  setField('dPriority', customer.priority || 'NORMAL');
+  setField('dStage', customer.stage || 'Yeni Lead');
+  setField('dFollow', customer.follow_date || '');
+  setField('dPhone', mainPhone(customer));
+  setField('dEmail', mainEmail(customer));
+  setField('dCategories', customer.categories || customer.sector || '');
+  setField('dMachine', customer.machine_info || '');
+  setField('dInvoiceTitle', customer.invoice_title || '');
+  setField('dTaxOffice', customer.tax_office || '');
+  setField('dTaxNumber', customer.tax_number || '');
+  setField('dInvoiceAddress', customer.invoice_address || '');
+  setField('dNotes', customer.special_notes || '');
+}
+
+async function openCustomerCard(id){
+  hideStatus($('detailStatus'));
+
+  selectedCustomer = customers.find(c => Number(c.id) === Number(id)) || null;
+  if(!selectedCustomer){
+    showStatus($('listStatus'),'Müşteri bulunamadı.',true);
+    return;
+  }
+
+  selectedHistory = {meetings:[],offers:[]};
+  fillDetail(selectedCustomer);
+  renderHistory();
+
+  $('listView').classList.add('hidden');
+  $('detailView').classList.remove('hidden');
+  window.scrollTo({top:0,behavior:'instant'});
+
+  try{
+    const history = await api('/api/customers/' + Number(id) + '/history');
+    if(selectedCustomer && Number(selectedCustomer.id) === Number(id)){
+      selectedHistory = history || {meetings:[],offers:[]};
+      renderHistory();
+    }
+  }catch(error){
+    showStatus($('detailStatus'),'Müşteri kartı açıldı. Geçmiş yüklenemedi: ' + error.message,true);
+  }
+}
+
+function closeCustomerCard(){
+  selectedCustomer = null;
+  selectedHistory = {meetings:[],offers:[]};
+  $('detailView').classList.add('hidden');
+  $('listView').classList.remove('hidden');
+  window.scrollTo({top:0,behavior:'instant'});
+}
+
+async function saveCustomer(){
+  if(!selectedCustomer) return;
+
+  const id = Number(selectedCustomer.id);
+  hideStatus($('detailStatus'));
+  showStatus($('detailStatus'),'Kaydediliyor...');
+
+  const phone = $('dPhone').value.trim();
+  const email = $('dEmail').value.trim();
+  const payload = {
+    company: $('dCompany').value.trim(),
+    contact_name: $('dContact').value.trim(),
+    phones: phone ? [phone] : [],
+    emails: email ? [email] : [],
+    region: $('dRegion').value.trim(),
+    categories: $('dCategories').value.split(',').map(x => x.trim()).filter(Boolean),
+    priority: $('dPriority').value,
+    stage: $('dStage').value,
+    follow_date: $('dFollow').value,
+    special_notes: $('dNotes').value.trim(),
+    machine_info: $('dMachine').value.trim(),
+    invoice_title: $('dInvoiceTitle').value.trim(),
+    tax_office: $('dTaxOffice').value.trim(),
+    tax_number: $('dTaxNumber').value.trim(),
+    invoice_address: $('dInvoiceAddress').value.trim()
+  };
+
+  try{
+    await api('/api/customers/' + id, {method:'PUT', body:JSON.stringify(payload)});
+    showStatus($('detailStatus'),'Müşteri bilgileri kaydedildi.');
+    const fresh = await api('/api/customers?status=Tümü');
+    customers = Array.isArray(fresh) ? fresh : customers;
+    selectedCustomer = customers.find(c => Number(c.id) === id) || selectedCustomer;
+    fillDetail(selectedCustomer);
+  }catch(error){
+    showStatus($('detailStatus'),error.message,true);
+  }
+}
+
+$('customerRows').addEventListener('click', event => {
+  const button = event.target.closest('[data-open-customer]');
+  if(!button) return;
+  openCustomerCard(Number(button.dataset.openCustomer));
+});
+
+$('refreshButton').addEventListener('click', loadCustomers);
+$('clearButton').addEventListener('click', () => {
+  $('search').value = '';
+  $('regionFilter').value = '';
+  $('priorityFilter').value = '';
+  renderList();
+});
+$('search').addEventListener('input', renderList);
+$('regionFilter').addEventListener('change', renderList);
+$('priorityFilter').addEventListener('change', renderList);
+$('backButton').addEventListener('click', closeCustomerCard);
+$('backButtonBottom').addEventListener('click', closeCustomerCard);
+$('saveButtonTop').addEventListener('click', saveCustomer);
+$('saveButtonBottom').addEventListener('click', saveCustomer);
+
+loadCustomers();
 </script>
-<script src="/portfolio-fullscreen-detail.js?v=20261005-1"></script>
 </body>
 </html>
