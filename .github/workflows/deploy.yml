@@ -63,7 +63,7 @@ jobs:
           echo '--- portfolio headers ---'
           grep -i 'x-crm-portfolio-screen\|content-type\|cache-control' /tmp/portfolio-headers.txt || true
           echo '--- clean portfolio markers ---'
-          grep -Fq 'PORTFÖY CLEAN V2' /tmp/portfolio.html && echo 'clean screen marker: OK' || (echo 'clean screen marker: MISSING'; exit 1)
+          grep -Fq 'PORTFOY CLEAN V2' /tmp/portfolio.html && echo 'clean screen marker: OK' || (echo 'clean screen marker: MISSING'; exit 1)
           grep -Fq 'data-open-customer' /tmp/portfolio.html && echo 'customer buttons: OK' || (echo 'customer buttons: MISSING'; exit 1)
           grep -Fq 'function openCustomerCard(id)' /tmp/portfolio.html && echo 'customer opener: OK' || (echo 'customer opener: MISSING'; exit 1)
           grep -Fq "customerRows').addEventListener('click'" /tmp/portfolio.html && echo 'isolated click handler: OK' || (echo 'isolated click handler: MISSING'; exit 1)
