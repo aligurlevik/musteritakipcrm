@@ -64,7 +64,7 @@ jobs:
               -o /tmp/portfolio.html \
               "https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html?smoke=$attempt"
 
-            if grep -Fq 'PORTFOY RICH V16' /tmp/portfolio.html \
+            if grep -Fq 'PORTFOY RICH V17' /tmp/portfolio.html \
               && grep -Fq 'Günlük Değerlendirme' /tmp/portfolio.html \
               && grep -Fq '<th>Son Görüşme</th>' /tmp/portfolio.html \
               && grep -Fq 'Müşteri Analizi' /tmp/portfolio.html \
@@ -123,10 +123,17 @@ jobs:
           echo 'performance guards: OK'
           echo 'multiple contact people: OK'
           if grep -Fq '<th>Mail</th>' /tmp/portfolio.html; then echo 'main mail column still present'; exit 1; fi
+          grep -Fq 'follow-future' /tmp/portfolio.html || (echo 'future row class missing'; exit 1)
+          grep -Fq 'follow-overdue' /tmp/portfolio.html || (echo 'overdue row class missing'; exit 1)
+          grep -Fq 'follow-today' /tmp/portfolio.html || (echo 'today row class missing'; exit 1)
+          grep -Fq '@keyframes dueTodayPulse' /tmp/portfolio.html || (echo 'today blink animation missing'; exit 1)
+          grep -Fq 'Gelecek' /tmp/portfolio.html || (echo 'future legend missing'; exit 1)
+          grep -Fq 'Geçmiş' /tmp/portfolio.html || (echo 'past legend missing'; exit 1)
+          echo 'follow-date row colors: OK'
           echo 'main mail column removed: OK'
           echo 'rightmost mail tab: OK'
           echo 'orders tab removed: OK'
-          echo 'portfolio page V16: OK'
+          echo 'portfolio page V17: OK'
           echo 'portfolio bootstrap route: OK'
           curl --fail --silent --show-error \
             'https://musteri-takip-crm.musteritakipcrm.workers.dev/api/portfolio-health' \
