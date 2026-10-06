@@ -46,8 +46,6 @@ function cleanResponse(){
 }
 
 async function directBootstrap(env){
-  await restorePortfolioCustomers(env);
-
   const customersResult=await env.DB.prepare(`
     SELECT *
     FROM customers
@@ -60,28 +58,23 @@ async function directBootstrap(env){
     END, company COLLATE NOCASE
   `).all();
 
-  let meetings=[];
-  try{
-    const meetingResult=await env.DB.prepare(`
-      SELECT m.*
-      FROM meetings m
-      LEFT JOIN customers c ON c.id=m.customer_id
-      WHERE COALESCE(c.record_status,'Aktif')<>'Silindi'
-      ORDER BY COALESCE(m.meeting_date,m.created_at) DESC
-    `).all();
-    meetings=meetingResult.results||[];
-  }catch(error){
-    console.warn('portfolio bootstrap meetings skipped',error?.message||error);
-  }
-
   return {
-    customers:customersResult.results||[],
-    meetings
+    customers:customersResult.results||[]
   };
 }
 
+async function directMeetings(env){
+  const meetingResult=await env.DB.prepare(`
+    SELECT m.*
+    FROM meetings m
+    LEFT JOIN customers c ON c.id=m.customer_id
+    WHERE COALESCE(c.record_status,'Aktif')<>'Silindi'
+    ORDER BY COALESCE(m.meeting_date,m.created_at) DESC
+  `).all();
+  return meetingResult.results||[];
+}
+
 async function directHistory(customerId,env){
-  await restorePortfolioCustomers(env);
   const customer=await env.DB.prepare(
     "SELECT * FROM customers WHERE id=? AND COALESCE(record_status,'Aktif')<>'Silindi'"
   ).bind(customerId).first();
@@ -140,6 +133,17 @@ export default{
       }catch(error){
         console.error('portfolio bootstrap failed',error?.stack||error);
         return json({error:'Portföy verisi yüklenemedi: '+String(error?.message||error)},500);
+      }
+    }
+
+    if(request.method==='GET'&&url.pathname==='/api/portfolio-meetings'){
+      const role=await sessionRole(request,env);
+      if(role!=='admin')return json({error:'Yetkisiz'},401);
+      try{
+        return json({meetings:await directMeetings(env)});
+      }catch(error){
+        console.error('portfolio meetings failed',error?.stack||error);
+        return json({meetings:[],error:'Görüşmeler yüklenemedi.'},200);
       }
     }
 
