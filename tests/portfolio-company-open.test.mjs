@@ -61,8 +61,6 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
     assert.doesNotMatch(source, /portfolio-fullscreen-stable\.js/);
     assert.match(source, /Yetkili Kişiler/);
     assert.match(source, /Yeni Görüşme \/ Not Ekle/);
-    assert.match(source, /id="meetingNoteDate"/);
-    assert.match(source, /id="meetingNoteText"/);
     assert.match(source, /function saveMeetingNote\(\)/);
     assert.match(source, /note-date/);
     assert.match(source, /date:today\(\)/);
@@ -79,6 +77,8 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   assert.match(page, /data-tab="mails"/);
   assert.match(page, /id="tabMails"/);
   assert.match(page, /id="mailHistory"/);
+  assert.match(page, /id="meetingNoteDate"/);
+  assert.match(page, /id="meetingNoteText"/);
   assert.match(page, /grid-template-columns:repeat\(5,minmax\(120px,1fr\)\)/);
 
   const start = page.lastIndexOf('<script>');
