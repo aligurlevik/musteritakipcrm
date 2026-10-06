@@ -60,10 +60,13 @@ jobs:
             -D /tmp/portfolio-headers.txt \
             -o /tmp/portfolio.html \
             https://musteri-takip-crm.musteritakipcrm.workers.dev/musteri-portfoyu.html
-          grep -qi '^x-crm-company-open: direct-inline-v1' /tmp/portfolio-headers.txt
-          grep -q 'PORTFÖY 06.10-B' /tmp/portfolio.html
-          grep -q 'crmOpenPortfolioCustomer' /tmp/portfolio.html
-          grep -q 'class="company crm-company-open"' /tmp/portfolio.html
+          echo '--- portfolio headers ---'
+          grep -i 'x-crm-company-open\|content-type\|cache-control' /tmp/portfolio-headers.txt || true
+          echo '--- portfolio markers ---'
+          grep -Fq 'PORTFÖY 06.10-B' /tmp/portfolio.html && echo 'build marker: OK' || (echo 'build marker: MISSING'; exit 1)
+          grep -Fq 'crmOpenPortfolioCustomer' /tmp/portfolio.html && echo 'open function: OK' || (echo 'open function: MISSING'; exit 1)
+          grep -Fq 'class="company crm-company-open"' /tmp/portfolio.html && echo 'company button: OK' || (echo 'company button: MISSING'; exit 1)
+          grep -qi '^x-crm-company-open: direct-inline-v1' /tmp/portfolio-headers.txt && echo 'response header: OK' || (echo 'response header: MISSING'; exit 1)
           echo 'portfolio company click production smoke OK'
 
       - name: Reminder diagnostics
