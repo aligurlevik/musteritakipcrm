@@ -287,6 +287,12 @@ async function api(request, env) {
     summary.success_rate=(summary.on_time+summary.late)?Math.round(summary.on_time/(summary.on_time+summary.late)*100):0;
     return json({from,to,summary,jobs:classified})
   }
+  if(path==='/api/graphic-jobs-summary'&&request.method==='GET'){
+    const to=istanbulDate(new Date());
+    const from=istanbulDate(new Date(Date.now()-6*24*60*60*1000));
+    const row=await env.DB.prepare("SELECT COALESCE(SUM(COALESCE(price,0)),0) total,COUNT(*) count FROM graphic_jobs WHERE work_date>=? AND work_date<=? AND status NOT IN ('İptal')").bind(from,to).first();
+    return json({from,to,total:Number(row?.total||0),count:Number(row?.count||0)});
+  }
   if(path==='/api/graphic-jobs'&&request.method==='GET'){
     const date=url.searchParams.get('date')||new Date().toISOString().slice(0,10),visibleDate=url.searchParams.get('visible_date'),search=String(url.searchParams.get('search')||'').trim(),upcomingFrom=url.searchParams.get('upcoming_from'),upcomingTo=url.searchParams.get('upcoming_to'),workFrom=url.searchParams.get('work_from'),workTo=url.searchParams.get('work_to'),createdFrom=url.searchParams.get('created_from'),createdTo=url.searchParams.get('created_to');
     const clean=rows=>rows.map(x=>({...x,description:String(x.description||'').toLocaleLowerCase('tr-TR').includes('yapıldı')?'':x.description}));
