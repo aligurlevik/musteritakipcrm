@@ -444,6 +444,15 @@ function activateCrmPage(page,button=null,{force=false,updateUrl=true}={}){
 
   if(crmDeferredLoadTimer){clearTimeout(crmDeferredLoadTimer);crmDeferredLoadTimer=null}
 
+  // Bu sayfa bu oturumda daha önce yüklendiyse, yalnızca bölüm değiştirmek
+  // yeniden API/DOM yükü başlatmasın. 15 dakikalık veri yaşı navigasyonu
+  // kilitlememeli; gerçek yenilemeler force:true kullanan akışlardan gelir.
+  const alreadyLoaded=Number(crmPageLoadedAt.get(page)||0)>0;
+  if(!force&&alreadyLoaded){
+    endCrmSwitch(generation);
+    return;
+  }
+
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     endCrmSwitch(generation);
 
