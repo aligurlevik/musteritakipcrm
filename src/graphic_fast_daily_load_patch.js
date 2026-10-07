@@ -36,9 +36,15 @@ const fastLoadGraphicJobs = String.raw`async function loadGraphicJobs(){
     .then(items=>{if(Array.isArray(items)){upcomingGraphicJobs=items;try{renderUpcomingGraphicJobs()}catch(e){console.error(e)}}})
     .catch(e=>console.error('Yaklaşan teslimler yüklenemedi:',e));
 
-  req('/api/graphic-jobs?created_from=2000-01-01&created_to='+encodeURIComponent(localDateKey()))
-    .then(items=>{if(Array.isArray(items)){graphicCumulativeJobs=items;try{renderGraphicPeriodTotals();moveGraphicTurnoversToCalendar()}catch(e){console.error(e)}}})
-    .catch(e=>console.error('Toplam ciro verisi yüklenemedi:',e));
+  req('/api/graphic-jobs-summary')
+    .then(summary=>{
+      if(summary&&typeof summary==='object'&&!Array.isArray(summary)){
+        graphicCumulativeJobs=[];
+        graphicCumulativeSummary={total:Number(summary.total||0),count:Number(summary.count||0)};
+        try{renderGraphicPeriodTotals();moveGraphicTurnoversToCalendar()}catch(e){console.error(e)}
+      }
+    })
+    .catch(e=>console.error('Toplam ciro özeti yüklenemedi:',e));
 }`;
 
 async function patchHtml(response){
