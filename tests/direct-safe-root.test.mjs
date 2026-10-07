@@ -7,7 +7,7 @@ test('CRM root is served directly without wrapper HTML injection', async()=>{
   assert.match(entry,/import \{CRM_SAFE_ROOT_HTML\} from '\.\/crm_safe_root_page\.js'/);
   assert.match(entry,/function directRootResponse\(\)/);
   assert.match(entry,/new Response\(CRM_SAFE_ROOT_HTML/);
-  assert.match(entry,/x-crm-root-mode','worker-bundled-safe-v2/);
+  assert.match(entry,/x-crm-root-mode':'worker-bundled-safe-v2/);
   assert.match(entry,/url\.pathname==='\/'\|\|url\.pathname==='\/index\.html'/);
   assert.match(entry,/url\.pathname==='\/safe-crm'/);
   assert.match(entry,/return directRootResponse\(\)/);
