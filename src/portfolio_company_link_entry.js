@@ -119,7 +119,7 @@ export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url);
 
-    if(request.method==='GET'&&(url.pathname==='/'||url.pathname==='/index.html')){
+    if(request.method==='GET'&&(url.pathname==='/'||url.pathname==='/index.html'||url.pathname==='/safe-crm'||url.pathname==='/safe-crm/')){
       return directRootResponse();
     }
 
