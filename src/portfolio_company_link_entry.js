@@ -111,6 +111,20 @@ export default{
       return cleanResponse();
     }
 
+    if(request.method==='GET'&&url.pathname==='/api/graphic-jobs-summary'){
+      const role=await sessionRole(request,env);
+      if(!role)return json({error:'Yetkisiz'},401);
+      if(role==='graphic')return json({total:0,count:0});
+      if(role!=='admin')return json({error:'Yetkisiz'},403);
+      try{
+        const row=await env.DB.prepare('SELECT COALESCE(SUM(price),0) total, COUNT(*) count FROM graphic_jobs').first();
+        return json({total:Number(row?.total||0),count:Number(row?.count||0)});
+      }catch(error){
+        console.error('graphic jobs summary failed',error?.stack||error);
+        return json({error:'Grafik toplamı alınamadı.'},500);
+      }
+    }
+
     if(request.method==='GET'&&url.pathname==='/api/portfolio-health'){
       try{
         await restorePortfolioCustomers(env);
