@@ -14,6 +14,10 @@ test('kritik program gecis performans katmani agir sorguyu kaldirir ve beklemeyi
   assert.match(entry, /private, max-age=30, stale-while-revalidate=120/);
   assert.match(entry, /rel="prefetch"/);
   assert.match(entry, /data-crm-switch-performance="critical-v3"/);
+  assert.match(entry, /x-crm-stale-v4':'neutralized/);
+  assert.match(entry, /u\.searchParams\.delete\('switch'\)/);
+  assert.match(entry, /crm_active_page','dash/);
+  assert.match(entry, /no-store, no-cache, must-revalidate/);
 
   assert.doesNotThrow(()=>new Function(js));
   assert.match(js, /timeoutMs=method==='GET'\?7000:15000/);

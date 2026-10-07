@@ -1,5 +1,17 @@
 import worker from './portfolio_workflow_patch_entry.js';
 
+const STALE_V4_RECOVERY = `(function(){
+  try{
+    var u=new URL(location.href);
+    if(u.searchParams.get('switch')==='hard-v4'){
+      u.searchParams.delete('switch');
+      u.searchParams.set('page','dash');
+      try{sessionStorage.setItem('crm_active_page','dash')}catch(_){}
+      history.replaceState(null,'',u.pathname+'?'+u.searchParams.toString());
+    }
+  }catch(_){}
+})();`;
+
 function json(data,status=200){
   return new Response(JSON.stringify(data),{
     status,
@@ -57,8 +69,13 @@ function rebuildHtml(response,html,path){
   const headers=new Headers(response.headers);
   for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
   headers.set('content-type','text/html; charset=utf-8');
-  headers.set('cache-control','private, max-age=30, stale-while-revalidate=120');
+  headers.set('cache-control','no-store, no-cache, must-revalidate');
   headers.set('x-crm-performance','critical-v3');
+
+  html=html.replace(/<script[^>]*(?:data-crm-switch-reliable|src=["'][^"']*crm-switch-reliable-v4\.js[^"']*["'])[^>]*><\/script>\s*/gi,'');
+  if((path==='/'||path==='/index.html')&&!html.includes('data-crm-stale-v4-recovery')){
+    html=html.replace(/<\/head>/i,'<script data-crm-stale-v4-recovery>'+STALE_V4_RECOVERY+'</script></head>');
+  }
 
   const prefetch=prefetchMarkup(path);
   if(prefetch&&!html.includes('data-crm-program-prefetch')){
@@ -79,6 +96,17 @@ export default{
       return assetResponse(await env.ASSETS.fetch(request),'application/javascript; charset=utf-8');
     }
 
+    if(request.method==='GET'&&path==='/crm-switch-reliable-v4.js'){
+      return new Response(STALE_V4_RECOVERY,{
+        status:200,
+        headers:{
+          'content-type':'application/javascript; charset=utf-8',
+          'cache-control':'no-store, no-cache, must-revalidate',
+          'x-crm-stale-v4':'neutralized'
+        }
+      });
+    }
+
     if(request.method==='GET'&&path==='/api/graphic-jobs-summary'){
       const role=await roleFor(request,env,ctx);
       if(!role)return json({error:'Yetkisiz'},401);
@@ -94,10 +122,12 @@ export default{
 
     const response=await worker.fetch(request,env,ctx);
 
-    if(request.method==='GET'&&isProgramHtml(path)&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
+    if(request.method==='GET'&&isProgramHtml(path)&&response.ok){
       const backup=response.clone();
       try{
-        return rebuildHtml(response,await response.text(),path);
+        const html=await response.text();
+        if(/<html[\s>]/i.test(html)||/<body[\s>]/i.test(html))return rebuildHtml(response,html,path);
+        return backup;
       }catch(error){
         console.error('performance html layer skipped',error?.stack||error);
         return backup;
