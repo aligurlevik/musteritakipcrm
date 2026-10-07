@@ -45,6 +45,28 @@ function cleanResponse(){
   });
 }
 
+async function directRootResponse(request,env){
+  const assetUrl=new URL(request.url);
+  assetUrl.pathname='/index.html';
+  assetUrl.search='';
+  const assetRequest=new Request(assetUrl.toString(),{
+    method:'GET',
+    headers:request.headers,
+    redirect:'manual'
+  });
+  const asset=await env.ASSETS.fetch(assetRequest);
+  const headers=new Headers(asset.headers);
+  for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
+  headers.set('content-type','text/html; charset=utf-8');
+  headers.set('cache-control','no-store, no-cache, must-revalidate');
+  headers.set('x-crm-root-mode','direct-safe-v1');
+  return new Response(asset.body,{
+    status:asset.status,
+    statusText:asset.statusText,
+    headers
+  });
+}
+
 async function directBootstrap(env){
   const customersResult=await env.DB.prepare(`
     SELECT *
@@ -106,6 +128,10 @@ async function directHistory(customerId,env){
 export default{
   async fetch(request,env,ctx){
     const url=new URL(request.url);
+
+    if(request.method==='GET'&&(url.pathname==='/'||url.pathname==='/index.html')){
+      return directRootResponse(request,env);
+    }
 
     if(request.method==='GET'&&url.pathname==='/musteri-portfoyu.html'){
       return cleanResponse();
