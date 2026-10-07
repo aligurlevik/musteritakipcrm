@@ -12,6 +12,15 @@ test('CRM sayfa geçişi önce görünümü değiştirir ve ağır işleri ertel
   assert.match(source,/setTimeout\(\(\)=>\{/);
   assert.match(source,/\},120\)/);
   assert.match(source,/if\(generation!==crmSwitchGeneration\|\|crmActivePage!==page\)return/);
+  assert.match(source,/const alreadyLoaded=Number\(crmPageLoadedAt\.get\(page\)\|\|0\)>0/);
+  assert.match(source,/if\(!force&&alreadyLoaded\)\{/);
+  assert.match(source,/let meetingReminderPollInFlight=false/);
+  assert.match(source,/if\(meetingReminderPollInFlight\)return/);
+  assert.match(source,/meetingReminderPollInFlight=false;\s*\}/);
+  assert.match(source,/let agendaReminderPollInFlight=false/);
+  assert.match(source,/if\(agendaReminderPollInFlight\)return/);
+  assert.match(source,/agendaReminderPollInFlight=false;\s*\}/);
+  assert.match(source,/endCrmSwitch\(generation\);\s*return;/);
   assert.match(source,/if\(!crmSwitching&&\$\('graphicJobs'\)/);
   assert.match(source,/if\(!crmSwitching&&\$\('tracking'\)/);
   assert.match(source,/if\(!crmSwitching&&currentAccessRole==='admin'\)checkLocalAgendaAlarms/);
