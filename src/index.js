@@ -431,7 +431,8 @@ async function api(request, env) {
     if(b.next_follow_date) await env.DB.prepare('UPDATE customers SET follow_date=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.next_follow_date,customerId).run();
     if(b.result==='Olumsuz') await env.DB.prepare("UPDATE customers SET record_status='Pasif',stage='Kaybedildi',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
     else if(b.result==='Olumlu') await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage='Kazanıldı',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
-    else if(b.result==='Tekrar Görüşülecek') await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage=CASE WHEN stage IN ('Kaybedildi','Kazanıldı') THEN 'İlk Görüşme' ELSE stage END,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
+    else if(b.result==='Beklemede'||b.result==='Tekrar Görüşülecek') await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage='Beklemede',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
+    else if(b.result==='Sonuçlanmamış') await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage='İlk Görüşme',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
     return json({ok:true,meeting_id:created.meta.last_row_id,meeting_no:meetingNo},201);
   }
   const md=path.match(/^\/api\/meetings\/(\d+)$/);
@@ -463,7 +464,8 @@ async function api(request, env) {
     if(b.next_follow_date)await env.DB.prepare('UPDATE customers SET follow_date=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.next_follow_date,existing.customer_id).run();
     if(b.result==='Olumsuz')await env.DB.prepare("UPDATE customers SET record_status='Pasif',stage='Kaybedildi',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(existing.customer_id).run();
     else if(b.result==='Olumlu')await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage='Kazanıldı',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(existing.customer_id).run();
-    else if(b.result==='Tekrar Görüşülecek')await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage=CASE WHEN stage IN ('Kaybedildi','Kazanıldı') THEN 'İlk Görüşme' ELSE stage END,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(existing.customer_id).run();
+    else if(b.result==='Beklemede'||b.result==='Tekrar Görüşülecek')await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage='Beklemede',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(existing.customer_id).run();
+    else if(b.result==='Sonuçlanmamış')await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage='İlk Görüşme',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(existing.customer_id).run();
     return json({ok:true});
   }
   if(md&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM meetings WHERE id=?').bind(Number(md[1])).run();return json({ok:true})}
