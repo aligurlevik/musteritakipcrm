@@ -155,14 +155,12 @@ jobs:
           grep -Fq 'musteri-portfoyu.html?embedded=1' /tmp/crm-index.html || (echo 'embedded portfolio source missing'; exit 1)
           grep -Fq 'requestAnimationFrame(()=>requestAnimationFrame' /tmp/crm-index.html || (echo 'visual-first page switching missing'; exit 1)
           grep -Fq 'prewarmPortfolioFrame' /tmp/crm-index.html || (echo 'portfolio lazy loader missing'; exit 1)
-          grep -Fq 'data-crm-switch-reliable="reliable-v4"' /tmp/crm-index.html || (echo 'reliable switch V4 layer missing'; exit 1)
+          grep -Fq 'data-crm-switch-performance="critical-v3"' /tmp/crm-index.html || (echo 'critical switch performance layer missing'; exit 1)
           curl --fail --silent --show-error --retry 3 --retry-delay 1 \
-            'https://musteri-takip-crm.musteritakipcrm.workers.dev/crm-switch-reliable-v4.js?v=smoke' \
-            -o /tmp/crm-switch-reliable.js
-          grep -Fq '/api/graphic-jobs-summary' /tmp/crm-switch-reliable.js || (echo 'graphic summary client path missing'; exit 1)
-          grep -Fq 'location.replace(target)' /tmp/crm-switch-reliable.js || (echo 'clean reload switch missing'; exit 1)
-          grep -Fq "switch','hard-v4'" /tmp/crm-switch-reliable.js || (echo 'hard switch route marker missing'; exit 1)
-          grep -Fq 'crmHardSwitchOverlay' /tmp/crm-switch-reliable.js || (echo 'switch overlay missing'; exit 1)
+            'https://musteri-takip-crm.musteritakipcrm.workers.dev/crm-switch-performance-v3.js?v=smoke' \
+            -o /tmp/crm-switch-performance.js
+          grep -Fq '/api/graphic-jobs-summary' /tmp/crm-switch-performance.js || (echo 'graphic summary client path missing'; exit 1)
+          grep -Fq '},16);' /tmp/crm-switch-performance.js || (echo 'fast 16ms switch path missing'; exit 1)
           grep -Fq 'function ensurePortfolioFrameLoaded()' /tmp/crm-index.html || (echo 'portfolio iframe initializer missing'; exit 1)
           grep -Fq "getAttribute('src')" /tmp/crm-index.html || (echo 'portfolio iframe src attribute guard missing'; exit 1)
           if grep -Fq "if(frame&&!frame.src)frame.src=frame.dataset.src" /tmp/crm-index.html; then echo 'fragile portfolio iframe src guard still present'; exit 1; fi

@@ -1,5 +1,4 @@
 import worker from './portfolio_workflow_patch_entry.js';
-import {RELIABLE_PROGRAM_SWITCH_V4} from './reliable_program_switch_client.js';
 
 function json(data,status=200){
   return new Response(JSON.stringify(data),{
@@ -7,7 +6,7 @@ function json(data,status=200){
     headers:{
       'content-type':'application/json; charset=utf-8',
       'cache-control':'no-store',
-      'x-crm-performance':'reliable-v4'
+      'x-crm-performance':'critical-v3'
     }
   });
 }
@@ -58,15 +57,15 @@ function rebuildHtml(response,html,path){
   const headers=new Headers(response.headers);
   for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
   headers.set('content-type','text/html; charset=utf-8');
-  headers.set('cache-control','no-cache, must-revalidate');
-  headers.set('x-crm-performance','reliable-v4');
+  headers.set('cache-control','private, max-age=30, stale-while-revalidate=120');
+  headers.set('x-crm-performance','critical-v3');
 
   const prefetch=prefetchMarkup(path);
   if(prefetch&&!html.includes('data-crm-program-prefetch')){
-    html=html.replace(/<\/head>/i,'<meta data-crm-program-prefetch="reliable-v4">'+prefetch+'</head>');
+    html=html.replace(/<\/head>/i,'<meta data-crm-program-prefetch="critical-v3">'+prefetch+'</head>');
   }
-  if((path==='/'||path==='/index.html')&&!html.includes('data-crm-switch-reliable')){
-    html=html.replace(/<\/body>/i,'<script data-crm-switch-reliable="reliable-v4" src="/crm-switch-reliable-v4.js?v=20261007-4"></script></body>');
+  if((path==='/'||path==='/index.html')&&!html.includes('data-crm-switch-performance')){
+    html=html.replace(/<\/body>/i,'<script data-crm-switch-performance="critical-v3" src="/crm-switch-performance-v3.js?v=20261007-3"></script></body>');
   }
   return new Response(html,{status:response.status,statusText:response.statusText,headers});
 }
@@ -76,15 +75,8 @@ export default{
     const url=new URL(request.url);
     const path=url.pathname;
 
-    if(request.method==='GET'&&path==='/crm-switch-reliable-v4.js'){
-      return new Response(RELIABLE_PROGRAM_SWITCH_V4,{
-        status:200,
-        headers:{
-          'content-type':'application/javascript; charset=utf-8',
-          'cache-control':'no-cache, must-revalidate',
-          'x-crm-switch-client':'worker-bundled-v4'
-        }
-      });
+    if(request.method==='GET'&&path==='/crm-switch-performance-v3.js'){
+      return assetResponse(await env.ASSETS.fetch(request),'application/javascript; charset=utf-8');
     }
 
     if(request.method==='GET'&&path==='/api/graphic-jobs-summary'){
