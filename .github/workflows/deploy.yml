@@ -159,7 +159,13 @@ jobs:
             sleep 2
           done
           [ "$crm_live_ok" -eq 1 ] || (echo 'fresh stability HTML did not propagate'; exit 1)
-          grep -qi '^x-crm-root-mode: direct-safe-v1' /tmp/crm-index-headers.txt || (echo 'direct safe root header missing'; cat /tmp/crm-index-headers.txt; exit 1)
+          grep -qi '^x-crm-root-mode: worker-bundled-safe-v2' /tmp/crm-index-headers.txt || (echo 'worker bundled safe root header missing'; cat /tmp/crm-index-headers.txt; exit 1)
+          curl --fail --silent --show-error \
+            -D /tmp/safe-crm-headers.txt \
+            -o /tmp/safe-crm.html \
+            'https://musteri-takip-crm.musteritakipcrm.workers.dev/safe-crm?smoke=1'
+          grep -qi '^x-crm-root-mode: worker-bundled-safe-v2' /tmp/safe-crm-headers.txt || (echo 'safe-crm fallback route missing'; exit 1)
+          cmp -s /tmp/crm-index.html /tmp/safe-crm.html || (echo 'safe-crm body differs from root'; exit 1)
           node - <<'NODE'
           const fs=require('fs');
           const html=fs.readFileSync('/tmp/crm-index.html','utf8');

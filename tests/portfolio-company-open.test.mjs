@@ -11,9 +11,10 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
 
   assert.match(wrapper, /CLEAN_PORTFOLIO_HTML/);
   assert.match(wrapper, /clean-v3-inline/);
-  assert.match(wrapper, /async function directRootResponse\(request,env\)/);
-  assert.match(wrapper, /env\.ASSETS\.fetch\(assetRequest\)/);
-  assert.match(wrapper, /x-crm-root-mode','direct-safe-v1/);
+  assert.match(wrapper, /CRM_SAFE_ROOT_HTML/);
+  assert.match(wrapper, /function directRootResponse\(\)/);
+  assert.match(wrapper, /x-crm-root-mode','worker-bundled-safe-v2/);
+  assert.doesNotMatch(wrapper, /env\.ASSETS\.fetch\(assetRequest\)/);
   assert.match(recovery, /restorePortfolioCustomers/);
   assert.match(wrapper, /\/api\/portfolio-bootstrap/);
   assert.match(wrapper, /directBootstrap/);
