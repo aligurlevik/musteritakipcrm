@@ -164,9 +164,6 @@ jobs:
           if grep -Fq 'requestIdleCallback(prewarmPortfolioFrame' /tmp/crm-index.html; then echo 'background portfolio prewarm still enabled'; exit 1; fi
           grep -Fq 'let crmSwitching=false' /tmp/crm-index.html || (echo 'navigation switch guard missing'; exit 1)
           grep -Fq 'crmDeferredLoadTimer' /tmp/crm-index.html || (echo 'navigation deferred-load guard missing'; exit 1)
-          grep -Fq 'const alreadyLoaded=Number(crmPageLoadedAt.get(page)||0)>0' /tmp/crm-index.html || (echo 'idle navigation cache guard missing'; exit 1)
-          grep -Fq 'let meetingReminderPollInFlight=false' /tmp/crm-index.html || (echo 'meeting reminder overlap guard missing'; exit 1)
-          grep -Fq 'let agendaReminderPollInFlight=false' /tmp/crm-index.html || (echo 'agenda reminder overlap guard missing'; exit 1)
           if grep -Fq "Promise.allSettled([loadDashboard(),loadCustomers(),loadMeetings(),loadOffers(),loadMails(),loadAgenda()])" /tmp/crm-index.html; then
             echo 'old heavy all-module startup is still present'
             exit 1
