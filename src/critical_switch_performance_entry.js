@@ -62,7 +62,7 @@ function rebuildHtml(response,html,path){
 
   const prefetch=prefetchMarkup(path);
   if(prefetch&&!html.includes('data-crm-program-prefetch')){
-    html=html.replace(/<\/head>/i,'<span data-crm-program-prefetch style="display:none"></span>'+prefetch+'</head>');
+    html=html.replace(/<\/head>/i,'<meta data-crm-program-prefetch="critical-v3">'+prefetch+'</head>');
   }
   if((path==='/'||path==='/index.html')&&!html.includes('data-crm-switch-performance')){
     html=html.replace(/<\/body>/i,'<script data-crm-switch-performance="critical-v3" src="/crm-switch-performance-v3.js?v=20261007-3"></script></body>');
