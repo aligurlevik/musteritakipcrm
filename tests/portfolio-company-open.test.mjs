@@ -8,6 +8,7 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   const embedded = await readFile(new URL('../src/portfolio_clean_page.js', import.meta.url), 'utf8');
   const page = await readFile(new URL('../public/musteri-portfoyu-v2.html', import.meta.url), 'utf8');
   const index = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
+  const worker = await readFile(new URL('../src/index.js', import.meta.url), 'utf8');
 
   assert.match(wrapper, /CLEAN_PORTFOLIO_HTML/);
   assert.match(wrapper, /clean-v3-inline/);
@@ -100,6 +101,20 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   assert.match(index, /prewarmPortfolioFrame/);
   assert.doesNotMatch(index, /requestIdleCallback\(prewarmPortfolioFrame/);
   assert.match(index, /crmSwitching/);
+
+  assert.doesNotMatch(embedded, /id=\\\"dResultSelect\\\"/);
+  assert.doesNotMatch(embedded, /id=\\\"newNote\\\"/);
+  assert.match(embedded, /id=\\\"dContactPicker\\\"/);
+  assert.match(embedded, /function makePrimaryContact\(i\)/);
+  assert.match(embedded, /primary-contact-badge/);
+  assert.match(embedded, /id=\\\"mailComposeSend\\\"/);
+  assert.match(embedded, /function openMailComposer\(\)/);
+  assert.match(embedded, /function sendCustomerMail\(\)/);
+  assert.match(embedded, /\/api\/customer-mail\/send/);
+  assert.match(embedded, /function applyMeetingResultLocally\(result\)/);
+  assert.match(embedded, /Sonuç müşteri kartına işlendi/);
+  assert.match(worker, /b\.result==='Beklemede'\|\|b\.result==='Tekrar Görüşülecek'/);
+  assert.match(worker, /b\.result==='Sonuçlanmamış'/);
 
   const start = page.lastIndexOf('<script>');
   const end = page.indexOf('</script>', start);
