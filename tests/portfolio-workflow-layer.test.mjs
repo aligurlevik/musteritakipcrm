@@ -8,7 +8,9 @@ test('güvenli portföy iş akışı temel ekranı bozmadan ek özellikleri yük
   const js = await readFile(new URL('../public/portfolio-workflow-v1.js', import.meta.url), 'utf8');
   const css = await readFile(new URL('../public/portfolio-workflow-v1.css', import.meta.url), 'utf8');
 
-  assert.match(wrangler, /"main": "src\/portfolio_workflow_patch_entry\.js"/);
+  assert.match(wrangler, /"main": "src\/critical_switch_performance_entry\.js"/);
+  const performanceEntry = await readFile(new URL('../src/critical_switch_performance_entry.js', import.meta.url), 'utf8');
+  assert.match(performanceEntry, /import worker from '\.\/portfolio_workflow_patch_entry\.js'/);
   assert.match(entry, /import worker from '\.\/portfolio_company_link_entry\.js'/);
   assert.match(entry, /data-workflow-layer="safe-v1"/);
   assert.match(entry, /portfolio-workflow-v1\.js/);
