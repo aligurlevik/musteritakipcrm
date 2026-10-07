@@ -301,6 +301,16 @@ function endCrmSwitch(generation){
   document.body.classList.remove('crm-switching');
 }
 
+function ensurePortfolioFrameLoaded(){
+  const frame=$('portfolioFrame');
+  if(!frame)return null;
+  const current=String(frame.getAttribute('src')||'').trim();
+  if(!current||current==='about:blank'){
+    frame.setAttribute('src',frame.dataset.src||'/musteri-portfoyu.html?embedded=1');
+  }
+  return frame;
+}
+
 function requestedCrmPage(){
   const params=new URLSearchParams(location.search);
   const requested=params.get('page');
@@ -312,6 +322,7 @@ function requestedCrmPage(){
 function setCrmPageView(page,button=null){
   if(!CRM_PAGES.has(page))page='dash';
   document.body.classList.toggle('portfolio-mode',page==='portfolio');
+  if(page==='portfolio')ensurePortfolioFrameLoaded();
   document.querySelectorAll('.menu button').forEach(x=>x.classList.remove('active'));
   const targetButton=button||document.querySelector(`.menu button[data-page="${page}"]`);
   if(targetButton)targetButton.classList.add('active');
@@ -337,8 +348,7 @@ async function loadCrmPageData(page,{force=false}={}){
     if(page==='dash')await loadDashboard();
     else if(page==='customers')await loadCustomers();
     else if(page==='portfolio'){
-      const frame=$('portfolioFrame');
-      if(frame&&!frame.src)frame.src=frame.dataset.src;
+      ensurePortfolioFrameLoaded();
     }
     else if(page==='meetings')await loadMeetings();
     else if(page==='mails')await loadMails();
@@ -916,8 +926,7 @@ function openRequestedCustomerFromUrl(){
 }
 function prewarmPortfolioFrame(){
   if(currentAccessRole!=='admin')return;
-  const frame=$('portfolioFrame');
-  if(frame&&!frame.src)frame.src=frame.dataset.src;
+  ensurePortfolioFrameLoaded();
 }
 let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole==='admin'){openRequestedCustomerFromUrl();setTimeout(()=>{pollMeetingReminders();pollAgendaReminders();checkLocalAgendaAlarms();checkAutomaticEndOfDayReport()},900);/* portfolio iframe is loaded only when the user opens Portfolio; no background prewarm */}});setInterval(checkAutomaticEndOfDayReport,60000);setInterval(()=>{if(!crmSwitching&&currentAccessRole==='admin')checkLocalAgendaAlarms()},5000); setInterval(()=>{if(crmSwitching||currentAccessRole!=='admin')return;const meetingsActive=$('meetings')?.classList.contains('active');if(meetingsActive)loadCrmPageData('meetings',{force:true}).catch(()=>{});pollMeetingReminders();pollAgendaReminders();const newDay=localDateKey();if(newDay!==activeCalendarDay){activeCalendarDay=newDay;agendaDate=new Date();agendaView='month';if($('agenda')?.classList.contains('active'))loadCrmPageData('agenda',{force:true}).catch(()=>{})}},60000);
 </script><!-- deployment-refresh: 2026-08-28-multi-participants -->
