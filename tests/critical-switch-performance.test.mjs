@@ -9,6 +9,9 @@ test('guvenilir program gecisi temiz sayfa oturumu kullanir ve agir sorguyu kald
 
   assert.match(wrangler, /"main": "src\/critical_switch_performance_entry\.js"/);
   assert.match(entry, /import worker from '\.\/portfolio_workflow_patch_entry\.js'/);
+  assert.match(entry, /RELIABLE_PROGRAM_SWITCH_V4/);
+  assert.doesNotMatch(entry, /env\.ASSETS\.fetch\(request\).*crm-switch-reliable-v4/);
+  assert.match(entry, /x-crm-switch-client':'worker-bundled-v4/);
   assert.match(entry, /\/api\/graphic-jobs-summary/);
   assert.match(entry, /SELECT COALESCE\(SUM\(price\),0\) total, COUNT\(\*\) count FROM graphic_jobs/);
   assert.match(entry, /no-cache, must-revalidate/);
