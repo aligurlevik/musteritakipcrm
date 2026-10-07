@@ -148,6 +148,7 @@ jobs:
           for attempt in $(seq 1 15); do
             curl --fail --silent --show-error --retry 2 --retry-delay 1 \
               -H 'Cache-Control: no-cache' \
+              -D /tmp/crm-index-headers.txt \
               -o /tmp/crm-index.html \
               "https://musteri-takip-crm.musteritakipcrm.workers.dev/?page=customers&nav-smoke=1&stability-smoke=$attempt"
             if grep -Fq 'const CRM_STABILITY_MODE=true' /tmp/crm-index.html \
@@ -158,6 +159,17 @@ jobs:
             sleep 2
           done
           [ "$crm_live_ok" -eq 1 ] || (echo 'fresh stability HTML did not propagate'; exit 1)
+          grep -qi '^x-crm-root-mode: direct-safe-v1' /tmp/crm-index-headers.txt || (echo 'direct safe root header missing'; cat /tmp/crm-index-headers.txt; exit 1)
+          node - <<'NODE'
+          const fs=require('fs');
+          const html=fs.readFileSync('/tmp/crm-index.html','utf8');
+          const scripts=[...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(s=>s.trim());
+          if(!scripts.length){console.error('no inline CRM script found');process.exit(1)}
+          for(const [i,code] of scripts.entries()){
+            try{new Function(code)}catch(error){console.error('live inline CRM script syntax error #'+(i+1),error);process.exit(1)}
+          }
+          console.log('live CRM inline JavaScript syntax: OK');
+          NODE
           grep -Fq 'const CRM_PAGE_CACHE_MS=900000' /tmp/crm-index.html || (echo 'page cache marker missing'; exit 1)
           grep -Fq 'async function loadCrmPageData(page' /tmp/crm-index.html || (echo 'lazy page loader missing'; exit 1)
           grep -Fq 'function activateCrmPage(page' /tmp/crm-index.html || (echo 'instant page activator missing'; exit 1)
