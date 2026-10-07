@@ -156,6 +156,9 @@ jobs:
           grep -Fq 'requestAnimationFrame(()=>requestAnimationFrame' /tmp/crm-index.html || (echo 'visual-first page switching missing'; exit 1)
           grep -Fq 'prewarmPortfolioFrame' /tmp/crm-index.html || (echo 'portfolio lazy loader missing'; exit 1)
           grep -Fq 'function ensurePortfolioFrameLoaded()' /tmp/crm-index.html || (echo 'portfolio iframe initializer missing'; exit 1)
+          grep -Fq "requested==='portfolio'||saved==='portfolio'" /tmp/crm-index.html || (echo 'portfolio startup escape missing'; exit 1)
+          grep -Fq 'portfolioEscapeBtn' /tmp/crm-index.html || (echo 'portfolio escape button missing'; exit 1)
+          grep -Fq 'Müşteri Portföyü yüklenemedi. CRM Ana Ekran açıldı.' /tmp/crm-index.html || (echo 'portfolio watchdog fallback missing'; exit 1)
           grep -Fq "getAttribute('src')" /tmp/crm-index.html || (echo 'portfolio iframe src attribute guard missing'; exit 1)
           if grep -Fq "if(frame&&!frame.src)frame.src=frame.dataset.src" /tmp/crm-index.html; then echo 'fragile portfolio iframe src guard still present'; exit 1; fi
           if grep -Fq 'requestIdleCallback(prewarmPortfolioFrame' /tmp/crm-index.html; then echo 'background portfolio prewarm still enabled'; exit 1; fi

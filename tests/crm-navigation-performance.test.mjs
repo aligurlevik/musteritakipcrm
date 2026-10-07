@@ -17,6 +17,15 @@ test('CRM modülleri kalıcı kabukta anında görünür ve veri yükü sonraki 
   assert.match(page,/musteri-portfoyu\.html\?embedded=1/);
   assert.match(page,/function prewarmPortfolioFrame\(\)/);
   assert.match(page,/function ensurePortfolioFrameLoaded\(\)/);
+  assert.match(page,/function requestedCrmPage\(\)/);
+  assert.match(page,/requested==='portfolio'\|\|saved==='portfolio'/);
+  assert.match(page,/sessionStorage\.setItem\('crm_active_page','dash'\)/);
+  assert.match(page,/function ensurePortfolioEscapeButton\(\)/);
+  assert.match(page,/portfolioEscapeBtn/);
+  assert.match(page,/function schedulePortfolioRecovery\(\)/);
+  assert.match(page,/portfolioFrameHealthy/);
+  assert.match(page,/Müşteri Portföyü yüklenemedi\. CRM Ana Ekran açıldı\./);
+  assert.match(page,/embedded=1&recovery=20261007-1/);
   assert.match(page,/getAttribute\('src'\)/);
   assert.match(page,/if\(page==='portfolio'\)ensurePortfolioFrameLoaded\(\)/);
   assert.doesNotMatch(page,/requestIdleCallback\(prewarmPortfolioFrame/);

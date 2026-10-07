@@ -179,7 +179,7 @@ body.crm-switching .crm-page-switch-indicator{display:flex}
 <div class="table"><table><thead><tr><th>Öncelik</th><th>Firma</th><th>Kişi</th><th>Telefonlar</th><th>Mailler</th><th>Bölge</th><th>Kategori</th><th>Aşama</th><th>Sonuç</th><th>Takip</th><th>Aksiyon</th></tr></thead><tbody id="customerRows"></tbody></table></div>
 </section>
 
-<section id="portfolio" class="section"><iframe id="portfolioFrame" class="portfolio-frame" title="Müşteri Portföyü" data-src="/musteri-portfoyu.html?embedded=1"></iframe></section>
+<section id="portfolio" class="section"><iframe id="portfolioFrame" class="portfolio-frame" title="Müşteri Portföyü" data-src="/musteri-portfoyu.html?embedded=1&recovery=20261007-1"></iframe></section>
 
 <section id="meetings" class="section">
 <div class="toolbar">
@@ -301,12 +301,56 @@ function endCrmSwitch(generation){
   document.body.classList.remove('crm-switching');
 }
 
+let portfolioRecoveryTimer=null;
+function portfolioFrameHealthy(frame){
+  if(!frame)return false;
+  try{
+    const doc=frame.contentDocument;
+    return Boolean(doc&&doc.body&&(doc.getElementById('buildMarker')||doc.querySelector('.app')));
+  }catch(_){
+    return false;
+  }
+}
+function ensurePortfolioEscapeButton(){
+  let button=$('portfolioEscapeBtn');
+  if(button)return button;
+  button=document.createElement('button');
+  button.id='portfolioEscapeBtn';
+  button.type='button';
+  button.textContent='← CRM Ana Ekran';
+  button.style.cssText='display:none;position:fixed;left:12px;top:12px;z-index:2147483647;border:0;border-radius:10px;padding:10px 14px;background:#0f172a;color:#fff;font-weight:900;box-shadow:0 6px 22px #0003;cursor:pointer';
+  button.onclick=()=>{
+    const dashButton=document.querySelector('.menu button[data-page="dash"]');
+    activateCrmPage('dash',dashButton,{force:false,updateUrl:true});
+  };
+  document.body.appendChild(button);
+  return button;
+}
+function schedulePortfolioRecovery(){
+  if(portfolioRecoveryTimer){clearTimeout(portfolioRecoveryTimer);portfolioRecoveryTimer=null}
+  const button=ensurePortfolioEscapeButton();
+  button.style.display='block';
+  portfolioRecoveryTimer=setTimeout(()=>{
+    portfolioRecoveryTimer=null;
+    if(crmActivePage!=='portfolio')return;
+    const frame=$('portfolioFrame');
+    if(portfolioFrameHealthy(frame))return;
+    const dashButton=document.querySelector('.menu button[data-page="dash"]');
+    activateCrmPage('dash',dashButton,{force:false,updateUrl:true});
+    showMsg('Müşteri Portföyü yüklenemedi. CRM Ana Ekran açıldı.','err');
+  },8000);
+}
+function clearPortfolioRecovery(){
+  if(portfolioRecoveryTimer){clearTimeout(portfolioRecoveryTimer);portfolioRecoveryTimer=null}
+  const button=$('portfolioEscapeBtn');
+  if(button)button.style.display='none';
+}
 function ensurePortfolioFrameLoaded(){
   const frame=$('portfolioFrame');
   if(!frame)return null;
   const current=String(frame.getAttribute('src')||'').trim();
   if(!current||current==='about:blank'){
-    frame.setAttribute('src',frame.dataset.src||'/musteri-portfoyu.html?embedded=1');
+    frame.setAttribute('src',frame.dataset.src||'/musteri-portfoyu.html?embedded=1&recovery=20261007-1');
   }
   return frame;
 }
@@ -314,15 +358,30 @@ function ensurePortfolioFrameLoaded(){
 function requestedCrmPage(){
   const params=new URLSearchParams(location.search);
   const requested=params.get('page');
-  if(CRM_PAGES.has(requested))return requested;
   const saved=sessionStorage.getItem('crm_active_page');
+  if(requested==='portfolio'||saved==='portfolio'){
+    sessionStorage.setItem('crm_active_page','dash');
+    if(requested==='portfolio'){
+      const cleanUrl=new URL(location.href);
+      cleanUrl.searchParams.delete('page');
+      cleanUrl.searchParams.delete('editCustomer');
+      history.replaceState(null,'',cleanUrl.pathname+(cleanUrl.searchParams.toString()?'?'+cleanUrl.searchParams.toString():''));
+    }
+    return 'dash';
+  }
+  if(CRM_PAGES.has(requested))return requested;
   return CRM_PAGES.has(saved)?saved:'dash';
 }
 
 function setCrmPageView(page,button=null){
   if(!CRM_PAGES.has(page))page='dash';
   document.body.classList.toggle('portfolio-mode',page==='portfolio');
-  if(page==='portfolio')ensurePortfolioFrameLoaded();
+  if(page==='portfolio'){
+    ensurePortfolioFrameLoaded();
+    schedulePortfolioRecovery();
+  }else{
+    clearPortfolioRecovery();
+  }
   document.querySelectorAll('.menu button').forEach(x=>x.classList.remove('active'));
   const targetButton=button||document.querySelector(`.menu button[data-page="${page}"]`);
   if(targetButton)targetButton.classList.add('active');
