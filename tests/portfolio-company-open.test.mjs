@@ -116,6 +116,14 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
   assert.match(worker, /b\.result==='Beklemede'\|\|b\.result==='Tekrar Görüşülecek'/);
   assert.match(worker, /b\.result==='Sonuçlanmamış'/);
 
+  const embeddedMatch = embedded.match(/^export const CLEAN_PORTFOLIO_HTML = (".*");$/s);
+  assert.ok(embeddedMatch, 'gömülü portföy HTML sabiti okunmalı');
+  const embeddedHtml = JSON.parse(embeddedMatch[1]);
+  const embeddedScriptStart = embeddedHtml.lastIndexOf('<script>');
+  const embeddedScriptEnd = embeddedHtml.indexOf('</script>', embeddedScriptStart);
+  assert.ok(embeddedScriptStart >= 0 && embeddedScriptEnd > embeddedScriptStart, 'gömülü portföy inline script bulunmalı');
+  assert.doesNotThrow(() => new Function(embeddedHtml.slice(embeddedScriptStart + '<script>'.length, embeddedScriptEnd)));
+
   const start = page.lastIndexOf('<script>');
   const end = page.indexOf('</script>', start);
   assert.ok(start >= 0 && end > start, 'portföy sayfasında inline script bulunmalı');
