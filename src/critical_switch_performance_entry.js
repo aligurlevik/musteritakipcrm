@@ -1,4 +1,5 @@
 import worker from './portfolio_workflow_patch_entry.js';
+import {RELIABLE_PROGRAM_SWITCH_V4} from './reliable_program_switch_client.js';
 
 function json(data,status=200){
   return new Response(JSON.stringify(data),{
@@ -76,7 +77,14 @@ export default{
     const path=url.pathname;
 
     if(request.method==='GET'&&path==='/crm-switch-reliable-v4.js'){
-      return assetResponse(await env.ASSETS.fetch(request),'application/javascript; charset=utf-8');
+      return new Response(RELIABLE_PROGRAM_SWITCH_V4,{
+        status:200,
+        headers:{
+          'content-type':'application/javascript; charset=utf-8',
+          'cache-control':'no-cache, must-revalidate',
+          'x-crm-switch-client':'worker-bundled-v4'
+        }
+      });
     }
 
     if(request.method==='GET'&&path==='/api/graphic-jobs-summary'){
