@@ -74,7 +74,7 @@ function rebuildHtml(response,html,path){
 
   html=html.replace(/<script[^>]*(?:data-crm-switch-reliable|src=["'][^"']*crm-switch-reliable-v4\.js[^"']*["'])[^>]*><\/script>\s*/gi,'');
   if((path==='/'||path==='/index.html')&&!html.includes('data-crm-stale-v4-recovery')){
-    html=html.replace(/<\/head>/i,'<script data-crm-stale-v4-recovery>'+STALE_V4_RECOVERY.replace(/<\\/script/gi,'<\\\\/script')+'</script></head>');
+    html=html.replace(/<\/head>/i,'<script data-crm-stale-v4-recovery>'+STALE_V4_RECOVERY+'</script></head>');
   }
 
   const prefetch=prefetchMarkup(path);
