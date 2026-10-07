@@ -444,15 +444,6 @@ function activateCrmPage(page,button=null,{force=false,updateUrl=true}={}){
 
   if(crmDeferredLoadTimer){clearTimeout(crmDeferredLoadTimer);crmDeferredLoadTimer=null}
 
-  // Bu sayfa bu oturumda daha önce yüklendiyse, yalnızca bölüm değiştirmek
-  // yeniden API/DOM yükü başlatmasın. 15 dakikalık veri yaşı navigasyonu
-  // kilitlememeli; gerçek yenilemeler force:true kullanan akışlardan gelir.
-  const alreadyLoaded=Number(crmPageLoadedAt.get(page)||0)>0;
-  if(!force&&alreadyLoaded){
-    endCrmSwitch(generation);
-    return;
-  }
-
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     endCrmSwitch(generation);
 
@@ -855,41 +846,12 @@ function bringCrmToFront(){try{window.focus()}catch{}clearInterval(reminderTitle
 function stopReminderAttention(){clearInterval(reminderTitleTimer);reminderTitleTimer=null;document.title=normalPageTitle}
 function showDesktopReminder(title,body,tag){if(!('Notification'in window)||Notification.permission!=='granted')return;const notice=new Notification(title,{body,tag,requireInteraction:true,renotify:true});notice.onclick=()=>{window.focus();notice.close()}}
 function showReminder(x){activeReminder=x;const note=x.remind_note||x.note||'Bu görüşmeyi takip et.';$('reminderCompany').textContent=x.company+' — '+x.meeting_no+'. Görüşme';$('reminderTime').textContent='Hatırlatma: '+new Date(x.remind_at).toLocaleString('tr-TR');$('reminderNote').textContent=note;openM('reminderPopup');bringCrmToFront();playReminderSound();showDesktopReminder('🔔 CRM Görüşme Uyarısı',x.company+': '+note,`crm-meeting-${x.id}`)}
-let meetingReminderPollInFlight=false;
-async function pollMeetingReminders(){
-  if(meetingReminderPollInFlight)return;
-  meetingReminderPollInFlight=true;
-  try{
-    const items=await req('/api/meetings?status=Tümü');
-    const now=localDateTimeValue();
-    const due=items.filter(x=>x.remind_at&&x.reminder_status==='Açık'&&x.remind_at<=now).sort((a,b)=>a.remind_at.localeCompare(b.remind_at));
-    if(!activeReminder&&due.length)showReminder(due[0]);
-    checkMeetingNotifications(items);
-  }catch(e){
-    if(e.message!=='Oturum süresi doldu.')console.error(e);
-  }finally{
-    meetingReminderPollInFlight=false;
-  }
-}
+async function pollMeetingReminders(){try{const items=await req('/api/meetings?status=Tümü');const now=localDateTimeValue();const due=items.filter(x=>x.remind_at&&x.reminder_status==='Açık'&&x.remind_at<=now).sort((a,b)=>a.remind_at.localeCompare(b.remind_at));if(!activeReminder&&due.length)showReminder(due[0]);checkMeetingNotifications(items)}catch(e){if(e.message!=='Oturum süresi doldu.')console.error(e)}}
 async function completeReminder(){if(!activeReminder)return;try{await req('/api/meetings/'+activeReminder.id+'/reminder-complete',{method:'POST'});activeReminder=null;stopReminderAttention();closeM('reminderPopup');showMsg('Hatırlatma tamamlandı.');await loadMeetings();await pollMeetingReminders()}catch(e){showMsg(e.message,'err')}}
 async function snoozeReminder(){if(!activeReminder)return;try{const later=localDateTimeValue(new Date(Date.now()+60*60*1000));await req('/api/meetings/'+activeReminder.id+'/reminder-snooze',{method:'POST',body:JSON.stringify({remind_at:later})});activeReminder=null;stopReminderAttention();closeM('reminderPopup');showMsg('Hatırlatma 1 saat ertelendi.');await loadMeetings()}catch(e){showMsg(e.message,'err')}}
 
 function showAgendaReminder(x){activeAgendaReminder=x;$('agendaReminderDate').textContent=new Date(x.remind_at).toLocaleString('tr-TR');$('agendaReminderNote').textContent=x.note;openM('agendaReminderPopup');bringCrmToFront();playReminderSound();showDesktopReminder('🔔 CRM Ajanda Uyarısı',x.note,`crm-agenda-${x.id}`)}
-let agendaReminderPollInFlight=false;
-async function pollAgendaReminders(){
-  if(agendaReminderPollInFlight)return;
-  agendaReminderPollInFlight=true;
-  try{
-    const items=await req('/api/agenda/reminders');
-    const now=localDateTimeValue();
-    const due=items.filter(x=>x.remind_at&&x.reminder_status==='Açık'&&x.remind_at<=now).sort((a,b)=>a.remind_at.localeCompare(b.remind_at));
-    if(!activeAgendaReminder&&due.length)showAgendaReminder(due[0]);
-  }catch(e){
-    if(e.message!=='Oturum süresi doldu.')console.error(e);
-  }finally{
-    agendaReminderPollInFlight=false;
-  }
-}
+async function pollAgendaReminders(){try{const items=await req('/api/agenda/reminders');const now=localDateTimeValue();const due=items.filter(x=>x.remind_at&&x.reminder_status==='Açık'&&x.remind_at<=now).sort((a,b)=>a.remind_at.localeCompare(b.remind_at));if(!activeAgendaReminder&&due.length)showAgendaReminder(due[0])}catch(e){if(e.message!=='Oturum süresi doldu.')console.error(e)}}
 const locallyShownAgendaAlarms=new Set();
 function checkLocalAgendaAlarms(){
   if(activeAgendaReminder)return;
