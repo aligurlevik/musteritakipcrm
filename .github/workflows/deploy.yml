@@ -144,9 +144,20 @@ jobs:
 
       - name: CRM lazy navigation smoke
         run: |
-          curl --fail --silent --show-error --retry 5 --retry-delay 2 \
-            -o /tmp/crm-index.html \
-            'https://musteri-takip-crm.musteritakipcrm.workers.dev/?page=customers&nav-smoke=1'
+          crm_live_ok=0
+          for attempt in $(seq 1 15); do
+            curl --fail --silent --show-error --retry 2 --retry-delay 1 \
+              -H 'Cache-Control: no-cache' \
+              -o /tmp/crm-index.html \
+              "https://musteri-takip-crm.musteritakipcrm.workers.dev/?page=customers&nav-smoke=1&stability-smoke=$attempt"
+            if grep -Fq 'const CRM_STABILITY_MODE=true' /tmp/crm-index.html \
+              && grep -Fq '/api/graphic-jobs-summary' /tmp/crm-index.html; then
+              crm_live_ok=1
+              break
+            fi
+            sleep 2
+          done
+          [ "$crm_live_ok" -eq 1 ] || (echo 'fresh stability HTML did not propagate'; exit 1)
           grep -Fq 'const CRM_PAGE_CACHE_MS=900000' /tmp/crm-index.html || (echo 'page cache marker missing'; exit 1)
           grep -Fq 'async function loadCrmPageData(page' /tmp/crm-index.html || (echo 'lazy page loader missing'; exit 1)
           grep -Fq 'function activateCrmPage(page' /tmp/crm-index.html || (echo 'instant page activator missing'; exit 1)
