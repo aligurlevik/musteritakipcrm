@@ -933,7 +933,7 @@ function renderGraphicPeriodTotals(){
   let box=$('graphicPeriodTotals');
   if(currentAccessRole!=='admin'){if(box)box.remove();return}
   if(!box){box=document.createElement('div');box.id='graphicPeriodTotals';box.className='graphic-period-totals';title.insertAdjacentElement('afterend',box)}
-  box.innerHTML=`<div class="graphic-period-total cumulative">TOPLAM CİRO: <strong>${Number(cumulative.total||0).toLocaleString('tr-TR')} TL</strong> • ${Number(cumulative.count||0)} iş</div>`;
+  box.innerHTML=`<div class="graphic-period-total cumulative">7 GÜNLÜK CİRO: <strong>${Number(cumulative.total||0).toLocaleString('tr-TR')} TL</strong> • ${Number(cumulative.count||0)} iş</div>`;
 }
 function checkGraphicDeadlineWarnings(){
   const jobs=editableGraphicJobsForDay(),now=Date.now();
@@ -1152,7 +1152,7 @@ let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole===
 
     const box=document.createElement('div');
     box.id='g_delivery_quick_box';
-    box.innerHTML='<div class="delivery-quick-line"><b class="delivery-quick-label">GÜN</b><button type="button" class="delivery-quick-btn" data-day-offset="0">Bugün</button><button type="button" class="delivery-quick-btn" data-day-offset="1">Yarın</button><button type="button" class="delivery-quick-btn" data-day-offset="2">+2 Gün</button><button type="button" class="delivery-quick-btn" data-custom-date>Tarih Seç</button><span class="delivery-quick-summary"></span></div><div class="delivery-quick-line"><b class="delivery-quick-label">SAAT</b><span class="delivery-manual-time"><span style="font-size:13px">🕒</span></span></div>';
+    box.innerHTML='<div class="delivery-quick-line"><b class="delivery-quick-label">GÜN</b><button type="button" class="delivery-quick-btn" data-day-offset="0">Bugün</button><button type="button" class="delivery-quick-btn" data-day-offset="1">Yarın</button><button type="button" class="delivery-quick-btn" data-day-offset="2">+2 Gün</button><button type="button" class="delivery-quick-btn" data-custom-date>Tarih Seç</button><span class="delivery-quick-summary"></span></div><div class="delivery-quick-line"><b class="delivery-quick-label">SAAT</b><button type="button" class="delivery-quick-btn" data-quick-time="12:00">12:00</button><button type="button" class="delivery-quick-btn" data-quick-time="16:00">16:00</button><button type="button" class="delivery-quick-btn" data-quick-time="17:00">17:00</button><span class="delivery-manual-time"><span style="font-size:13px">🕒</span></span></div>';
 
     parent.insertBefore(box,oldLabel&&oldLabel.parentNode===parent?oldLabel:date);
     box.appendChild(date);
@@ -1170,6 +1170,7 @@ let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole===
       try{date.showPicker&&date.showPicker()}catch{}
     };
     date.addEventListener('change',()=>{date.classList.remove('custom-open');syncQuickDelivery()});
+    box.querySelectorAll('[data-quick-time]').forEach(btn=>btn.onclick=()=>{time.value=btn.dataset.quickTime;syncQuickDelivery()});
     time.addEventListener('input',syncQuickDelivery);
     time.addEventListener('change',syncQuickDelivery);
     syncQuickDelivery();
@@ -1458,36 +1459,5 @@ let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole===
     #graphicJobs #g_delivery_quick_box{min-width:0!important;width:100%!important}
   }
 </style>
-<script>
-(function(){
-  function ensureGraphicTotalTurnover(){
-    try{
-      if(typeof currentAccessRole==='undefined'||currentAccessRole!=='admin')return;
-      const section=document.getElementById('graphicJobs');
-      if(!section||!section.classList.contains('active'))return;
-      const turnover=document.getElementById('graphicTurnoverPanel');
-      if(!turnover)return;
-      const jobs=(typeof graphicCumulativeJobs!=='undefined'&&Array.isArray(graphicCumulativeJobs))?graphicCumulativeJobs:[];
-      const total=jobs.reduce(function(sum,job){return sum+Number(job&&job.price||0)},0);
-      let period=document.getElementById('graphicPeriodTotals');
-      if(!period){
-        period=document.createElement('div');
-        period.id='graphicPeriodTotals';
-        period.className='graphic-period-totals';
-      }
-      if(period.parentNode!==turnover)turnover.appendChild(period);
-      period.innerHTML='<div class="graphic-period-total cumulative">TOPLAM CİRO: <strong>'+total.toLocaleString('tr-TR')+' TL</strong> • '+jobs.length+' iş</div>';
-    }catch(e){console.error('Toplam ciro gösterilemedi:',e)}
-  }
-  function startTotalTurnoverRestore(){
-    ensureGraphicTotalTurnover();
-    const rows=document.getElementById('graphicJobRows');
-    if(rows)new MutationObserver(function(){setTimeout(ensureGraphicTotalTurnover,0)}).observe(rows,{childList:true,subtree:true});
-    setTimeout(ensureGraphicTotalTurnover,400);
-    setTimeout(ensureGraphicTotalTurnover,1200);
-    setInterval(ensureGraphicTotalTurnover,3000);
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startTotalTurnoverRestore);else startTotalTurnoverRestore();
-})();
-</script>
+
 </body></html>
