@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "musteri-takip-crm",
-  "main": "src/portfolio_workflow_patch_entry.js",
+  "main": "src/critical_switch_performance_entry.js",
   "compatibility_date": "2026-08-21",
   "assets": {
     "directory": "./public",
