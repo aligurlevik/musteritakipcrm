@@ -164,6 +164,9 @@ jobs:
           if grep -Fq 'requestIdleCallback(prewarmPortfolioFrame' /tmp/crm-index.html; then echo 'background portfolio prewarm still enabled'; exit 1; fi
           grep -Fq 'let crmSwitching=false' /tmp/crm-index.html || (echo 'navigation switch guard missing'; exit 1)
           grep -Fq 'crmDeferredLoadTimer' /tmp/crm-index.html || (echo 'navigation deferred-load guard missing'; exit 1)
+          grep -Fq 'const CRM_STABILITY_MODE=true' /tmp/crm-index.html || (echo 'stability mode missing'; exit 1)
+          if grep -Fq 'created_from=2000-01-01' /tmp/crm-index.html; then echo 'full-history graphic fetch still present'; exit 1; fi
+          grep -Fq "/api/graphic-jobs-summary" /tmp/crm-index.html || (echo 'graphic summary client missing'; exit 1)
           if grep -Fq "Promise.allSettled([loadDashboard(),loadCustomers(),loadMeetings(),loadOffers(),loadMails(),loadAgenda()])" /tmp/crm-index.html; then
             echo 'old heavy all-module startup is still present'
             exit 1
