@@ -27,7 +27,9 @@ test('CRM modülleri kalıcı kabukta anında görünür ve veri yükü sonraki 
   assert.match(page,/Müşteri Portföyü yüklenemedi\. CRM Ana Ekran açıldı\./);
   assert.match(page,/embedded=1&recovery=20261007-1/);
   assert.match(page,/getAttribute\('src'\)/);
-  assert.match(page,/if\(page==='portfolio'\)ensurePortfolioFrameLoaded\(\)/);
+  assert.match(page,/if\(page==='portfolio'\)\{/);
+  assert.match(page,/ensurePortfolioFrameLoaded\(\);/);
+  assert.match(page,/schedulePortfolioRecovery\(\);/);
   assert.doesNotMatch(page,/requestIdleCallback\(prewarmPortfolioFrame/);
   assert.match(page,/crmSwitching/);
   assert.match(page,/beginCrmSwitch/);
