@@ -196,7 +196,7 @@ body.crm-switching .crm-page-switch-indicator{display:flex}
 
 <section id="mails" class="section"><div class="toolbar"><div><h3>✉️ Firma Mail Havuzu</h3><div class="small">Her firmanın gelen ve giden bütün mailleri kendi adı altında toplanır.</div></div><div class="filterbar"><input id="mailCompanySearch" placeholder="Firma veya mail ara..." oninput="renderMails()"><button class="btn green" onclick="openMail()">✉️ Yeni Mail Gönder</button></div></div><div id="mailListSummary" class="small mail-list-summary"></div><div id="mailCompanyList" class="mail-company-list"></div></section>
 
-<section id="graphicJobs" class="section active"><div class="toolbar"><div><h3 style="margin:0">🖥️ Grafik Ajandam</h3><div class="small">Günü seç, işi yaz, durumuna bas.</div></div><div class="filterbar"><input id="graphicSearch" placeholder="Firma veya kod ara"><button class="btn" onclick="searchGraphicJobs()">Ara</button></div></div><div class="graphic-day-head"><div><div class="small">ÇALIŞTIĞIN GÜN</div><h2 id="graphicWorkingDay"></h2></div><div class="graphic-day-controls"><button class="btn" onclick="changeGraphicDay(-1)">←</button><input id="g_date" type="date" onchange="loadGraphicJobs()"><button class="btn" onclick="changeGraphicDay(1)">→</button><button class="btn primary" onclick="showTodayGraphicJobs()">Bugün</button></div></div><div class="graphic-agenda-layout"><div class="graphic-daily-panel"><div class="graphic-simple-add"><input id="g_customer" placeholder="Firma"><input id="g_no" placeholder="İş kodu"><input id="g_description" placeholder="Kısa not"><div class="graphic-simple-actions"><button type="button" class="btn clipboard" onclick="pasteAgendaNote('g_description')">📋 Panodan Ekle</button><input id="g_delivery" class="delivery" type="date" title="Teslim tarihi"><button class="btn green" onclick="saveGraphicJob()">＋ Ekle</button></div></div><h3 style="margin:12px 0 10px">Günlük İşler</h3><div id="graphicJobRows" class="graphic-daily-list"></div></div><div class="graphic-calendar-panel"><div class="graphic-month-controls"><button class="btn" onclick="openGraphicRelativeMonth(-1)">← Geçen Ay</button><button class="btn primary" onclick="openGraphicRelativeMonth(0)">Bu Ay</button><button class="btn" onclick="openGraphicRelativeMonth(1)">Gelecek Ay →</button><div id="graphicMonthTitle" class="graphic-month-current"></div></div><div class="month-calendar"><div class="month-weekdays"><div>Pzt</div><div>Sal</div><div>Çar</div><div>Per</div><div>Cum</div><div>Cmt</div><div>Paz</div></div><div id="graphicMonthGrid" class="month-grid"></div></div></div></div><div style="display:none"><div id="graphicUpcomingList"></div></div></section>
+<section id="graphicJobs" class="section active"><div class="toolbar"><div><h3 style="margin:0">🖥️ Grafik Ajandam</h3><div class="small">Günü seç, işi yaz, durumuna bas.</div></div><div class="filterbar"><input id="graphicSearch" placeholder="Firma veya kod ara"><button class="btn" onclick="searchGraphicJobs()">Ara</button></div></div><div class="graphic-day-head"><div><div class="small">ÇALIŞTIĞIN GÜN</div><h2 id="graphicWorkingDay"></h2></div><div class="graphic-day-controls"><button class="btn" onclick="changeGraphicDay(-1)">←</button><input id="g_date" type="date" onchange="loadGraphicJobs()"><button class="btn" onclick="changeGraphicDay(1)">→</button><button class="btn primary" onclick="showTodayGraphicJobs()">Bugün</button></div></div><div class="graphic-agenda-layout"><div class="graphic-daily-panel"><div class="graphic-simple-add"><input id="g_customer" placeholder="Firma" autocomplete="off"><input id="g_no" placeholder="İş kodu" autocomplete="off"><input id="g_description" placeholder="Kısa not" autocomplete="off"><div class="graphic-simple-actions"><button type="button" class="btn clipboard" onclick="pasteAgendaNote('g_description')">📋 Panodan Ekle</button><input id="g_delivery" class="delivery" type="date" title="Teslim tarihi"><button class="btn green" onclick="saveGraphicJob()">＋ Ekle</button></div></div><h3 style="margin:12px 0 10px">Günlük İşler</h3><div id="graphicJobRows" class="graphic-daily-list"></div></div><div class="graphic-calendar-panel"><div class="graphic-month-controls"><button class="btn" onclick="openGraphicRelativeMonth(-1)">← Geçen Ay</button><button class="btn primary" onclick="openGraphicRelativeMonth(0)">Bu Ay</button><button class="btn" onclick="openGraphicRelativeMonth(1)">Gelecek Ay →</button><div id="graphicMonthTitle" class="graphic-month-current"></div></div><div class="month-calendar"><div class="month-weekdays"><div>Pzt</div><div>Sal</div><div>Çar</div><div>Per</div><div>Cum</div><div>Cmt</div><div>Paz</div></div><div id="graphicMonthGrid" class="month-grid"></div></div></div></div><div style="display:none"><div id="graphicUpcomingList"></div></div></section>
 
 <section id="tracking" class="section"><div class="tracking-panel"><div class="toolbar"><div><h2 id="trackingHeading" style="margin:0">Bugünün Üretim Takibi</h2><div class="tracking-date" id="trackingDate"></div></div><div style="display:flex;gap:7px;align-items:center"><button id="trackingTodayButton" class="btn primary" onclick="setTrackingDay('today')">Bugün</button><button id="trackingTomorrowButton" class="btn" onclick="setTrackingDay('tomorrow')">Yarın</button><button class="btn primary" onclick="loadTrackingJobs()">Yenile</button></div></div><div id="trackingRows" class="tracking-list"></div></div></section>
 
@@ -683,7 +683,7 @@ async function loadGraphicJobs(){
 async function changeGraphicMonth(delta){graphicMonthDate.setMonth(graphicMonthDate.getMonth()+delta);$('g_date').value=localDateKey(graphicMonthDate);$('graphicSearch').value='';await loadGraphicJobs()}
 async function openGraphicRelativeMonth(offset){const now=new Date(),target=new Date(now.getFullYear(),now.getMonth()+offset,1,12);graphicMonthDate=target;$('g_date').value=offset===0?localDateKey(now):localDateKey(target);$('graphicSearch').value='';await loadGraphicJobs()}
 function chooseGraphicJobStatus(){return new Promise(resolve=>{const old=$('graphicStatusChooser');if(old)old.remove();const overlay=document.createElement('div');overlay.id='graphicStatusChooser';overlay.style.cssText='position:fixed;inset:0;z-index:1200;background:#0f172a99;display:flex;align-items:center;justify-content:center;padding:18px';overlay.innerHTML='<div style="width:min(430px,94vw);background:white;border-radius:16px;padding:24px;box-shadow:0 24px 80px #0006;text-align:center"><div style="font-size:23px;font-weight:900;color:#0f172a;margin-bottom:8px">İş durumu nedir?</div><div style="color:#64748b;margin-bottom:20px">Bu iş imalata mı gidecek, beklemede mi kalacak?</div><div style="display:flex;gap:12px;justify-content:center"><button type="button" data-status="İmalat" style="border:0;border-radius:12px;padding:14px 28px;background:#2563eb;color:white;font-size:17px;font-weight:900;cursor:pointer">İMALAT</button><button type="button" data-status="Bekleme" style="border:0;border-radius:12px;padding:14px 28px;background:#f59e0b;color:#422006;font-size:17px;font-weight:900;cursor:pointer">BEKLEME</button></div><button type="button" data-cancel="1" style="margin-top:15px;border:0;background:transparent;color:#64748b;cursor:pointer">Vazgeç</button></div>';const finish=value=>{overlay.remove();resolve(value)};overlay.querySelectorAll('[data-status]').forEach(button=>button.onclick=()=>finish(button.dataset.status));overlay.querySelector('[data-cancel]').onclick=()=>finish('');document.body.appendChild(overlay)})}
-async function saveGraphicJob(allowDuplicate=false,selectedStatus=''){const status=selectedStatus||await chooseGraphicJobStatus();if(!status)return;const viewDate=$("g_date").value,workDate=$('g_delivery')?.value||$('g_date').value,deliveryTime=$('g_delivery_time')?.value||'',deliveryPlace=$('g_delivery_place')?.value||'',criticalAlarm=$('g_critical_alarm')?.checked||false;if(criticalAlarm&&!deliveryTime)return showMsg('Kritik uyarı için teslim saatini seçin.','err');const payload={work_date:workDate,delivery_date:'',delivery_place:deliveryPlace,job_no:$('g_no').value.trim(),customer_name:$('g_customer').value.trim(),description:$('g_description').value.trim(),price:Number($('g_price')?.value||0),created_by:currentGraphicUser(),quantity:1,status,remind_at:deliveryTime?workDate+'T'+deliveryTime:'',allow_duplicate:allowDuplicate};if(!payload.job_no||!payload.customer_name)return showMsg('Firma ve iş kodu zorunlu.','err');try{const created=await req('/api/graphic-jobs',{method:'POST',body:JSON.stringify(payload)});if(criticalAlarm&&created.id)await req('/api/graphic-jobs/'+created.id,{method:'PUT',body:JSON.stringify({alarm_enabled:true})});$('g_no').value='';$('g_description').value='';if($('g_price'))$('g_price').value='';if($('g_delivery_time'))$('g_delivery_time').value='';if($('g_delivery_place'))$('g_delivery_place').value='';if($('g_critical_alarm'))$('g_critical_alarm').checked=false;$('g_date').value=viewDate;$('g_customer').focus();showMsg((criticalAlarm?'🔴 Kritik uyarılı iş ':'İş ')+currentGraphicUser()+' adına '+new Date(workDate+'T12:00:00').toLocaleDateString('tr-TR')+(deliveryTime?' '+deliveryTime:'')+(deliveryPlace?' • '+deliveryPlace:'')+' teslimine kaydedildi.');await loadGraphicJobs()}catch(e){if(e.message==='Bu iş numarası daha önce kaydedilmiş.'&&confirm('Bu iş kodu daha önce kaydedilmiş. Yine de eklemek istiyor musunuz?'))return saveGraphicJob(true,status);showMsg(e.message,'err')}}
+async function saveGraphicJob(allowDuplicate=false,selectedStatus=''){const requiredDeliveryPlace=$('g_delivery_place')?.value||'';const requiredPriceRaw=String($('g_price')?.value||'').trim();const requiredPrice=Number(requiredPriceRaw.replace(',','.'));if(!requiredDeliveryPlace){$('g_delivery_place')?.focus();return showMsg('Teslim yeri seçmeden iş kaydedilemez.','err')}if(!requiredPriceRaw||!(requiredPrice>0)){$('g_price')?.focus();return showMsg('Fiyat girmeden iş kaydedilemez.','err')}const status=selectedStatus||await chooseGraphicJobStatus();if(!status)return;const viewDate=$("g_date").value,workDate=$('g_delivery')?.value||$('g_date').value,deliveryTime=$('g_delivery_time')?.value||'',deliveryPlace=$('g_delivery_place')?.value||'',criticalAlarm=$('g_critical_alarm')?.checked||false;if(criticalAlarm&&!deliveryTime)return showMsg('Kritik uyarı için teslim saatini seçin.','err');const payload={work_date:workDate,delivery_date:'',delivery_place:deliveryPlace,job_no:$('g_no').value.trim(),customer_name:$('g_customer').value.trim(),description:$('g_description').value.trim(),price:Number($('g_price')?.value||0),created_by:currentGraphicUser(),quantity:1,status,remind_at:deliveryTime?workDate+'T'+deliveryTime:'',allow_duplicate:allowDuplicate};if(!payload.job_no||!payload.customer_name)return showMsg('Firma ve iş kodu zorunlu.','err');try{const created=await req('/api/graphic-jobs',{method:'POST',body:JSON.stringify(payload)});if(criticalAlarm&&created.id)await req('/api/graphic-jobs/'+created.id,{method:'PUT',body:JSON.stringify({alarm_enabled:true})});$('g_customer').value='';$('g_no').value='';$('g_description').value='';if($('g_price'))$('g_price').value='';if($('g_delivery_time'))$('g_delivery_time').value='';if($('g_delivery_place'))$('g_delivery_place').value='';if($('g_critical_alarm'))$('g_critical_alarm').checked=false;$('g_date').value=viewDate;$('g_customer').focus();showMsg((criticalAlarm?'🔴 Kritik uyarılı iş ':'İş ')+currentGraphicUser()+' adına '+new Date(workDate+'T12:00:00').toLocaleDateString('tr-TR')+(deliveryTime?' '+deliveryTime:'')+(deliveryPlace?' • '+deliveryPlace:'')+' teslimine kaydedildi.');await loadGraphicJobs()}catch(e){if(e.message==='Bu iş numarası daha önce kaydedilmiş.'&&confirm('Bu iş kodu daha önce kaydedilmiş. Yine de eklemek istiyor musunuz?'))return saveGraphicJob(true,status);showMsg(e.message,'err')}}
 function openGraphicJobEdit(id){const x=allGraphicJobs.find(i=>i.id===id);if(!x)return showMsg('İş bulunamadı.','err');$('ge_id').value=x.id;$('ge_customer').value=x.customer_name||'';$('ge_no').value=x.job_no||'';$('ge_description').value=x.description||'';$('ge_price').value=Number(x.price||0)||'';$('ge_status').value=graphicStatusIs(x.status,'İmalat')?'İmalat':'Bekleme';$('ge_date').value=x.work_date||'';$('ge_time').value=String(x.remind_at||'').slice(11,16);$('ge_place').value=x.delivery_place||'';openM('graphicEditModal')}
 async function saveGraphicJobEdit(){const id=Number($('ge_id').value),workDate=$('ge_date').value,time=$('ge_time').value,existing=allGraphicJobs.find(x=>x.id===id),baseStatus=$('ge_status').value,status=graphicStatusIs(existing?.status,'Bitti')?baseStatus+' Bitti':baseStatus,payload={customer_name:$('ge_customer').value.trim(),job_no:$('ge_no').value.trim(),description:$('ge_description').value.trim(),price:Math.max(0,Number($('ge_price').value||0)),status,work_date:workDate,remind_at:time?workDate+'T'+time:'',delivery_place:$('ge_place').value};if(!payload.customer_name||!payload.job_no||!workDate)return showMsg('Firma, iş kodu ve teslim tarihi zorunlu.','err');try{await req('/api/graphic-jobs/'+id,{method:'PUT',body:JSON.stringify(payload)});closeM('graphicEditModal');showMsg('İş bilgileri güncellendi.');await loadGraphicJobs()}catch(e){showMsg(e.message,'err')}}
 async function toggleGraphicJobDone(id,checked){try{const x=allGraphicJobs.find(i=>i.id===id),base=graphicStatusIs(x?.status,'İmalat')?'İmalat':'Bekleme',payload={status:checked?base+' Bitti':base,completed_by:checked?currentGraphicUser():''};await req('/api/graphic-jobs/'+id,{method:'PUT',body:JSON.stringify(payload)});if(x){x.status=payload.status;x.completed_by=payload.completed_by}renderGraphicJobs();showMsg(checked?payload.status+' — Tamamlayan: '+currentGraphicUser():base+' durumuna döndü.')}catch(e){showMsg(e.message,'err')}}
@@ -965,7 +965,7 @@ async function updateGraphicJobPrice(id,value){
   }catch(e){showMsg(e.message,'err')}
 }
 const renderGraphicJobsWithStaticPrice=renderGraphicJobs;
-function moveGraphicTurnoversToCalendar(){const calendar=document.querySelector('.graphic-calendar-panel'),controls=calendar?.querySelector('.graphic-month-controls');if(!calendar||!controls)return;let host=$('graphicTurnoverPanel');if(!host){host=document.createElement('div');host.id='graphicTurnoverPanel';host.className='graphic-turnover-panel';calendar.insertBefore(host,controls)}host.querySelectorAll('.graphic-daily-total').forEach(x=>x.remove());const daily=document.querySelector('.graphic-daily-panel .graphic-daily-total'),period=$('graphicPeriodTotals');if(daily)host.appendChild(daily);if(period)host.appendChild(period)}
+function moveGraphicTurnoversToCalendar(){const compact=$('graphicCompactDate'),calendar=document.querySelector('.graphic-calendar-panel'),controls=calendar?.querySelector('.graphic-month-controls');let host=$('graphicTurnoverPanel');if(!host){host=document.createElement('div');host.id='graphicTurnoverPanel';host.className='graphic-turnover-panel'}if(compact){let row=$('graphicCompactTurnoverRow');if(!row){row=document.createElement('div');row.id='graphicCompactTurnoverRow';const week=compact.querySelector('.graphic-compact-week');if(week)compact.insertBefore(row,week);else compact.appendChild(row)}if(host.parentNode!==row)row.appendChild(host)}else if(calendar&&controls){if(host.parentNode!==calendar)calendar.insertBefore(host,controls)}else{return}host.querySelectorAll('.graphic-daily-total').forEach(x=>x.remove());host.querySelectorAll('.graphic-period-totals').forEach(x=>x.remove());const daily=document.querySelector('.graphic-daily-panel .graphic-daily-total'),period=$('graphicPeriodTotals');if(daily)host.appendChild(daily);if(period)host.appendChild(period)}
 renderGraphicJobs=function(){renderGraphicJobsWithStaticPrice();if(currentAccessRole!=='admin')document.querySelector('.graphic-daily-total')?.remove();enableGraphicPriceEditing();showCompletedGraphicStatus();showGraphicEditButtons();decorateCriticalAlarmJobs();renderGraphicPeriodTotals();moveGraphicTurnoversToCalendar();checkGraphicDeadlineWarnings()};
 ensureGraphicPriceInput();
 if($('g_date')&&!$('g_date').value)$('g_date').value=localDateKey();
@@ -990,4 +990,504 @@ function prewarmPortfolioFrame(){
 let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole==='admin'){openRequestedCustomerFromUrl();setTimeout(()=>{pollMeetingReminders();pollAgendaReminders();checkLocalAgendaAlarms();checkAutomaticEndOfDayReport()},900);/* portfolio iframe is loaded only when the user opens Portfolio; no background prewarm */}});setInterval(checkAutomaticEndOfDayReport,60000);setInterval(()=>{if(!crmSwitching&&currentAccessRole==='admin')checkLocalAgendaAlarms()},5000); if(!CRM_STABILITY_MODE)setInterval(()=>{if(crmSwitching||currentAccessRole!=='admin')return;const meetingsActive=$('meetings')?.classList.contains('active');if(meetingsActive)loadCrmPageData('meetings',{force:true}).catch(()=>{});pollMeetingReminders();pollAgendaReminders();const newDay=localDateKey();if(newDay!==activeCalendarDay){activeCalendarDay=newDay;agendaDate=new Date();agendaView='month';if($('agenda')?.classList.contains('active'))loadCrmPageData('agenda',{force:true}).catch(()=>{})}},60000);
 </script><!-- deployment-refresh: 2026-08-28-multi-participants -->
 <!-- deployment-refresh: tracking-two-hour-warning -->
+
+<style>
+  #graphicJobs .graphic-day-head{display:none!important}
+  #graphicJobs .graphic-calendar-panel{display:none!important}
+  #graphicJobs .graphic-agenda-layout{grid-template-columns:minmax(0,1fr)!important}
+  .graphic-compact-date{
+    margin:12px 0 10px;background:#fff;border:1px solid #bfdbfe;border-radius:13px;
+    overflow:hidden;box-shadow:0 2px 8px #0f172a0d
+  }
+  .graphic-compact-date-top{
+    display:grid;grid-template-columns:auto minmax(220px,1fr) auto auto;gap:8px;
+    align-items:center;padding:9px 10px;background:#eff6ff;border-bottom:1px solid #dbeafe
+  }
+  .graphic-compact-date-title{min-width:0;text-align:center}
+  .graphic-compact-date-title b{display:block;color:#1e3a8a;font-size:16px}
+  .graphic-compact-date-title span{display:block;color:#64748b;font-size:11px;margin-top:1px}
+  .graphic-compact-date-top button{height:34px;padding:0 12px;border:0;border-radius:8px;font-weight:900;cursor:pointer}
+  .graphic-compact-arrow{width:38px;padding:0!important;background:#fff;color:#1e3a8a;border:1px solid #bfdbfe!important;font-size:17px}
+  .graphic-compact-today{background:#2563eb;color:#fff}
+  .graphic-compact-picker{width:132px!important;height:34px;padding:5px 8px!important;font-weight:800;background:#fff}
+  .graphic-compact-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:#fff}
+  .graphic-compact-day{
+    min-width:0;border:0;border-right:1px solid #e2e8f0;background:#fff;padding:8px 4px;
+    cursor:pointer;text-align:center;color:#334155
+  }
+  .graphic-compact-day:last-child{border-right:0}
+  .graphic-compact-day:hover{background:#f8fafc}
+  .graphic-compact-day .dow{display:block;font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase}
+  .graphic-compact-day .num{display:block;font-size:17px;font-weight:900;line-height:1.1;margin-top:2px}
+  .graphic-compact-day .mini{display:block;font-size:9px;color:#94a3b8;margin-top:2px;white-space:nowrap}
+  .graphic-compact-day.selected{background:#dbeafe;box-shadow:inset 0 0 0 2px #2563eb;color:#1e3a8a}
+  .graphic-compact-day.today .mini{color:#047857;font-weight:900}
+  @media(max-width:760px){
+    .graphic-compact-date-top{grid-template-columns:auto 1fr auto;gap:5px}
+    .graphic-compact-picker{grid-column:1/-1;width:100%!important}
+    .graphic-compact-date-title b{font-size:14px}
+    .graphic-compact-day{padding:7px 2px}.graphic-compact-day .num{font-size:15px}.graphic-compact-day .mini{display:none}
+  }
+</style>
+<script>
+(function(){
+  const trDays=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+  const trMonths=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+  const pad=n=>String(n).padStart(2,'0');
+  const keyOf=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const dateOf=key=>{const p=String(key||'').split('-').map(Number);return p.length===3&&p[0]?new Date(p[0],p[1]-1,p[2],12):new Date()};
+  const todayKey=()=>keyOf(new Date());
+  function selectedInput(){return document.getElementById('g_date')}
+  function setGraphicCompactDay(key){
+    const input=selectedInput();if(!input)return;
+    input.value=key;
+    if(typeof loadGraphicJobs==='function')loadGraphicJobs();
+    setTimeout(syncGraphicCompactDate,0);
+  }
+  function shiftGraphicCompactDay(delta){const input=selectedInput();if(!input)return;const d=dateOf(input.value||todayKey());d.setDate(d.getDate()+delta);setGraphicCompactDay(keyOf(d))}
+  function syncGraphicCompactDate(){
+    const input=selectedInput(),root=document.getElementById('graphicCompactDate');if(!input||!root)return;
+    const key=input.value||todayKey(),d=dateOf(key),today=todayKey();
+    const title=root.querySelector('.graphic-compact-date-title b');
+    const sub=root.querySelector('.graphic-compact-date-title span');
+    const picker=root.querySelector('.graphic-compact-picker');
+    if(title)title.textContent=d.getDate()+' '+trMonths[d.getMonth()]+' '+d.getFullYear()+' '+trDays[d.getDay()];
+    if(sub)sub.textContent='Çalıştığın gün';
+    if(picker&&picker.value!==key)picker.value=key;
+    const monday=new Date(d);const day=d.getDay();monday.setDate(d.getDate()-(day===0?6:day-1));
+    const week=root.querySelector('.graphic-compact-week');if(!week)return;
+    let html='';
+    for(let i=0;i<7;i++){
+      const x=new Date(monday);x.setDate(monday.getDate()+i);const xKey=keyOf(x);
+      const classes=['graphic-compact-day'];if(xKey===key)classes.push('selected');if(xKey===today)classes.push('today');
+      html+='<button type="button" class="'+classes.join(' ')+'" data-date="'+xKey+'"><span class="dow">'+trDays[x.getDay()]+'</span><span class="num">'+x.getDate()+'</span><span class="mini">'+(xKey===today?'Bugün':trMonths[x.getMonth()])+'</span></button>';
+    }
+    week.innerHTML=html;
+    week.querySelectorAll('[data-date]').forEach(btn=>btn.onclick=()=>setGraphicCompactDay(btn.dataset.date));
+  }
+  function mountGraphicCompactDate(){
+    if(document.getElementById('graphicCompactDate'))return;
+    const section=document.getElementById('graphicJobs'),layout=section&&section.querySelector('.graphic-agenda-layout');
+    if(!section||!layout||!selectedInput())return;
+    const box=document.createElement('div');box.id='graphicCompactDate';box.className='graphic-compact-date';
+    box.innerHTML='<div class="graphic-compact-date-top"><button type="button" class="graphic-compact-arrow" data-prev>←</button><div class="graphic-compact-date-title"><b></b><span></span></div><button type="button" class="graphic-compact-arrow" data-next>→</button><button type="button" class="graphic-compact-today" data-today>Bugün</button><input class="graphic-compact-picker" type="date" aria-label="Çalışma günü seç"></div><div class="graphic-compact-week"></div>';
+    layout.parentNode.insertBefore(box,layout);
+    box.querySelector('[data-prev]').onclick=()=>shiftGraphicCompactDay(-1);
+    box.querySelector('[data-next]').onclick=()=>shiftGraphicCompactDay(1);
+    box.querySelector('[data-today]').onclick=()=>setGraphicCompactDay(todayKey());
+    box.querySelector('.graphic-compact-picker').onchange=e=>setGraphicCompactDay(e.target.value);
+    const dayTitle=document.getElementById('graphicWorkingDay');
+    if(dayTitle)new MutationObserver(syncGraphicCompactDate).observe(dayTitle,{childList:true,subtree:true,characterData:true});
+    selectedInput().addEventListener('change',()=>setTimeout(syncGraphicCompactDate,0));
+    syncGraphicCompactDate();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mountGraphicCompactDate);else mountGraphicCompactDate();
+})();
+</script>
+
+<style>
+  #g_entry_date_label{display:none!important}
+  #g_delivery_time_wrap{display:none!important}
+  #g_delivery_quick_box{
+    display:grid;gap:5px;min-width:390px;padding:6px 8px;background:#eff6ff;
+    border:2px solid #2563eb;border-radius:10px
+  }
+  .delivery-quick-line{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .delivery-quick-label{width:52px;font-size:11px;font-weight:1000;color:#1e3a8a;white-space:nowrap}
+  .delivery-quick-btn{
+    height:30px;border:1px solid #bfdbfe;border-radius:7px;background:#fff;color:#1e3a8a;
+    padding:0 9px;font-size:11px;font-weight:900;cursor:pointer
+  }
+  .delivery-quick-btn:hover{background:#dbeafe}
+  .delivery-quick-btn.active{background:#2563eb;color:#fff;border-color:#2563eb}
+  .delivery-quick-summary{
+    margin-left:auto;padding:4px 8px;border-radius:7px;background:#dbeafe;color:#1e3a8a;
+    font-size:11px;font-weight:1000;white-space:nowrap
+  }
+  .delivery-manual-time{
+    display:flex;align-items:center;gap:6px
+  }
+  #g_delivery_quick_box #g_delivery_time{
+    display:block!important;width:105px!important;min-width:105px!important;height:30px!important;
+    padding:4px 7px!important;background:#fff!important;border:1px solid #2563eb!important;
+    border-radius:7px!important;font-weight:900!important
+  }
+  #g_delivery_quick_box #g_delivery{
+    display:none!important;width:132px!important;height:30px!important;padding:4px 7px!important;
+    background:#fff!important;border:1px solid #93c5fd!important;border-radius:7px!important;font-weight:900!important
+  }
+  #g_delivery_quick_box #g_delivery.custom-open{display:block!important}
+  @media(max-width:950px){
+    #g_delivery_quick_box{min-width:0;width:100%}
+    .delivery-quick-summary{width:100%;margin-left:57px}
+  }
+</style>
+<script>
+(function(){
+  const pad=n=>String(n).padStart(2,'0');
+  const dateKey=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const addDays=n=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return dateKey(d)};
+  const trDate=key=>{if(!key)return 'Tarih yok';const p=String(key).split('-');return p.length===3?p[2]+'.'+p[1]+'.'+p[0]:key};
+
+  function syncQuickDelivery(){
+    const box=document.getElementById('g_delivery_quick_box');
+    const date=document.getElementById('g_delivery');
+    const time=document.getElementById('g_delivery_time');
+    if(!box||!date||!time)return;
+    const value=date.value||'';
+    box.querySelectorAll('[data-day-offset]').forEach(btn=>btn.classList.toggle('active',value===addDays(Number(btn.dataset.dayOffset))));
+    const summary=box.querySelector('.delivery-quick-summary');
+    if(summary)summary.textContent='TESLİM: '+trDate(value)+(time.value?' • '+time.value:'');
+  }
+
+  function mountQuickDelivery(){
+    const existing=document.getElementById('g_delivery_quick_box');
+    if(existing){syncQuickDelivery();return true}
+
+    const date=document.getElementById('g_delivery');
+    const time=document.getElementById('g_delivery_time');
+    if(!date||!time)return false;
+    const oldLabel=document.getElementById('g_entry_date_label');
+    const parent=date.parentNode;if(!parent)return false;
+
+    const box=document.createElement('div');
+    box.id='g_delivery_quick_box';
+    box.innerHTML='<div class="delivery-quick-line"><b class="delivery-quick-label">GÜN</b><button type="button" class="delivery-quick-btn" data-day-offset="0">Bugün</button><button type="button" class="delivery-quick-btn" data-day-offset="1">Yarın</button><button type="button" class="delivery-quick-btn" data-day-offset="2">+2 Gün</button><button type="button" class="delivery-quick-btn" data-custom-date>Tarih Seç</button><span class="delivery-quick-summary"></span></div><div class="delivery-quick-line"><b class="delivery-quick-label">SAAT</b><span class="delivery-manual-time"><span style="font-size:13px">🕒</span></span></div>';
+
+    parent.insertBefore(box,oldLabel&&oldLabel.parentNode===parent?oldLabel:date);
+    box.appendChild(date);
+    box.querySelector('.delivery-manual-time').appendChild(time);
+    if(oldLabel)oldLabel.style.display='none';
+
+    box.querySelectorAll('[data-day-offset]').forEach(btn=>btn.onclick=()=>{
+      date.value=addDays(Number(btn.dataset.dayOffset));
+      date.classList.remove('custom-open');
+      syncQuickDelivery();
+    });
+    box.querySelector('[data-custom-date]').onclick=()=>{
+      date.classList.add('custom-open');
+      date.focus();
+      try{date.showPicker&&date.showPicker()}catch{}
+    };
+    date.addEventListener('change',()=>{date.classList.remove('custom-open');syncQuickDelivery()});
+    time.addEventListener('input',syncQuickDelivery);
+    time.addEventListener('change',syncQuickDelivery);
+    syncQuickDelivery();
+
+    if(!window.__graphicJobsReloadedAfterQuickDelivery){
+      window.__graphicJobsReloadedAfterQuickDelivery=true;
+      setTimeout(()=>{try{if(typeof loadGraphicJobs==='function')loadGraphicJobs()}catch(e){console.error(e)}},150);
+    }
+    return true;
+  }
+
+  function start(){
+    if(mountQuickDelivery())return;
+    let tries=0;
+    const timer=setInterval(()=>{if(mountQuickDelivery()||++tries>40)clearInterval(timer)},250);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();
+</script>
+
+<style>
+  #graphicCompactTurnoverRow{
+    display:flex;justify-content:flex-end;gap:8px;align-items:stretch;flex-wrap:wrap;
+    padding:7px 10px;background:#fff;border-bottom:1px solid #dbeafe
+  }
+  #graphicCompactTurnoverRow:empty{display:none}
+  #graphicCompactTurnoverRow #graphicTurnoverPanel{
+    display:flex!important;gap:8px!important;align-items:stretch!important;justify-content:flex-end!important;
+    margin:0!important;width:100%!important
+  }
+  #graphicCompactTurnoverRow .graphic-daily-total,
+  #graphicCompactTurnoverRow .graphic-period-total{
+    display:flex!important;align-items:center!important;justify-content:center!important;
+    flex:1 1 280px!important;min-width:250px!important;min-height:38px!important;
+    margin:0!important;padding:8px 12px!important;border-radius:10px!important;
+    font-size:12px!important;font-weight:900!important;text-align:center!important
+  }
+  #graphicCompactTurnoverRow .graphic-daily-total{
+    background:#dcfce7!important;color:#166534!important;border:1px solid #86efac!important
+  }
+  #graphicCompactTurnoverRow .graphic-period-totals{
+    display:flex!important;flex:1 1 280px!important;margin:0!important;width:auto!important
+  }
+  #graphicCompactTurnoverRow .graphic-period-total.cumulative{
+    width:100%!important;background:#dcfce7!important;color:#166534!important;border:1px solid #22c55e!important
+  }
+  @media(max-width:760px){
+    #graphicCompactTurnoverRow #graphicTurnoverPanel{flex-direction:column!important}
+    #graphicCompactTurnoverRow .graphic-daily-total,
+    #graphicCompactTurnoverRow .graphic-period-totals,
+    #graphicCompactTurnoverRow .graphic-period-total{width:100%!important;min-width:0!important}
+  }
+</style>
+
+<style>
+  /* Sade haftalık takvim kalır; eski aylık takvimin yalnızca ciro kutuları görünür. */
+  #graphicJobs .graphic-agenda-layout{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  #graphicJobs .graphic-calendar-panel{
+    display:block!important;
+    grid-row:1!important;
+    position:static!important;
+    min-width:0!important;
+    width:100%!important;
+    box-sizing:border-box!important;
+    margin:0 0 10px!important;
+    padding:0!important;
+    background:transparent!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+  }
+  #graphicJobs .graphic-daily-panel{
+    grid-row:2!important;
+  }
+  #graphicJobs .graphic-calendar-panel .graphic-month-controls,
+  #graphicJobs .graphic-calendar-panel .month-calendar{
+    display:none!important;
+  }
+  #graphicJobs .graphic-calendar-panel #graphicTurnoverPanel{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+    width:100%!important;
+    margin:0!important;
+  }
+  #graphicJobs .graphic-calendar-panel #graphicTurnoverPanel .graphic-daily-total,
+  #graphicJobs .graphic-calendar-panel #graphicTurnoverPanel .graphic-period-totals,
+  #graphicJobs .graphic-calendar-panel #graphicTurnoverPanel .graphic-period-total{
+    box-sizing:border-box!important;
+    width:100%!important;
+    min-width:0!important;
+    margin:0!important;
+  }
+  #graphicJobs .graphic-calendar-panel #graphicTurnoverPanel .graphic-daily-total,
+  #graphicJobs .graphic-calendar-panel #graphicTurnoverPanel .graphic-period-total{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    min-height:42px!important;
+    padding:9px 12px!important;
+    border-radius:10px!important;
+    text-align:center!important;
+    font-size:12px!important;
+    font-weight:900!important;
+  }
+  #graphicJobs .graphic-calendar-panel #graphicTurnoverPanel .graphic-daily-total{
+    background:#dcfce7!important;
+    color:#166534!important;
+    border:1px solid #86efac!important;
+  }
+  #graphicJobs .graphic-calendar-panel #graphicTurnoverPanel .graphic-period-totals{
+    display:block!important;
+  }
+  #graphicJobs .graphic-calendar-panel #graphicTurnoverPanel .graphic-period-total.cumulative{
+    background:#dcfce7!important;
+    color:#166534!important;
+    border:1px solid #22c55e!important;
+  }
+  @media(max-width:760px){
+    #graphicJobs .graphic-calendar-panel #graphicTurnoverPanel{
+      grid-template-columns:1fr!important;
+    }
+  }
+</style>
+
+<style>
+  /* Grafik ekranı üst bölümünü çok daha kompakt yap: iş listesi yukarı gelsin. */
+  .main:has(#graphicJobs.section.active){padding:10px 18px 16px!important}
+  .main:has(#graphicJobs.section.active)>.top{min-height:34px!important;margin:0 0 2px!important;align-items:center!important}
+  .main:has(#graphicJobs.section.active)>.top h1{margin:0!important;font-size:24px!important;line-height:1!important}
+  .main:has(#graphicJobs.section.active)>.top #date{display:none!important}
+  .main:has(#graphicJobs.section.active)>.top .btn{min-height:28px!important;height:28px!important;padding:4px 9px!important;font-size:11px!important}
+
+  #graphicJobs .toolbar{
+    margin:2px 0 3px!important;
+    min-height:28px!important;
+  }
+  #graphicJobs .toolbar h3{font-size:15px!important;line-height:1!important;margin:0!important}
+  #graphicJobs .toolbar .small{display:none!important}
+  #graphicJobs .filterbar{gap:4px!important;align-items:center!important}
+  #graphicJobs .filterbar input,#graphicJobs .filterbar select,#graphicJobs .filterbar .btn{
+    min-height:27px!important;height:27px!important;padding:3px 7px!important;font-size:11px!important;
+  }
+  #graphicJobs .filterbar input{max-width:240px!important}
+
+  #graphicJobs .graphic-compact-date{
+    margin:3px 0 4px!important;
+    border-radius:8px!important;
+  }
+  #graphicJobs .graphic-compact-date-top{
+    padding:3px 6px!important;
+    gap:4px!important;
+    min-height:31px!important;
+  }
+  #graphicJobs .graphic-compact-date-title b{
+    font-size:13px!important;
+    line-height:1!important;
+  }
+  #graphicJobs .graphic-compact-date-title span{
+    display:none!important;
+  }
+  #graphicJobs .graphic-compact-date-top button{
+    height:25px!important;
+    min-height:25px!important;
+    padding:0 7px!important;
+    border-radius:6px!important;
+    font-size:10px!important;
+  }
+  #graphicJobs .graphic-compact-arrow{width:29px!important}
+  #graphicJobs .graphic-compact-picker{
+    width:108px!important;
+    height:25px!important;
+    min-height:25px!important;
+    padding:2px 5px!important;
+    font-size:10px!important;
+  }
+  #graphicJobs .graphic-compact-day{
+    padding:2px 2px!important;
+    min-height:34px!important;
+  }
+  #graphicJobs .graphic-compact-day .dow{font-size:8px!important;line-height:1!important}
+  #graphicJobs .graphic-compact-day .num{font-size:13px!important;margin-top:1px!important;line-height:1!important}
+  #graphicJobs .graphic-compact-day .mini{font-size:7px!important;margin-top:1px!important;line-height:1!important}
+
+  #graphicJobs .graphic-calendar-panel{
+    margin:0 0 3px!important;
+  }
+  #graphicJobs .graphic-calendar-panel #graphicTurnoverPanel{
+    gap:4px!important;
+  }
+  #graphicJobs .graphic-calendar-panel #graphicTurnoverPanel .graphic-daily-total,
+  #graphicJobs .graphic-calendar-panel #graphicTurnoverPanel .graphic-period-total{
+    min-height:25px!important;
+    padding:3px 7px!important;
+    border-radius:7px!important;
+    font-size:9.5px!important;
+    line-height:1!important;
+  }
+  #graphicJobs .graphic-calendar-panel #graphicTurnoverPanel .graphic-period-total strong{
+    font-size:11px!important;
+  }
+
+  #graphicJobs .graphic-daily-panel{
+    padding:7px 10px!important;
+    min-height:0!important;
+  }
+  #graphicJobs .graphic-simple-add{
+    margin-top:2px!important;
+    padding-top:4px!important;
+    gap:4px!important;
+  }
+  #graphicJobs .graphic-simple-add>input{
+    min-height:28px!important;
+    height:28px!important;
+    padding:3px 7px!important;
+    font-size:11px!important;
+  }
+  #graphicJobs .graphic-simple-actions{
+    gap:4px!important;
+    align-items:center!important;
+  }
+  #graphicJobs .graphic-simple-actions .btn,
+  #graphicJobs .graphic-simple-actions select,
+  #graphicJobs .graphic-simple-actions input{
+    min-height:27px!important;
+    height:27px!important;
+    padding-top:2px!important;
+    padding-bottom:2px!important;
+    font-size:10px!important;
+  }
+
+  /* Teslim gün + saat alanı tek ince satırda. */
+  #graphicJobs #g_delivery_quick_box{
+    display:flex!important;
+    align-items:center!important;
+    gap:4px!important;
+    padding:3px 5px!important;
+    min-width:0!important;
+    width:auto!important;
+    border-radius:7px!important;
+  }
+  #graphicJobs #g_delivery_quick_box .delivery-quick-line{
+    display:flex!important;
+    align-items:center!important;
+    gap:2px!important;
+    flex-wrap:nowrap!important;
+  }
+  #graphicJobs #g_delivery_quick_box .delivery-quick-label{
+    width:auto!important;
+    margin-right:2px!important;
+    font-size:8.5px!important;
+  }
+  #graphicJobs #g_delivery_quick_box .delivery-quick-btn{
+    height:23px!important;
+    min-height:23px!important;
+    padding:0 6px!important;
+    font-size:8.5px!important;
+    border-radius:5px!important;
+  }
+  #graphicJobs #g_delivery_quick_box .delivery-quick-summary{
+    padding:2px 5px!important;
+    font-size:8.5px!important;
+    margin-left:2px!important;
+  }
+  #graphicJobs #g_delivery_quick_box #g_delivery_time{
+    width:84px!important;
+    min-width:84px!important;
+    height:23px!important;
+    min-height:23px!important;
+    padding:2px 5px!important;
+    font-size:10px!important;
+  }
+  #graphicJobs .graphic-daily-panel>h3{
+    margin:3px 0 4px!important;
+    font-size:14px!important;
+    line-height:1!important;
+  }
+
+  @media(max-width:1000px){
+    #graphicJobs #g_delivery_quick_box{width:100%!important;flex-wrap:wrap!important}
+  }
+  @media(max-width:760px){
+    .main:has(#graphicJobs.section.active){padding:8px!important}
+    #graphicJobs #g_delivery_quick_box{min-width:0!important;width:100%!important}
+  }
+</style>
+<script>
+(function(){
+  function ensureGraphicTotalTurnover(){
+    try{
+      if(typeof currentAccessRole==='undefined'||currentAccessRole!=='admin')return;
+      const section=document.getElementById('graphicJobs');
+      if(!section||!section.classList.contains('active'))return;
+      const turnover=document.getElementById('graphicTurnoverPanel');
+      if(!turnover)return;
+      const jobs=(typeof graphicCumulativeJobs!=='undefined'&&Array.isArray(graphicCumulativeJobs))?graphicCumulativeJobs:[];
+      const total=jobs.reduce(function(sum,job){return sum+Number(job&&job.price||0)},0);
+      let period=document.getElementById('graphicPeriodTotals');
+      if(!period){
+        period=document.createElement('div');
+        period.id='graphicPeriodTotals';
+        period.className='graphic-period-totals';
+      }
+      if(period.parentNode!==turnover)turnover.appendChild(period);
+      period.innerHTML='<div class="graphic-period-total cumulative">TOPLAM CİRO: <strong>'+total.toLocaleString('tr-TR')+' TL</strong> • '+jobs.length+' iş</div>';
+    }catch(e){console.error('Toplam ciro gösterilemedi:',e)}
+  }
+  function startTotalTurnoverRestore(){
+    ensureGraphicTotalTurnover();
+    const rows=document.getElementById('graphicJobRows');
+    if(rows)new MutationObserver(function(){setTimeout(ensureGraphicTotalTurnover,0)}).observe(rows,{childList:true,subtree:true});
+    setTimeout(ensureGraphicTotalTurnover,400);
+    setTimeout(ensureGraphicTotalTurnover,1200);
+    setInterval(ensureGraphicTotalTurnover,3000);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startTotalTurnoverRestore);else startTotalTurnoverRestore();
+})();
+</script>
 </body></html>
