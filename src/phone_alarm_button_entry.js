@@ -8,7 +8,7 @@ function addPhoneAlarmButton(html){
 function rebuild(response,html){var headers=new Headers(response.headers);['content-length','content-encoding','etag'].forEach(n=>headers.delete(n));headers.set('cache-control','no-store');return new Response(html,{status:response.status,statusText:response.statusText,headers})}
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 async function ensureAlarmTables(env){
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS native_alarm_pair_codes (code TEXT PRIMARY KEY, expires_ms INTEGER NOT NULL, used_at TEXT DEFAULT '', created_at TEXT DEFAULT CURRENT_TIMESTAMP)").run();
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS native_alarm_pair_codes (code TEXT PRIMARY KEY, expires_at TEXT NOT NULL, used_at TEXT DEFAULT '', created_at TEXT DEFAULT CURRENT_TIMESTAMP)").run();
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS native_alarm_devices (device_token TEXT PRIMARY KEY, device_name TEXT DEFAULT '', paired_at TEXT DEFAULT CURRENT_TIMESTAMP, last_seen_at TEXT DEFAULT CURRENT_TIMESTAMP)").run();
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS native_alarm_acks (device_token TEXT NOT NULL, agenda_id INTEGER NOT NULL, remind_at TEXT NOT NULL, acked_at TEXT DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(device_token,agenda_id,remind_at))").run();
 }
@@ -18,13 +18,14 @@ async function validDevice(env,token){if(!token)return null;return env.DB.prepar
 async function alarmApi(request,env,path){
   await ensureAlarmTables(env);
   if((path==='/api/native-alarm/pair-code'||path==='/api/native-alarm/code')&&request.method==='POST'){
-    const now=Date.now();await env.DB.prepare("DELETE FROM native_alarm_pair_codes WHERE expires_ms < ? OR used_at <> ''").bind(now).run();
-    const code=sixDigitCode(),expires=now+600000;await env.DB.prepare('INSERT OR REPLACE INTO native_alarm_pair_codes(code,expires_ms,used_at) VALUES(?,?,?)').bind(code,expires,'').run();
-    return json({ok:true,code,expires_at:new Date(expires).toISOString()});
+    await env.DB.prepare("DELETE FROM native_alarm_pair_codes WHERE expires_at < datetime('now') OR used_at <> ''").run();
+    const code=sixDigitCode(),expires=new Date(Date.now()+600000).toISOString();
+    await env.DB.prepare('INSERT OR REPLACE INTO native_alarm_pair_codes(code,expires_at,used_at) VALUES(?,?,?)').bind(code,expires,'').run();
+    return json({ok:true,code,expires_at:expires});
   }
   if(path==='/api/native-alarm/pair'&&request.method==='POST'){
     let b={};try{b=await request.json()}catch{}const code=String(b.code||'').trim();
-    const row=await env.DB.prepare("SELECT code FROM native_alarm_pair_codes WHERE code=? AND used_at='' AND expires_ms>=? LIMIT 1").bind(code,Date.now()).first();
+    const row=await env.DB.prepare("SELECT code FROM native_alarm_pair_codes WHERE code=? AND used_at='' AND expires_at>=datetime('now') LIMIT 1").bind(code).first();
     if(!row)return json({error:'Kod geçersiz veya süresi dolmuş.'},400);
     const token=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');
     await env.DB.prepare('INSERT INTO native_alarm_devices(device_token,device_name) VALUES(?,?)').bind(token,String(b.label||b.device_name||'Android Telefon')).run();
