@@ -56,11 +56,16 @@ async function alarmApi(request,env,path){
     await env.DB.prepare("UPDATE agenda_entries SET entry_status=?,completed_date=? WHERE id=?").bind(archived?'Yapıldı':'Yapılacak',archived?new Date().toISOString().slice(0,10):'',Number(m[1])).run();return json({ok:true});
   }
   if(path==='/api/native-alarm/reminders'&&request.method==='GET'){
-    const r=await env.DB.prepare("SELECT id,remind_at,note FROM agenda_entries WHERE COALESCE(remind_at,'')<>'' AND COALESCE(reminder_status,'')<>'Tamamlandı' AND COALESCE(entry_status,'Yapılacak')<>'Yapıldı' ORDER BY remind_at ASC LIMIT 200").all();
+    const r=await env.DB.prepare("SELECT a.id,a.remind_at,a.note FROM agenda_entries a WHERE COALESCE(a.remind_at,'')<>'' AND COALESCE(a.reminder_status,'')<>'Tamamlandı' AND COALESCE(a.entry_status,'Yapılacak')<>'Yapıldı' AND NOT EXISTS (SELECT 1 FROM native_alarm_acks_v2 k WHERE k.device_token=? AND k.agenda_id=a.id AND k.remind_at=a.remind_at) ORDER BY a.remind_at ASC LIMIT 200").bind(token).all();
     const reminders=(r.results||[]).map(x=>{const s=String(x.remind_at||'');const iso=/[zZ]|[+-]\d\d:\d\d$/.test(s)?s:s.replace(' ','T')+':00+03:00';return {id:Number(x.id),remind_at:s,when:new Date(iso).getTime(),title:'Ajanda Hatırlatması',body:String(x.note||'Hatırlatma zamanı geldi.')}}).filter(x=>Number.isFinite(x.when));
     return json({ok:true,reminders});
   }
-  if(path==='/api/native-alarm/ack'&&request.method==='POST'){let b={};try{b=await request.json()}catch{}await env.DB.prepare('INSERT OR REPLACE INTO native_alarm_acks_v2(device_token,agenda_id,remind_at,acked_at) VALUES(?,?,?,CURRENT_TIMESTAMP)').bind(token,Number(b.id)||0,String(b.remind_at||'')).run();return json({ok:true});}
+  if(path==='/api/native-alarm/ack'&&request.method==='POST'){
+    let b={};try{b=await request.json()}catch{}const id=Number(b.id)||0,remind=String(b.remind_at||'');
+    await env.DB.prepare('INSERT OR REPLACE INTO native_alarm_acks_v2(device_token,agenda_id,remind_at,acked_at) VALUES(?,?,?,CURRENT_TIMESTAMP)').bind(token,id,remind).run();
+    await env.DB.prepare("UPDATE agenda_entries SET reminder_status='Tamamlandı' WHERE id=? AND remind_at=?").bind(id,remind).run();
+    return json({ok:true});
+  }
   return json({error:'Android alarm API yolu bulunamadı.'},404);
 }
 export default{async fetch(request,env,ctx){const url=new URL(request.url),path=url.pathname;if(path.startsWith('/api/native-alarm/')){try{return await alarmApi(request,env,path)}catch(error){console.error('native alarm api',error);return json({error:'Android alarm sunucu hatası: '+String(error?.message||error)},500)}}const response=await worker.fetch(request,env,ctx);if(request.method==='GET'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html'))return rebuild(response,addPhoneAlarmButton(await response.text()));return response;},async scheduled(controller,env,ctx){if(typeof worker.scheduled==='function')return worker.scheduled(controller,env,ctx)}};
