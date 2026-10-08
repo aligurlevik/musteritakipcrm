@@ -8,7 +8,7 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
-    <application android:allowBackup="false" android:label="AJANDAM" android:icon="@android:drawable/ic_menu_my_calendar" android:usesCleartextTraffic="false">
+    <application android:allowBackup="false" android:label="AJANDAM" android:icon="@drawable/ajandam_cover" android:usesCleartextTraffic="false">
         <activity android:name=".MainActivity" android:screenOrientation="portrait" android:exported="true">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity>
