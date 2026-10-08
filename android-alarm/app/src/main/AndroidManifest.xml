@@ -8,40 +8,16 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
-    <application
-        android:allowBackup="false"
-        android:label="CRM Alarm"
-        android:icon="@android:drawable/ic_lock_idle_alarm"
-        android:usesCleartextTraffic="false">
-        <activity
-            android:name=".MainActivity"
-            android:screenOrientation="portrait"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
+    <application android:allowBackup="false" android:label="AJANDAM" android:icon="@android:drawable/ic_menu_my_calendar" android:usesCleartextTraffic="false">
+        <activity android:name=".MainActivity" android:screenOrientation="portrait" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity>
-        <activity
-            android:name=".AlarmDisplayActivity"
-            android:screenOrientation="portrait"
-            android:excludeFromRecents="true"
-            android:launchMode="singleTop"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
-            android:exported="false"/>
-
+        <activity android:name=".AlarmDisplayActivity" android:screenOrientation="portrait" android:excludeFromRecents="true" android:launchMode="singleTop" android:showWhenLocked="true" android:turnScreenOn="true" android:exported="false"/>
         <service android:name=".SyncService" android:exported="false"/>
         <service android:name=".AlarmRingingService" android:exported="false"/>
         <service android:name=".AlarmOverlayService" android:exported="false"/>
-
         <receiver android:name=".AlarmReceiver" android:exported="false"/>
         <receiver android:name=".SyncWatchdogReceiver" android:exported="false"/>
-        <receiver android:name=".BootReceiver" android:enabled="true" android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
-                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
-            </intent-filter>
-        </receiver>
+        <receiver android:name=".BootReceiver" android:enabled="true" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/></intent-filter></receiver>
     </application>
 </manifest>
