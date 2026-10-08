@@ -32,24 +32,35 @@ async function alarmApi(request,env,path){
     await env.DB.prepare("UPDATE native_alarm_pair_codes_v2 SET used_at=datetime('now') WHERE code=?").bind(code).run();
     return json({ok:true,token,label:String(b.label||'Android Alarm')});
   }
-  if(path==='/api/native-alarm/ping'&&request.method==='GET'){
-    const token=bearer(request),d=await validDevice(env,token);if(!d)return json({error:'Cihaz eşleşmemiş.'},401);
-    await env.DB.prepare("UPDATE native_alarm_devices_v2 SET last_seen_at=datetime('now') WHERE device_token=?").bind(token).run();return json({ok:true,label:'Android Alarm'});
+  const token=bearer(request),d=await validDevice(env,token);if(!d)return json({error:'Cihaz eşleşmemiş.'},401);
+  await env.DB.prepare("UPDATE native_alarm_devices_v2 SET last_seen_at=datetime('now') WHERE device_token=?").bind(token).run();
+  if(path==='/api/native-alarm/ping'&&request.method==='GET')return json({ok:true,label:'Android Ajanda'});
+  if(path==='/api/native-alarm/agenda'&&request.method==='GET'){
+    const r=await env.DB.prepare("SELECT id,entry_date,note,remind_at,entry_status,completed_date FROM agenda_entries ORDER BY CASE WHEN COALESCE(entry_status,'Yapılacak')='Yapıldı' THEN 1 ELSE 0 END, entry_date DESC, id DESC LIMIT 500").all();
+    return json({ok:true,entries:r.results||[]});
+  }
+  if(path==='/api/native-alarm/agenda'&&request.method==='POST'){
+    let b={};try{b=await request.json()}catch{}const note=String(b.note||'').trim();if(!note)return json({error:'Not boş olamaz.'},400);
+    const date=String(b.entry_date||new Date().toISOString().slice(0,10)),remind=String(b.remind_at||'');
+    const r=await env.DB.prepare("INSERT INTO agenda_entries(entry_date,sort_order,note,remind_at,reminder_status,entry_status,completed_date) VALUES(?,1,?,?,'','Yapılacak','')").bind(date,note,remind).run();
+    return json({ok:true,id:Number(r.meta?.last_row_id||0)});
+  }
+  const m=path.match(/^\/api\/native-alarm\/agenda\/(\d+)$/);
+  if(m&&request.method==='PUT'){
+    let b={};try{b=await request.json()}catch{}const id=Number(m[1]),note=String(b.note||'').trim();if(!note)return json({error:'Not boş olamaz.'},400);
+    await env.DB.prepare("UPDATE agenda_entries SET entry_date=?,note=?,remind_at=?,reminder_status='' WHERE id=?").bind(String(b.entry_date||''),note,String(b.remind_at||''),id).run();return json({ok:true});
+  }
+  if(m&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM agenda_entries WHERE id=?').bind(Number(m[1])).run();return json({ok:true});}
+  if(m&&request.method==='POST'){
+    let b={};try{b=await request.json()}catch{}const archived=!!b.archived;
+    await env.DB.prepare("UPDATE agenda_entries SET entry_status=?,completed_date=? WHERE id=?").bind(archived?'Yapıldı':'Yapılacak',archived?new Date().toISOString().slice(0,10):'',Number(m[1])).run();return json({ok:true});
   }
   if(path==='/api/native-alarm/reminders'&&request.method==='GET'){
-    const token=bearer(request),d=await validDevice(env,token);if(!d)return json({error:'Cihaz eşleşmemiş.'},401);
-    await env.DB.prepare("UPDATE native_alarm_devices_v2 SET last_seen_at=datetime('now') WHERE device_token=?").bind(token).run();
     const r=await env.DB.prepare("SELECT id,remind_at,note FROM agenda_entries WHERE COALESCE(remind_at,'')<>'' AND COALESCE(reminder_status,'')<>'Tamamlandı' AND COALESCE(entry_status,'Yapılacak')<>'Yapıldı' ORDER BY remind_at ASC LIMIT 200").all();
     const reminders=(r.results||[]).map(x=>{const s=String(x.remind_at||'');const iso=/[zZ]|[+-]\d\d:\d\d$/.test(s)?s:s.replace(' ','T')+':00+03:00';return {id:Number(x.id),remind_at:s,when:new Date(iso).getTime(),title:'Ajanda Hatırlatması',body:String(x.note||'Hatırlatma zamanı geldi.')}}).filter(x=>Number.isFinite(x.when));
     return json({ok:true,reminders});
   }
-  if(path==='/api/native-alarm/ack'&&request.method==='POST'){
-    const token=bearer(request),d=await validDevice(env,token);if(!d)return json({error:'Cihaz eşleşmemiş.'},401);let b={};try{b=await request.json()}catch{}
-    await env.DB.prepare('INSERT OR REPLACE INTO native_alarm_acks_v2(device_token,agenda_id,remind_at,acked_at) VALUES(?,?,?,CURRENT_TIMESTAMP)').bind(token,Number(b.id)||0,String(b.remind_at||'')).run();return json({ok:true});
-  }
+  if(path==='/api/native-alarm/ack'&&request.method==='POST'){let b={};try{b=await request.json()}catch{}await env.DB.prepare('INSERT OR REPLACE INTO native_alarm_acks_v2(device_token,agenda_id,remind_at,acked_at) VALUES(?,?,?,CURRENT_TIMESTAMP)').bind(token,Number(b.id)||0,String(b.remind_at||'')).run();return json({ok:true});}
   return json({error:'Android alarm API yolu bulunamadı.'},404);
 }
-export default{
-  async fetch(request,env,ctx){const url=new URL(request.url),path=url.pathname;if(path.startsWith('/api/native-alarm/')){try{return await alarmApi(request,env,path)}catch(error){console.error('native alarm api',error);return json({error:'Android alarm sunucu hatası: '+String(error?.message||error)},500)}}const response=await worker.fetch(request,env,ctx);if(request.method==='GET'&&(path==='/'||path==='/index.html'||path==='/safe-crm'||path==='/safe-crm/')&&response.ok&&(response.headers.get('content-type')||'').includes('text/html'))return rebuild(response,addPhoneAlarmButton(await response.text()));return response;},
-  async scheduled(controller,env,ctx){if(typeof worker.scheduled==='function')return worker.scheduled(controller,env,ctx)}
-};
+export default{async fetch(request,env,ctx){const url=new URL(request.url),path=url.pathname;if(path.startsWith('/api/native-alarm/')){try{return await alarmApi(request,env,path)}catch(error){console.error('native alarm api',error);return json({error:'Android alarm sunucu hatası: '+String(error?.message||error)},500)}}const response=await worker.fetch(request,env,ctx);if(request.method==='GET'&&(path==='/'||path==='/index.html'||path==='/safe-crm'||path==='/safe-crm/')&&response.ok&&(response.headers.get('content-type')||'').includes('text/html'))return rebuild(response,addPhoneAlarmButton(await response.text()));return response;},async scheduled(controller,env,ctx){if(typeof worker.scheduled==='function')return worker.scheduled(controller,env,ctx)}};
