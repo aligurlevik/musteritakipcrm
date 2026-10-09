@@ -16,6 +16,13 @@ body:not(.crm-role-admin) #g_price,body:not(.crm-role-admin) .graphic-price,body
 #graphicMiniCalendarInput{position:absolute;right:0;top:31px;z-index:1000;width:145px;padding:5px;border:1px solid #93c5fd;border-radius:7px;background:#fff;box-shadow:0 8px 22px #0f172a33}
 #graphicMiniCalendarInput:not(.open){display:none}
 #graphicMonthlyRevenue{display:flex!important;align-items:center!important;justify-content:center!important;flex:1 1 280px!important;min-width:250px!important;min-height:38px!important;margin:0!important;padding:8px 12px!important;border:1px solid #22c55e!important;border-radius:10px!important;background:#dcfce7!important;color:#166534!important;font-size:12px!important;font-weight:900!important;text-align:center!important}
+#graphicCompactTurnoverRow #graphicTurnoverPanel{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important}
+#graphicWeekDeliveryChoices{display:grid;grid-template-columns:repeat(6,minmax(74px,1fr));gap:3px;flex:1 1 auto;min-width:540px}
+.graphic-week-day{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;padding:3px;border:1px solid #bfdbfe;border-radius:7px;background:#fff}
+.graphic-week-day-title{grid-column:1/-1;border:0;background:#dbeafe;color:#1e3a8a;padding:3px 2px;border-radius:5px;font-size:9px;font-weight:1000;white-space:nowrap}
+.graphic-week-time{height:21px;padding:0 2px;border:1px solid #cbd5e1;border-radius:4px;background:#f8fafc;color:#0f172a;font-size:8px;font-weight:900;cursor:pointer}
+.graphic-week-time:hover,.graphic-week-time.active{background:#2563eb;color:#fff;border-color:#2563eb}
+@media(max-width:1100px){#graphicWeekDeliveryChoices{min-width:100%;grid-template-columns:repeat(3,minmax(90px,1fr))}}
 </style>
 <script data-graphic-mini-calendar-v4>
 (function(){
@@ -33,10 +40,16 @@ async function renderMonthlyRevenue(){
  }catch(error){console.error('Aylık ciro yüklenemedi:',error)}
 }
 function mountMiniCalendar(){
- const box=document.getElementById('g_delivery_quick_box'),delivery=document.getElementById('g_delivery');if(!box||!delivery)return false;
- box.querySelectorAll('[data-quick-time="12:00"],[data-quick-time="16:00"],[data-quick-time="17:00"]').forEach(button=>button.remove());
+ const box=document.getElementById('g_delivery_quick_box'),delivery=document.getElementById('g_delivery'),time=document.getElementById('g_delivery_time');if(!box||!delivery||!time)return false;
+ box.querySelectorAll('[data-day-offset],[data-custom-date],[data-quick-time]').forEach(button=>button.remove());
+ const lines=box.querySelectorAll('.delivery-quick-line');if(lines[0])lines[0].style.display='none';
+ if(!document.getElementById('graphicWeekDeliveryChoices')){
+  const pad=n=>String(n).padStart(2,'0'),key=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),days=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'],root=document.createElement('div');root.id='graphicWeekDeliveryChoices';let cursor=new Date();cursor.setHours(12,0,0,0);let html='';
+  for(let shown=0;shown<6;){if(cursor.getDay()!==0){const date=key(cursor),label=days[cursor.getDay()]+' '+cursor.getDate();html+='<div class="graphic-week-day" data-date="'+date+'"><button type="button" class="graphic-week-day-title" data-week-date="'+date+'">'+label+'</button>'+['13:00','16:00','17:00'].map(value=>'<button type="button" class="graphic-week-time" data-week-date="'+date+'" data-week-time="'+value+'">'+value.slice(0,2)+'</button>').join('')+'</div>';shown++}cursor.setDate(cursor.getDate()+1)}
+  root.innerHTML=html;box.insertBefore(root,lines[1]||box.firstChild);root.querySelectorAll('[data-week-date]').forEach(button=>button.addEventListener('click',()=>{delivery.value=button.dataset.weekDate;if(button.dataset.weekTime)time.value=button.dataset.weekTime;delivery.dispatchEvent(new Event('change',{bubbles:true}));time.dispatchEvent(new Event('change',{bubbles:true}));root.querySelectorAll('.graphic-week-time').forEach(x=>x.classList.toggle('active',x.dataset.weekDate===delivery.value&&x.dataset.weekTime===time.value))}));
+ }
  if(document.getElementById('graphicMiniCalendarWrap'))return true;
- const lines=box.querySelectorAll('.delivery-quick-line'),target=lines[1]||box,wrap=document.createElement('span');wrap.id='graphicMiniCalendarWrap';
+ const target=lines[1]||box,wrap=document.createElement('span');wrap.id='graphicMiniCalendarWrap';
  wrap.innerHTML='<button id="graphicMiniCalendarButton" type="button" title="Takvimden tarih seç" aria-label="Takvimden tarih seç">🗓️</button><input id="graphicMiniCalendarInput" type="date" aria-label="Teslim tarihi">';target.appendChild(wrap);
  const button=wrap.querySelector('#graphicMiniCalendarButton'),picker=wrap.querySelector('#graphicMiniCalendarInput');
  button.addEventListener('click',function(event){event.stopPropagation();picker.value=delivery.value||'';picker.classList.toggle('open');if(picker.classList.contains('open')&&typeof picker.showPicker==='function')picker.showPicker()});
