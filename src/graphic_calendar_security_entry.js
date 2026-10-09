@@ -16,7 +16,10 @@ body:not(.crm-role-admin) #g_price,body:not(.crm-role-admin) .graphic-price,body
 #graphicMiniCalendarInput{position:absolute;right:0;top:31px;z-index:1000;width:145px;padding:5px;border:1px solid #93c5fd;border-radius:7px;background:#fff;box-shadow:0 8px 22px #0f172a33}
 #graphicMiniCalendarInput:not(.open){display:none}
 #graphicMonthlyRevenue{display:flex!important;align-items:center!important;justify-content:center!important;flex:1 1 280px!important;min-width:250px!important;min-height:38px!important;margin:0!important;padding:8px 12px!important;border:1px solid #22c55e!important;border-radius:10px!important;background:#dcfce7!important;color:#166534!important;font-size:12px!important;font-weight:900!important;text-align:center!important}
-#graphicCompactTurnoverRow #graphicTurnoverPanel{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important}
+#graphicJobs #graphicTurnoverPanel{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important;width:100%!important}
+#graphicJobs #graphicTurnoverPanel>.graphic-daily-total{grid-column:1!important;grid-row:1!important;width:100%!important;min-width:0!important;margin:0!important}
+#graphicJobs #graphicTurnoverPanel>#graphicMonthlyRevenue{grid-column:2!important;grid-row:1!important;width:100%!important;min-width:0!important;margin:0!important}
+@media(max-width:700px){#graphicJobs #graphicTurnoverPanel{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}}
 #graphicWeekDeliveryChoices{display:grid;grid-template-columns:repeat(6,minmax(74px,1fr));gap:3px;flex:1 1 auto;min-width:540px}
 .graphic-week-day{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;padding:3px;border:1px solid #bfdbfe;border-radius:7px;background:#fff}
 .graphic-week-day-title{grid-column:1/-1;border:0;background:#dbeafe;color:#1e3a8a;padding:3px 2px;border-radius:5px;font-size:9px;font-weight:1000;white-space:nowrap}
