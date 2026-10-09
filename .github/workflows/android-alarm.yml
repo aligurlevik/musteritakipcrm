@@ -18,6 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Apply AJANDAM daily-life features
+        run: python3 android-alarm/apply_daily_features.py
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -65,9 +68,9 @@ jobs:
           apk='dist/CRM-Android-Alarm.apk'
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" "$apk" --clobber
-            gh release edit "$tag" --title 'CRM Android Alarm - Güncel Sürüm' --notes 'Sessiz, tam ekran Android alarm uygulaması. 6 haneli CRM eşleştirme koduyla bağlanır ve kullanıcı ALARMI KAPAT düğmesine basana kadar ekranda kalır.'
+            gh release edit "$tag" --title 'CRM Android Alarm - Güncel Sürüm' --notes 'AJANDAM: Bugün, öncelik, bekleyen ve yarına aktar özellikleri eklendi.'
           else
-            gh release create "$tag" "$apk" --title 'CRM Android Alarm - Güncel Sürüm' --notes 'Sessiz, tam ekran Android alarm uygulaması. 6 haneli CRM eşleştirme koduyla bağlanır ve kullanıcı ALARMI KAPAT düğmesine basana kadar ekranda kalır.'
+            gh release create "$tag" "$apk" --title 'CRM Android Alarm - Güncel Sürüm' --notes 'AJANDAM: Bugün, öncelik, bekleyen ve yarına aktar özellikleri eklendi.'
           fi
 
       - uses: actions/upload-artifact@v4
