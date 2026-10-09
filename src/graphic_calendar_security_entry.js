@@ -30,7 +30,8 @@ const calendarPatch=String.raw`
 <style data-graphic-monthly-calendar-v2>
   #graphicCompactDate{display:block!important}
   #graphicJobs .graphic-agenda-layout{grid-template-columns:minmax(0,1fr) 330px!important;gap:10px!important;align-items:start!important}
-  #graphicJobs .graphic-calendar-panel{display:block!important;position:sticky!important;top:8px!important;min-width:0!important;width:330px!important;margin:0!important;padding:8px!important;background:#fff!important;border:2px solid #bfdbfe!important;border-radius:12px!important;box-shadow:0 4px 12px #0f172a12!important}
+  #graphicJobs .graphic-daily-panel{grid-column:1!important;grid-row:1!important}
+  #graphicJobs .graphic-calendar-panel{display:block!important;grid-column:2!important;grid-row:1!important;position:sticky!important;top:8px!important;min-width:0!important;width:330px!important;margin:0!important;padding:8px!important;background:#fff!important;border:2px solid #bfdbfe!important;border-radius:12px!important;box-shadow:0 4px 12px #0f172a12!important}
   #graphicJobs .graphic-calendar-panel .graphic-month-controls{display:flex!important;justify-content:center!important;align-items:center!important;flex-wrap:wrap!important}
   #graphicJobs .graphic-calendar-panel .month-calendar{display:block!important}
   #graphicJobs .graphic-calendar-panel .month-weekdays{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important}
@@ -50,7 +51,7 @@ const calendarPatch=String.raw`
   body:not(.crm-role-admin) label:has(#ge_price),
   body:not(.crm-role-admin) [data-revenue-only]{display:none!important}
   #g_delivery_quick_box [data-quick-time="12:00"],#g_delivery_quick_box [data-quick-time="16:00"],#g_delivery_quick_box [data-quick-time="17:00"]{display:none!important}
-  @media(max-width:1100px){#graphicJobs .graphic-agenda-layout{grid-template-columns:1fr!important}#graphicJobs .graphic-calendar-panel{position:static!important;width:100%!important}#graphicJobs .graphic-calendar-panel .month-grid{grid-auto-rows:minmax(52px,auto)!important}}
+  @media(max-width:1100px){#graphicJobs .graphic-agenda-layout{grid-template-columns:1fr!important}#graphicJobs .graphic-daily-panel{grid-column:1!important;grid-row:1!important}#graphicJobs .graphic-calendar-panel{grid-column:1!important;grid-row:2!important;position:static!important;width:100%!important}#graphicJobs .graphic-calendar-panel .month-grid{grid-auto-rows:minmax(52px,auto)!important}}
 </style>
 <script data-graphic-monthly-calendar-v2>
 (function(){
