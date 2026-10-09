@@ -4,6 +4,6 @@ export function redactGraphicRevenue(value){
 }
 
 export function addGraphicCalendarPatch(html,patch){
-  if(html.includes('data-graphic-monthly-calendar-v2'))return html;
+  if(html.includes('data-graphic-mini-calendar-v4'))return html;
   return html.replace(/<\/body>/i,patch+'\n</body>');
 }
