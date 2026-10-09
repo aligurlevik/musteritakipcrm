@@ -15,10 +15,23 @@ body:not(.crm-role-admin) #g_price,body:not(.crm-role-admin) .graphic-price,body
 #graphicMiniCalendarButton:hover{background:#dbeafe}
 #graphicMiniCalendarInput{position:absolute;right:0;top:31px;z-index:1000;width:145px;padding:5px;border:1px solid #93c5fd;border-radius:7px;background:#fff;box-shadow:0 8px 22px #0f172a33}
 #graphicMiniCalendarInput:not(.open){display:none}
+#graphicMonthlyRevenue{display:flex!important;align-items:center!important;justify-content:center!important;flex:1 1 280px!important;min-width:250px!important;min-height:38px!important;margin:0!important;padding:8px 12px!important;border:1px solid #22c55e!important;border-radius:10px!important;background:#dcfce7!important;color:#166534!important;font-size:12px!important;font-weight:900!important;text-align:center!important}
 </style>
 <script data-graphic-mini-calendar-v4>
 (function(){
 function setRole(role){document.body.classList.toggle('crm-role-admin',role==='admin')}
+async function renderMonthlyRevenue(){
+ if(!document.body.classList.contains('crm-role-admin'))return;
+ const selected=document.getElementById('g_date')?.value||new Date().toISOString().slice(0,10),parts=selected.split('-'),year=Number(parts[0]),month=Number(parts[1]);
+ const from=year+'-'+String(month).padStart(2,'0')+'-01',to=new Date(year,month,0).toISOString().slice(0,10);
+ try{
+  const response=await fetch('/api/graphic-jobs?created_from='+encodeURIComponent(from)+'&created_to='+encodeURIComponent(to),{cache:'no-store'});if(!response.ok)return;
+  const jobs=await response.json(),items=Array.isArray(jobs)?jobs:[],total=items.reduce((sum,job)=>sum+Number(job.price||0),0),months=['OCAK','ŞUBAT','MART','NİSAN','MAYIS','HAZİRAN','TEMMUZ','AĞUSTOS','EYLÜL','EKİM','KASIM','ARALIK'];
+  let box=document.getElementById('graphicMonthlyRevenue');if(!box){box=document.createElement('div');box.id='graphicMonthlyRevenue'}
+  box.textContent='AYLIK CİRO • '+months[month-1]+' '+year+': '+total.toLocaleString('tr-TR')+' TL • '+items.length+' iş';
+  const host=document.getElementById('graphicTurnoverPanel')||document.getElementById('graphicCompactTurnoverRow');if(host&&!box.isConnected)host.appendChild(box);
+ }catch(error){console.error('Aylık ciro yüklenemedi:',error)}
+}
 function mountMiniCalendar(){
  const box=document.getElementById('g_delivery_quick_box'),delivery=document.getElementById('g_delivery');if(!box||!delivery)return false;
  box.querySelectorAll('[data-quick-time="12:00"],[data-quick-time="16:00"],[data-quick-time="17:00"]').forEach(button=>button.remove());
@@ -29,7 +42,7 @@ function mountMiniCalendar(){
  button.addEventListener('click',function(event){event.stopPropagation();picker.value=delivery.value||'';picker.classList.toggle('open');if(picker.classList.contains('open')&&typeof picker.showPicker==='function')picker.showPicker()});
  picker.addEventListener('click',event=>event.stopPropagation());picker.addEventListener('change',function(){if(!picker.value)return;delivery.value=picker.value;delivery.dispatchEvent(new Event('change',{bubbles:true}));picker.classList.remove('open')});document.addEventListener('click',()=>picker.classList.remove('open'));return true;
 }
-async function start(){try{const response=await fetch('/api/session',{cache:'no-store'});setRole(response.ok?(await response.json()).role:'')}catch(_){setRole('')}mountMiniCalendar();let tries=0;const timer=setInterval(()=>{if(mountMiniCalendar()||++tries>40)clearInterval(timer)},250)}
+async function start(){try{const response=await fetch('/api/session',{cache:'no-store'});setRole(response.ok?(await response.json()).role:'')}catch(_){setRole('')}mountMiniCalendar();renderMonthlyRevenue();document.getElementById('g_date')?.addEventListener('change',()=>setTimeout(renderMonthlyRevenue,100));let tries=0;const timer=setInterval(()=>{mountMiniCalendar();renderMonthlyRevenue();if(++tries>12)clearInterval(timer)},250)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
 </script>`;
