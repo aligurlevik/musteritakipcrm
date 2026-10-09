@@ -28,28 +28,29 @@ function json(data,status=200,extra={}){
 
 const calendarPatch=String.raw`
 <style data-graphic-monthly-calendar-v2>
-  #graphicCompactDate{display:none!important}
-  #graphicJobs .graphic-agenda-layout{grid-template-columns:minmax(0,1fr)!important}
-  #graphicJobs .graphic-calendar-panel{display:block!important;position:static!important;min-width:0!important;width:100%!important;margin:0 0 10px!important;padding:12px!important;background:#fff!important;border:2px solid #bfdbfe!important;border-radius:14px!important;box-shadow:0 6px 18px #0f172a12!important}
+  #graphicCompactDate{display:block!important}
+  #graphicJobs .graphic-agenda-layout{grid-template-columns:minmax(0,1fr) 330px!important;gap:10px!important;align-items:start!important}
+  #graphicJobs .graphic-calendar-panel{display:block!important;position:sticky!important;top:8px!important;min-width:0!important;width:330px!important;margin:0!important;padding:8px!important;background:#fff!important;border:2px solid #bfdbfe!important;border-radius:12px!important;box-shadow:0 4px 12px #0f172a12!important}
   #graphicJobs .graphic-calendar-panel .graphic-month-controls{display:flex!important;justify-content:center!important;align-items:center!important;flex-wrap:wrap!important}
   #graphicJobs .graphic-calendar-panel .month-calendar{display:block!important}
   #graphicJobs .graphic-calendar-panel .month-weekdays{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important}
   #graphicJobs .graphic-calendar-panel .month-weekdays>div:last-child{display:none!important}
-  #graphicJobs .graphic-calendar-panel .month-grid{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;grid-auto-rows:minmax(76px,auto)!important;gap:5px!important}
+  #graphicJobs .graphic-calendar-panel .month-grid{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;grid-auto-rows:minmax(44px,auto)!important;gap:3px!important}
   #graphicJobs .graphic-calendar-panel #graphicTurnoverPanel{display:none!important}
-  #graphicJobs .month-day{height:auto!important;min-height:76px!important;border:2px solid transparent!important;border-radius:10px!important;padding:7px!important;transition:transform .12s ease,box-shadow .12s ease!important}
+  #graphicJobs .month-day{height:auto!important;min-height:44px!important;border:2px solid transparent!important;border-radius:7px!important;padding:3px!important;transition:transform .12s ease,box-shadow .12s ease!important}
   #graphicJobs .month-day:hover{transform:translateY(-1px);box-shadow:0 5px 12px #0f172a20!important}
   #graphicJobs .month-day.empty{visibility:hidden!important}
   #graphicJobs .month-day.today{outline:3px solid #0f172a!important;outline-offset:1px!important}
-  #graphicJobs .calendar-day-count{display:block;margin-top:5px;font-size:11px;font-weight:900}
-  #graphicJobs .calendar-day-revenue{display:block;margin-top:3px;font-size:11px;font-weight:900;color:#065f46}
+  #graphicJobs .month-day-number{font-size:12px!important}
+  #graphicJobs .calendar-day-count{display:block;margin-top:2px;font-size:8px;font-weight:900}
+  #graphicJobs .calendar-day-revenue{display:block;margin-top:1px;font-size:8px;font-weight:900;color:#065f46}
   body:not(.crm-role-admin) #g_price,
   body:not(.crm-role-admin) .graphic-price,
   body:not(.crm-role-admin) #ge_price,
   body:not(.crm-role-admin) label:has(#ge_price),
   body:not(.crm-role-admin) [data-revenue-only]{display:none!important}
   #g_delivery_quick_box [data-quick-time="12:00"],#g_delivery_quick_box [data-quick-time="16:00"],#g_delivery_quick_box [data-quick-time="17:00"]{display:none!important}
-  @media(max-width:760px){#graphicJobs .graphic-calendar-panel .month-grid{grid-auto-rows:minmax(64px,auto)!important;gap:3px!important}#graphicJobs .month-day{min-height:64px!important;padding:5px!important}.calendar-day-revenue{font-size:9px!important}}
+  @media(max-width:1100px){#graphicJobs .graphic-agenda-layout{grid-template-columns:1fr!important}#graphicJobs .graphic-calendar-panel{position:static!important;width:100%!important}#graphicJobs .graphic-calendar-panel .month-grid{grid-auto-rows:minmax(52px,auto)!important}}
 </style>
 <script data-graphic-monthly-calendar-v2>
 (function(){
@@ -79,10 +80,9 @@ const calendarPatch=String.raw`
   }
   async function start(){
     try{const response=await fetch('/api/session',{cache:'no-store'});if(response.ok)setRole((await response.json()).role)}catch(_){setRole('')}
-    document.getElementById('graphicCompactDate')?.remove();
     document.querySelectorAll('#g_delivery_quick_box [data-quick-time]').forEach(button=>button.remove());
     replaceCalendar();
-    let tries=0;const timer=setInterval(()=>{document.getElementById('graphicCompactDate')?.remove();replaceCalendar();if(++tries>20)clearInterval(timer)},250);
+    let tries=0;const timer=setInterval(()=>{replaceCalendar();if(++tries>20)clearInterval(timer)},250);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
