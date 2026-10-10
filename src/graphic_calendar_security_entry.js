@@ -9,7 +9,8 @@ function json(data,status=200,extra={}){return new Response(JSON.stringify(data)
 
 const calendarPatch=String.raw`
 <style data-graphic-mini-calendar-v4>
-body:not(.crm-role-admin) #g_price,body:not(.crm-role-admin) .graphic-price,body:not(.crm-role-admin) #ge_price,body:not(.crm-role-admin) label:has(#ge_price),body:not(.crm-role-admin) [data-revenue-only]{display:none!important}
+body:not(.crm-role-admin) .graphic-price,body:not(.crm-role-admin) #ge_price,body:not(.crm-role-admin) label:has(#ge_price),body:not(.crm-role-admin) [data-revenue-only]{display:none!important}
+body.crm-role-tracking #g_price,body.crm-role-tracking label:has(#g_price){display:none!important}
 #graphicMiniCalendarWrap{position:relative;display:inline-flex;align-items:center}
 #graphicMiniCalendarButton{height:27px;min-width:35px;padding:0 8px;border:1px solid #2563eb;border-radius:7px;background:#eff6ff;color:#1d4ed8;font-size:16px;line-height:1;cursor:pointer}
 #graphicMiniCalendarButton:hover{background:#dbeafe}
@@ -29,7 +30,7 @@ body:not(.crm-role-admin) #g_price,body:not(.crm-role-admin) .graphic-price,body
 </style>
 <script data-graphic-mini-calendar-v4>
 (function(){
-function setRole(role){document.body.classList.toggle('crm-role-admin',role==='admin')}
+function setRole(role){document.body.classList.toggle('crm-role-admin',role==='admin');document.body.classList.toggle('crm-role-graphic',role==='graphic');document.body.classList.toggle('crm-role-tracking',role==='tracking')}
 async function renderMonthlyRevenue(){
  if(!document.body.classList.contains('crm-role-admin'))return;
  const selected=document.getElementById('g_date')?.value||new Date().toISOString().slice(0,10),parts=selected.split('-'),year=Number(parts[0]),month=Number(parts[1]);
@@ -70,7 +71,7 @@ export default{async fetch(request,env,ctx){
  const url=new URL(request.url),role=await sessionRole(request,env);
  if(request.method==='GET'&&url.pathname==='/api/graphic-jobs-summary'&&role!=='admin')return json({error:'Ciro bilgisi yalnızca Ali kullanıcısına açıktır.'},403);
  if(url.pathname==='/api/graphic-jobs'&&request.method==='GET'&&role!=='admin'){const response=await worker.fetch(request,env,ctx);if(!response.ok)return response;return json(redactGraphicRevenue(await response.json()),response.status,{'x-crm-revenue-redacted':'1'})}
- if(url.pathname==='/api/graphic-jobs'&&request.method==='POST'&&role!=='admin'){const payload=await request.clone().json().catch(()=>({}));delete payload.price;request=new Request(request,{body:JSON.stringify(payload),headers:new Headers(request.headers)})}
- if(/^\/api\/graphic-jobs\/\d+$/.test(url.pathname)&&request.method==='PUT'&&role!=='admin'){const payload=await request.clone().json().catch(()=>({}));delete payload.price;request=new Request(request,{body:JSON.stringify(payload),headers:new Headers(request.headers)})}
+ if(url.pathname==='/api/graphic-jobs'&&request.method==='POST'&&role==='tracking'){const payload=await request.clone().json().catch(()=>({}));delete payload.price;request=new Request(request,{body:JSON.stringify(payload),headers:new Headers(request.headers)})}
+ if(/^\/api\/graphic-jobs\/\d+$/.test(url.pathname)&&request.method==='PUT'&&role==='tracking'){const payload=await request.clone().json().catch(()=>({}));delete payload.price;request=new Request(request,{body:JSON.stringify(payload),headers:new Headers(request.headers)})}
  const response=await worker.fetch(request,env,ctx);if(request.method==='GET'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html'))return rebuild(response,addGraphicCalendarPatch(await response.text()));return response
 },async scheduled(controller,env,ctx){if(typeof worker.scheduled==='function')return worker.scheduled(controller,env,ctx)}};
