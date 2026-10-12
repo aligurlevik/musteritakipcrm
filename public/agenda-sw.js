@@ -4,10 +4,9 @@ async function showReminder(message){
     tag:message.tag||'agenda-reminder',
     icon:'/agenda-icon-192.png',
     badge:'/notes-logo-ag-v1.png',
-    silent:false,
-    vibrate:[500,180,500,180,500,180,900],
+    silent:true,
     requireInteraction:true,
-    renotify:true,
+    renotify:false,
     timestamp:Date.now(),
     data:{url:message.url||'/notlar-v2.html',deviceId:message.deviceId||'',id:Number(message.id)||0,remind_at:message.remind_at||''},
     actions:[{action:'open',title:'Ajandayı Aç'}]
@@ -19,9 +18,7 @@ async function pullDueReminders(){
   const subscription=await self.registration.pushManager.getSubscription();
   if(!subscription)return [];
   const response=await fetch('/api/push/pull',{
-    method:'POST',
-    credentials:'same-origin',
-    headers:{'content-type':'application/json'},
+    method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},
     body:JSON.stringify({endpoint:subscription.endpoint})
   });
   if(!response.ok)return [];
@@ -34,15 +31,9 @@ self.addEventListener('push',event=>{
   event.waitUntil((async()=>{
     let messages=[];
     if(event.data){
-      try{
-        const data=event.data.json()||{};
-        messages=[{...data,title:String(data.title||'Ajanda hatırlatması'),body:String(data.body||'Hatırlatma zamanı geldi.')}];
-      }catch{
-        messages=await pullDueReminders();
-      }
-    }else{
-      messages=await pullDueReminders();
-    }
+      try{const data=event.data.json()||{};messages=[{...data,title:String(data.title||'Ajanda hatırlatması'),body:String(data.body||'Hatırlatma zamanı geldi.')}];}
+      catch{messages=await pullDueReminders();}
+    }else{messages=await pullDueReminders();}
     for(const message of messages)await showReminder(message);
   })());
 });
@@ -51,9 +42,7 @@ async function acknowledgeNotification(notification){
   if(!data.deviceId||!data.id||!data.remind_at)return;
   try{
     await fetch('/api/push/received',{
-      method:'POST',
-      credentials:'same-origin',
-      headers:{'content-type':'application/json'},
+      method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},
       body:JSON.stringify({deviceId:data.deviceId,id:data.id,remind_at:data.remind_at})
     });
   }catch(_){}
@@ -73,6 +62,4 @@ self.addEventListener('notificationclick',event=>{
     await self.clients.openWindow(target.href);
   })());
 });
-self.addEventListener('notificationclose',event=>{
-  event.waitUntil(acknowledgeNotification(event.notification));
-});
+self.addEventListener('notificationclose',event=>{event.waitUntil(acknowledgeNotification(event.notification));});
