@@ -5,6 +5,13 @@ import {CRM_SAFE_ROOT_HTML} from './crm_safe_root_page.js';
 
 const enc=new TextEncoder();
 
+function istanbulDate(date){
+  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{
+    timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'
+  }).formatToParts(date).map(part=>[part.type,part.value]));
+  return parts.year+'-'+parts.month+'-'+parts.day;
+}
+
 async function hmac(secret,value){
   const key=await crypto.subtle.importKey('raw',enc.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);
   const sig=await crypto.subtle.sign('HMAC',key,enc.encode(value));
@@ -133,8 +140,10 @@ export default{
       if(role==='graphic')return json({total:0,count:0});
       if(role!=='admin')return json({error:'Yetkisiz'},403);
       try{
-        const row=await env.DB.prepare('SELECT COALESCE(SUM(price),0) total, COUNT(*) count FROM graphic_jobs').first();
-        return json({total:Number(row?.total||0),count:Number(row?.count||0)});
+        const to=istanbulDate(new Date());
+        const from=istanbulDate(new Date(Date.now()-6*24*60*60*1000));
+        const row=await env.DB.prepare("SELECT COALESCE(SUM(COALESCE(price,0)),0) total, COUNT(*) count FROM graphic_jobs WHERE work_date>=? AND work_date<=? AND status NOT IN ('İptal')").bind(from,to).first();
+        return json({from,to,total:Number(row?.total||0),count:Number(row?.count||0)});
       }catch(error){
         console.error('graphic jobs summary failed',error?.stack||error);
         return json({error:'Grafik toplamı alınamadı.'},500);

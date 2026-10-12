@@ -31,6 +31,7 @@ body.crm-role-tracking #g_price,body.crm-role-tracking label:has(#g_price){displ
 <script data-graphic-mini-calendar-v4>
 (function(){
 function setRole(role){document.body.classList.toggle('crm-role-admin',role==='admin');document.body.classList.toggle('crm-role-graphic',role==='graphic');document.body.classList.toggle('crm-role-tracking',role==='tracking')}
+function syncAccessRole(){const original=window.applyAccess;if(typeof original!=='function'||original.__crmRoleClassSync)return;const wrapped=function(role){setRole(role);return original.apply(this,arguments)};wrapped.__crmRoleClassSync=true;window.applyAccess=wrapped}
 async function renderMonthlyRevenue(){
  if(!document.body.classList.contains('crm-role-admin'))return;
  const selected=document.getElementById('g_date')?.value||new Date().toISOString().slice(0,10),parts=selected.split('-'),year=Number(parts[0]),month=Number(parts[1]);
@@ -60,6 +61,7 @@ function mountMiniCalendar(){
  picker.addEventListener('click',event=>event.stopPropagation());picker.addEventListener('change',function(){if(!picker.value)return;delivery.value=picker.value;delivery.dispatchEvent(new Event('change',{bubbles:true}));picker.classList.remove('open')});document.addEventListener('click',()=>picker.classList.remove('open'));return true;
 }
 async function start(){try{const response=await fetch('/api/session',{cache:'no-store'});setRole(response.ok?(await response.json()).role:'')}catch(_){setRole('')}mountMiniCalendar();renderMonthlyRevenue();document.getElementById('g_date')?.addEventListener('change',()=>setTimeout(renderMonthlyRevenue,100));let tries=0;const timer=setInterval(()=>{mountMiniCalendar();renderMonthlyRevenue();if(++tries>12)clearInterval(timer)},250)}
+syncAccessRole();
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
 </script>`;

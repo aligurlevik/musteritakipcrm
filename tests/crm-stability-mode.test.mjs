@@ -15,7 +15,9 @@ test('CRM stability mode arka plan yükünü kapatır ve grafik toplamını hafi
   assert.match(page,/if\(!CRM_STABILITY_MODE\)setInterval\(\(\)=>\{if\(crmSwitching\|\|currentAccessRole!=='admin'\)return/);
   assert.match(page,/graphicCumulativeSummary/);
   assert.match(entry,/url\.pathname==='\/api\/graphic-jobs-summary'/);
-  assert.match(entry,/SELECT COALESCE\(SUM\(price\),0\) total, COUNT\(\*\) count FROM graphic_jobs/);
+  assert.match(entry,/Date\.now\(\)-6\*24\*60\*60\*1000/);
+  assert.match(entry,/WHERE work_date>=\? AND work_date<=\? AND status NOT IN \('İptal'\)/);
+  assert.match(entry,/\.bind\(from,to\)\.first\(\)/);
   assert.match(graphicPatch,/req\('\/api\/graphic-jobs-summary'\)/);
   assert.doesNotMatch(graphicPatch,/created_from=2000-01-01/);
   assert.match(graphicPatch,/graphicCumulativeSummary=\{total:Number\(summary\.total\|\|0\),count:Number\(summary\.count\|\|0\)\}/);
