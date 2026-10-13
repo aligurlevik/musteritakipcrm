@@ -11,6 +11,9 @@ async function showReminder(message){
     data:{url:message.url||'/notlar-v2.html',deviceId:message.deviceId||'',id:Number(message.id)||0,remind_at:message.remind_at||''},
     actions:[{action:'open',title:'Ajandayı Aç'}]
   });
+  // Windows bildirimi gerçekten gösterildi: sunucunun aynı alarmı iki dakika
+  // sonra yeniden göndermesine gerek kalmasın.
+  await acknowledgeData(message);
 }
 async function pullDueReminders(){
   const subscription=await self.registration.pushManager.getSubscription();
@@ -43,8 +46,7 @@ self.addEventListener('push',event=>{
     for(const message of messages)await showReminder(message);
   })());
 });
-async function acknowledgeNotification(notification){
-  const data=notification?.data||{};
+async function acknowledgeData(data){
   if(!data.deviceId||!data.id||!data.remind_at)return;
   try{
     await fetch('/api/push/received',{
@@ -54,6 +56,9 @@ async function acknowledgeNotification(notification){
       body:JSON.stringify({deviceId:data.deviceId,id:data.id,remind_at:data.remind_at})
     });
   }catch(_){}
+}
+async function acknowledgeNotification(notification){
+  await acknowledgeData(notification?.data||{});
 }
 self.addEventListener('notificationclick',event=>{
   event.notification.close();

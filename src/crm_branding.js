@@ -141,11 +141,22 @@ export async function applyCrmBranding(response,request){
   if(!('serviceWorker' in navigator))return;
   try{
     var rawRegister=navigator.serviceWorker.register.bind(navigator.serviceWorker);
+    var silentUrl='/agenda-sw-silent.js?v=20261013-3';
     navigator.serviceWorker.register=function(url,options){
-      return rawRegister(url==='/agenda-sw.js'?'/agenda-sw-silent.js':url,options);
+      return rawRegister(url==='/agenda-sw.js'?silentUrl:url,options);
     };
-    rawRegister('/agenda-sw-silent.js',{scope:'/',updateViaCache:'none'}).catch(function(){});
+    rawRegister(silentUrl,{scope:'/',updateViaCache:'none'}).catch(function(){});
   }catch(_){}
+  // Eski sesli worker bir mesajı tam geçiş anında gönderirse telefon alarm
+  // dinleyicisine ulaşmadan kes. Ekran uyarısını sayfanın kendi alarm taraması açar.
+  if(!window.__crmSilentDesktopMessageGuard){
+    window.__crmSilentDesktopMessageGuard=true;
+    navigator.serviceWorker.addEventListener('message',function(event){
+      if(!event.data||event.data.type!=='CRM_REMINDER')return;
+      try{event.stopImmediatePropagation()}catch(_){}
+      try{event.stopPropagation()}catch(_){}
+    },true);
+  }
   try{
     var proto=window.ServiceWorkerRegistration&&window.ServiceWorkerRegistration.prototype;
     if(proto&&typeof proto.showNotification==='function'&&!proto.showNotification.__crmSilentDesktop){
@@ -161,18 +172,96 @@ export async function applyCrmBranding(response,request){
   }catch(_){}
 })();
 </script>`;
-    html=html.replace(/<\/head>/i,silentWorker+'\n</head>');
+    // Bayrak, ortak telefon alarm dosyası çalışmadan önce yerleşsin. Böylece eski
+    // bir worker sayfa açılırken mesaj gönderse bile Windows'ta ses başlayamaz.
+    html=html.replace(/\/phone-reminders\.js(?:\?v=[^"']+)?/g,'/phone-reminders.js?v=20261013-desktop-silent3');
+    const phoneReminderScript=/<script\b[^>]*\bsrc\s*=\s*["']\/phone-reminders\.js[^"']*["'][^>]*><\/script>/i;
+    html=phoneReminderScript.test(html)
+      ?html.replace(phoneReminderScript,silentWorker+'\n$&')
+      :html.replace(/<\/head>/i,silentWorker+'\n</head>');
   }
 
   // Windows'ta ses yok; ekrandaki büyük görsel uyarı ve sessiz sistem bildirimi kalır.
   if(isWindows&&!html.includes('id="crmSilentDesktopAlarm"')){
     const silentDesktop=`<script id="crmSilentDesktopAlarm">
 (function(){
+  function noteParts(note){
+    var saved=String(note&&note.title||'').trim();
+    var raw=String(note&&note.note||'').replace(/\\r\\n/g,'\\n').trim();
+    if(saved){
+      var savedLines=raw.split('\\n'),detail=raw;
+      if((savedLines[0]||'').trim()===saved)detail=savedLines.slice(1).join('\\n').trim();
+      if(detail===saved)detail='';
+      return {title:saved,detail:detail};
+    }
+    var lines=raw.split('\\n'),title=(lines.shift()||'').trim();
+    return {title:title||'Ajanda hatırlatması',detail:lines.join('\\n').trim()};
+  }
   function visualPayload(note){
     var notebook=Math.max(1,Math.min(3,Number(note&&note.notebook_no)||1));
     if(notebook>1)return {title:'🔒 Özel not hatırlatıcısı',body:'İçeriği görmek için Not '+notebook+' özel şifresini girin.',tag:'agenda-'+note.id+'-'+note.remind_at,id:Number(note.id),remind_at:note.remind_at,url:'/notlar-v2.html?page='+notebook+'&reminder='+note.id};
-    var title=String(note&&note.title||'').trim(),body=String(note&&note.note||'').trim();
-    return {title:(title||body.split('\\n')[0]||'Ajanda hatırlatması').slice(0,120),body:body||title,tag:'agenda-'+note.id+'-'+note.remind_at,id:Number(note.id),remind_at:note.remind_at,url:'/notlar-v2.html?page='+notebook+'&reminder='+note.id};
+    var parts=noteParts(note),body=parts.detail||String(note&&note.note||'').trim()||parts.title;
+    return {title:parts.title.slice(0,120),body:body,tag:'agenda-'+note.id+'-'+note.remind_at,id:Number(note.id),remind_at:note.remind_at,url:'/notlar-v2.html?page='+notebook+'&reminder='+note.id};
+  }
+  function ensureAgendaAlarmStyle(){
+    if(document.getElementById('crmSilentAgendaAlarmStyle'))return;
+    var style=document.createElement('style');style.id='crmSilentAgendaAlarmStyle';
+    style.textContent='#agendaReminderNote.crmAgendaAlarmCard{padding:0!important;overflow:hidden;background:#fffaf0!important;border:2px solid #ffad57!important}.crmAgendaAlarmTitle{display:block;width:100%;border:0;border-bottom:1px solid #fed7aa;background:#fff7ed;color:#111827;text-align:left;padding:15px 17px;font-size:20px;font-weight:950;cursor:pointer}.crmAgendaAlarmTitle:hover,.crmAgendaAlarmTitle:focus{background:#ffedd5;outline:3px solid #fdba74;outline-offset:-3px}.crmAgendaAlarmDetail{padding:14px 17px 16px;white-space:pre-wrap;line-height:1.55;font-size:17px;color:#1f2937;max-height:36vh;overflow:auto}.crmAgendaAlarmDetail.empty{color:#64748b;font-style:italic}.crmAgendaAlarmHint{padding:0 17px 12px;color:#92400e;font-size:11px;font-weight:850}';
+    document.head.appendChild(style);
+  }
+  function renderAgendaAlarm(note){
+    var card=document.getElementById('agendaReminderNote');if(!card)return;
+    ensureAgendaAlarmStyle();
+    var parts=noteParts(note),title=document.createElement('button'),detail=document.createElement('div'),hint=document.createElement('div');
+    card.replaceChildren();card.classList.add('crmAgendaAlarmCard');
+    title.type='button';title.className='crmAgendaAlarmTitle';title.textContent=parts.title;title.setAttribute('aria-label','Notu aç: '+parts.title);
+    detail.className='crmAgendaAlarmDetail'+(parts.detail?'':' empty');detail.textContent=parts.detail||'Bu başlık için açıklama eklenmemiş.';
+    hint.className='crmAgendaAlarmHint';hint.textContent='Başlığa basarak notun tamamını açabilirsiniz.';
+    title.onclick=function(event){
+      event.preventDefault();event.stopPropagation();
+      detail.hidden=false;
+      if(typeof window.openAgendaTitleDetail==='function')window.openAgendaTitleDetail(Number(note&&note.id),note);
+      else try{detail.scrollIntoView({block:'nearest'})}catch(_){}
+    };
+    card.append(title,detail,hint);
+  }
+  function stopLegacyAudio(){
+    try{navigator.vibrate&&navigator.vibrate(0)}catch(_){}
+    try{
+      if(typeof reminderAudioContext!=='undefined'&&reminderAudioContext&&typeof reminderAudioContext.close==='function'){
+        var legacyContext=reminderAudioContext;reminderAudioContext=null;legacyContext.close().catch(function(){});
+      }
+    }catch(_){}
+    try{
+      if(window.reminderAudioContext&&typeof window.reminderAudioContext.close==='function'){
+        var windowContext=window.reminderAudioContext;window.reminderAudioContext=null;windowContext.close().catch(function(){});
+      }
+    }catch(_){}
+  }
+  function installLegacySilence(){
+    try{if(typeof unlockReminderAudio==='function')unlockReminderAudio=function(){}}catch(_){}
+    try{if(typeof playReminderSound==='function')playReminderSound=function(){stopLegacyAudio()}}catch(_){}
+    // Windows'ta işletim sistemi bildirimi yerine ekrandaki büyük CRM penceresi kullanılır.
+    try{if(typeof showDesktopReminder==='function')showDesktopReminder=function(){}}catch(_){}
+    try{
+      if(typeof showAgendaReminder==='function'&&!showAgendaReminder.__crmSilentDesktop){
+        var silentShowAgenda=function(note){
+          stopLegacyAudio();
+          try{if(typeof activeAgendaReminder!=='undefined')activeAgendaReminder=note}catch(_){}
+          var date=document.getElementById('agendaReminderDate');
+          if(date){
+            var when=new Date(note&&note.remind_at||'');
+            date.textContent=Number.isNaN(when.getTime())?'Şimdi':when.toLocaleString('tr-TR');
+          }
+          renderAgendaAlarm(note||{});
+          try{if(typeof openM==='function')openM('agendaReminderPopup');else document.getElementById('agendaReminderPopup')?.classList.add('show')}catch(_){}
+          try{if(typeof bringCrmToFront==='function')bringCrmToFront()}catch(_){}
+        };
+        silentShowAgenda.__crmSilentDesktop=true;
+        showAgendaReminder=silentShowAgenda;
+        try{window.showAgendaReminder=silentShowAgenda}catch(_){}
+      }
+    }catch(_){}
   }
   function labelSilentControls(){
     var test=document.getElementById('mobileNotifyTest');
@@ -195,14 +284,8 @@ export async function applyCrmBranding(response,request){
     if(closeButton&&closeButton.textContent!=='✓ Tamam — Kapat')closeButton.textContent='✓ Tamam — Kapat';
   }
   function silence(){
-    try{window.unlockReminderAudio=function(){}}catch(_){}
-    try{window.playReminderSound=function(){}}catch(_){}
-    try{
-      if(window.reminderAudioContext&&typeof window.reminderAudioContext.close==='function'){
-        window.reminderAudioContext.close().catch(function(){});
-        window.reminderAudioContext=null;
-      }
-    }catch(_){}
+    installLegacySilence();
+    stopLegacyAudio();
     try{
       var reminders=window.crmReminders;
       if(reminders&&!reminders.__silentDesktop){
@@ -219,11 +302,7 @@ export async function applyCrmBranding(response,request){
       }
     }catch(_){}
     try{
-      window.showDesktopReminder=function(title,body,tag){
-        if(!('Notification' in window)||Notification.permission!=='granted')return;
-        var notice=new Notification(title,{body:body,tag:tag,requireInteraction:true,renotify:false,silent:true});
-        notice.onclick=function(){try{window.focus()}catch(_){};try{notice.close()}catch(_){}};
-      };
+      window.showDesktopReminder=function(){};
     }catch(_){}
     labelSilentControls();
   }
@@ -232,6 +311,8 @@ export async function applyCrmBranding(response,request){
   window.addEventListener('load',silence,{once:true});
   window.addEventListener('crm-reminders-state',silence);
   setTimeout(silence,0);
+  setTimeout(silence,500);
+  setTimeout(silence,2000);
 })();
 </script>`;
     html=html.replace(/<\/body>/i,silentDesktop+'\n</body>');

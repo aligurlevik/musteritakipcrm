@@ -110,10 +110,21 @@ const AGENDA_TITLE_DETAIL_LIVE = String.raw`
     return overlay;
   }
 
-  var activeId=0;
-  function fillOverlay(id){
-    var item=findItem(id);if(!item)return false;
-    activeId=Number(id);
+  var activeId=0,activeItem=null;
+  function itemForOverlay(id,item){
+    if(item&&typeof item==='object'){
+      if(item.id==null||item.id==='')return Object.assign({},item,{id:Number(id)||id});
+      return item;
+    }
+    var found=findItem(id);
+    if(found)return found;
+    if(activeItem&&Number(activeItem.id)===Number(id))return activeItem;
+    return null;
+  }
+  function fillOverlay(id,item){
+    item=itemForOverlay(id,item);if(!item)return false;
+    activeId=Number(id)||Number(item.id)||0;
+    activeItem=item;
     var parts=partsForItem(item);
     document.getElementById('agendaTitleDetailLiveHeading').textContent=parts.title||'Not';
     var text=document.getElementById('agendaTitleDetailLiveText');
@@ -124,18 +135,20 @@ const AGENDA_TITLE_DETAIL_LIVE = String.raw`
     document.getElementById('agendaTitleDetailLiveEditDetail').value=parts.detail||'';
     return true;
   }
-  function openOverlay(id,editNow){
+  function openOverlay(id,editNow,item){
     var overlay=ensureOverlay();
-    if(!fillOverlay(id))return;
+    if(!fillOverlay(id,item))return false;
     document.getElementById('agendaTitleDetailLiveView').classList.remove('hide');
     document.getElementById('agendaTitleDetailLiveEdit').classList.remove('show');
     overlay.classList.add('open');
     if(editNow)startEdit();
+    return true;
   }
   function closeOverlay(){
     var overlay=document.getElementById('agendaTitleDetailLiveOverlay');
     if(overlay)overlay.classList.remove('open');
     activeId=0;
+    activeItem=null;
   }
   function startEdit(){
     if(!activeId)return;
@@ -151,7 +164,7 @@ const AGENDA_TITLE_DETAIL_LIVE = String.raw`
     document.getElementById('agendaTitleDetailLiveEdit').classList.remove('show');
   }
   async function saveEdit(){
-    var item=findItem(activeId);if(!item)return;
+    var item=findItem(activeId)||activeItem;if(!item)return;
     var title=String(document.getElementById('agendaTitleDetailLiveEditTitle').value||'').trim();
     var detail=String(document.getElementById('agendaTitleDetailLiveEditDetail').value||'').trim();
     if(!title){if(typeof showMsg==='function')showMsg('Başlık boş bırakılamaz.','err');return}
@@ -165,6 +178,9 @@ const AGENDA_TITLE_DETAIL_LIVE = String.raw`
     }catch(error){if(typeof showMsg==='function')showMsg(error&&error.message?error.message:'Not güncellenemedi.','err')}
   }
   document.addEventListener('keydown',function(e){if(e.key==='Escape')closeOverlay()});
+
+  /* Alarm kartı, kayıt henüz ajanda listesine yüklenmemiş olsa da tam notu açabilir. */
+  window.openAgendaTitleDetail=function(id,item){return openOverlay(id,false,item)};
 
   function decorateAgendaTitles(){
     document.querySelectorAll('#agenda .done-note[id],#agenda .agenda-note[id]').forEach(function(el){

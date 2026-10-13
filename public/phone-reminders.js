@@ -5,6 +5,7 @@
   const status={connected:false,busy:false,error:'',deviceId:''};
   let registration=null,connecting=null,audio=null,soundTimer=null,soundStop=null,current=null;
   const seen=new Set(),queue=[];
+  const silentDesktop=()=>window.CRM_SILENT_DESKTOP===true;
   const enabled=()=>localStorage.getItem(PREF)!=='0';
   const supported=()=>window.isSecureContext&&'serviceWorker'in navigator&&'PushManager'in window&&'Notification'in window;
   function changed(){window.dispatchEvent(new Event('crm-reminders-state'))}
@@ -41,10 +42,10 @@
     if(subscription){await api('/api/push/unsubscribe',{endpoint:subscription.endpoint});await subscription.unsubscribe()}
     status.connected=false;status.deviceId='';localStorage.setItem(PREF,'0');changed();
   }
-  function unlockAudio(){try{if(!audio){const Audio=window.AudioContext||window.webkitAudioContext;if(Audio)audio=new Audio()}if(audio?.state==='suspended')audio.resume().catch(()=>{})}catch(_){}}
+  function unlockAudio(){if(silentDesktop())return;try{if(!audio){const Audio=window.AudioContext||window.webkitAudioContext;if(Audio)audio=new Audio()}if(audio?.state==='suspended')audio.resume().catch(()=>{})}catch(_){}}
   function stopSound(){clearInterval(soundTimer);clearTimeout(soundStop);soundTimer=null;soundStop=null;try{navigator.vibrate?.(0)}catch(_){}}
   function tones(){
-    if(document.hidden||!audio||audio.state!=='running')return;
+    if(silentDesktop()||document.hidden||!audio||audio.state!=='running')return;
     try{for(let i=0;i<6;i++){
       const oscillator=audio.createOscillator(),gain=audio.createGain(),start=audio.currentTime+i*.28;
       oscillator.type='square';oscillator.connect(gain);gain.connect(audio.destination);oscillator.frequency.value=i%2===0?920:680;
@@ -52,7 +53,7 @@
       oscillator.start(start);oscillator.stop(start+.24);oscillator.onended=()=>{oscillator.disconnect();gain.disconnect()};
     }}catch(_){}
   }
-  function startSound(){stopSound();unlockAudio();tones();soundTimer=setInterval(tones,3000);soundStop=setTimeout(stopSound,60000);try{navigator.vibrate?.([250,100,250])}catch(_){}}
+  function startSound(){stopSound();if(silentDesktop())return;unlockAudio();tones();soundTimer=setInterval(tones,3000);soundStop=setTimeout(stopSound,60000);try{navigator.vibrate?.([250,100,250])}catch(_){}}
   function ensurePopup(){
     let popup=document.getElementById('crmPhoneAlarm');if(popup)return popup;
     const style=document.createElement('style');style.textContent='#crmPhoneAlarm{position:fixed;inset:0;z-index:9998;display:none;align-items:center;justify-content:center;padding:20px;background:#102f4da6}#crmPhoneAlarm.show{display:flex}#crmPhoneAlarm .crmAlarmBox{width:min(500px,100%);border:4px solid #eea800;border-radius:20px;padding:22px;background:#fff4c2;box-shadow:0 20px 65px #0006}#crmPhoneAlarm .crmAlarmLabel{font-size:15px;font-weight:900;color:#8c4b00;margin-bottom:12px}#crmPhoneAlarm h2{font-size:26px;color:#173f63;margin:0 0 14px;overflow-wrap:anywhere}#crmPhoneAlarm .crmAlarmText{font-size:20px;line-height:1.45;white-space:pre-wrap;max-height:40vh;overflow:auto;overflow-wrap:anywhere}#crmPhoneAlarm button{width:100%;border:0;border-radius:12px;padding:15px;background:#173f63;color:white;font-size:18px;font-weight:900;margin-top:20px}';document.head.appendChild(style);
@@ -60,15 +61,15 @@
     popup.innerHTML='<div class="crmAlarmBox"><div class="crmAlarmLabel">🔔 AJANDA ALARMI</div><h2 id="crmAlarmTitle"></h2><div id="crmAlarmBody" class="crmAlarmText"></div><button type="button">✓ Tamam — Sesi durdur</button></div>';
     popup.querySelector('button').onclick=dismiss;document.body.appendChild(popup);return popup;
   }
-  function showNext(){if(current||!queue.length||document.hidden)return;current=queue.shift();const popup=ensurePopup();document.getElementById('crmAlarmTitle').textContent=current.title||'Ajanda hatırlatması';document.getElementById('crmAlarmBody').textContent=current.body||'';popup.classList.add('show');if(current.sound!==false)startSound();popup.querySelector('button').focus()}
-  function present(data,{sound=true}={}){if(document.hidden)return;const key=data.tag||data.id+'|'+data.remind_at;if(seen.has(key))return;seen.add(key);queue.push({...data,sound});showNext()}
+  function showNext(){if(current||!queue.length||document.hidden)return;current=queue.shift();const popup=ensurePopup();document.getElementById('crmAlarmTitle').textContent=current.title||'Ajanda hatırlatması';document.getElementById('crmAlarmBody').textContent=current.body||'';popup.classList.add('show');if(current.sound!==false&&!silentDesktop())startSound();popup.querySelector('button').focus()}
+  function present(data,{sound=true}={}){if(document.hidden)return;if(silentDesktop())sound=false;const key=data.tag||data.id+'|'+data.remind_at;if(seen.has(key))return;seen.add(key);queue.push({...data,sound});showNext()}
   function dismiss(){stopSound();document.getElementById('crmPhoneAlarm')?.classList.remove('show');current=null;showNext()}
   function payload(note){if(Number(note.notebook_no)>1)return {title:'🔒 Özel not hatırlatıcısı',body:'İçeriği görmek için Not '+note.notebook_no+' özel şifresini girin.',tag:'agenda-'+note.id+'-'+note.remind_at,id:Number(note.id),remind_at:note.remind_at,url:'/notlar-v2.html?page='+note.notebook_no+'&reminder='+note.id};const title=String(note.title||'').trim(),body=String(note.note||'').trim();return {title:(title||body.split('\n')[0]||'Ajanda hatırlatması').slice(0,120),body:body||title,tag:'agenda-'+note.id+'-'+note.remind_at,id:Number(note.id),remind_at:note.remind_at,url:'/notlar-v2.html?page='+(Number(note.notebook_no)||1)+'&reminder='+note.id}}
   async function fire(note){
-    if(document.hidden)return;const data=payload(note),alreadySeen=seen.has(data.tag);present(data);
+    if(document.hidden)return;const data=payload(note),alreadySeen=seen.has(data.tag);present(data,{sound:!silentDesktop()});
     if(alreadySeen||!enabled()||!supported()||Notification.permission!=='granted')return;
     try{const reg=registration||await navigator.serviceWorker.getRegistration('/');if(!reg)return;
-      await reg.showNotification(data.title,{body:data.body.slice(0,650),tag:data.tag,icon:'/agenda-icon-192.png',silent:audio?.state==='running',requireInteraction:true,renotify:false,data:{url:data.url}});
+      await reg.showNotification(data.title,{body:data.body.slice(0,650),tag:data.tag,icon:'/agenda-icon-192.png',silent:silentDesktop()||audio?.state==='running',requireInteraction:true,renotify:false,data:{url:data.url}});
       if(status.deviceId)await api('/api/push/ack',{deviceId:status.deviceId,id:data.id,remind_at:data.remind_at});
     }catch(_){}
   }
@@ -76,7 +77,7 @@
   async function enable(){unlockAudio();if(!supported())throw new Error('Bu tarayıcı telefon bildirimlerini desteklemiyor.');const permission=Notification.permission==='granted'?'granted':await Notification.requestPermission();if(permission!=='granted'){changed();throw new Error(permission==='denied'?'Telefon ayarlarından bu site için bildirim iznini açın.':'Bildirim izni verilmedi.')}localStorage.setItem(PREF,'1');if(!await connect())throw new Error(status.error||'Telefon bildirimi kurulamadı.')}
   async function test(){
     unlockAudio();try{if(audio?.state==='suspended')await audio.resume()}catch(_){}
-    tones();
+    if(!silentDesktop())tones();
     const android=/Android/i.test(navigator.userAgent||'');
     if(android){
       try{
@@ -98,7 +99,7 @@
       await reg.showNotification('🔔 1/2 Android bildirim testi',{
         body:'Bu bildirim görünüyorsa telefonun yerel bildirim izni çalışıyor.',
         tag:localTag,icon:'/agenda-icon-192.png',badge:'/notes-logo-ag-v1.png',
-        silent:false,vibrate:[400,120,400],requireInteraction:true,renotify:true,
+        silent:silentDesktop(),...(silentDesktop()?{}:{vibrate:[400,120,400]}),requireInteraction:true,renotify:!silentDesktop(),
         data:{url:'/notlar-v2.html'}
       });
       localTest=true;
@@ -121,7 +122,7 @@
   window.fetch=async function(input,init){let path='';try{path=new URL(typeof input==='string'?input:input.url,location.href).pathname}catch(_){}if(path==='/api/logout')try{await disable()}catch(_){}const response=await nativeFetch(input,init);if(path==='/api/login'&&response.ok)setTimeout(()=>{connect();openLinkedReminder()},0);const method=String(init?.method||'GET').toUpperCase();if(response.ok&&Notification.permission==='granted'&&enabled()&&['POST','PUT'].includes(method)&&/^(?:\/api\/notes-v3(?:\/\d+)?|\/api\/agenda(?:\/\d+)?)$/.test(path))setTimeout(connect,0);return response};
   if('serviceWorker'in navigator)navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='CRM_REMINDER'&&enabled())present(event.data.reminder)});
   document.addEventListener('pointerdown',unlockAudio,{passive:true});document.addEventListener('keydown',unlockAudio);
-  document.addEventListener('visibilitychange',()=>{if(document.hidden)stopSound();else{if(current&&current.sound!==false)startSound();showNext();connect()}});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden||silentDesktop())stopSound();else{if(current&&current.sound!==false)startSound();showNext();connect()}});
   window.addEventListener('pageshow',connect);window.addEventListener('storage',event=>{if(event.key===PREF){if(!enabled()){status.connected=false;stopSound()}else connect();changed()}});
   let linkedOpened=false;
   async function openLinkedReminder(){const params=new URLSearchParams(location.search),id=Number(params.get('reminder'));if(!id||linkedOpened)return;try{const items=await api('/api/notes-v3?scope=all&notebook='+Math.max(1,Math.min(3,Number(params.get('page'))||1)));const note=items.find(x=>Number(x.id)===id);if(note){linkedOpened=true;present(payload(note),{sound:false})}}catch(_){}}

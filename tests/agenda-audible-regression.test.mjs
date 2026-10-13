@@ -9,6 +9,7 @@ const [
   notificationControls,
   visualAlert,
   legacySilentWorker,
+  phoneReminders,
   crmBranding,
   backend
 ]=await Promise.all([
@@ -16,6 +17,7 @@ const [
   readFile('public/phone-notification-controls.js','utf8'),
   readFile('public/agenda-visual-alert.js','utf8'),
   readFile('public/agenda-sw-silent.js','utf8'),
+  readFile('public/phone-reminders.js','utf8'),
   readFile('src/crm_branding.js','utf8'),
   readFile('src/index.js','utf8')
 ]);
@@ -43,7 +45,7 @@ test('the visual alert uses the audible worker without replacing the CRM alarm h
 });
 
 test('Windows branding alone remaps notifications to the silent worker and suppresses in-page sound',async()=>{
-  const source='<!doctype html><html><head></head><body></body></html>';
+  const source='<!doctype html><html><head><script src="/phone-reminders.js?v=old"></script></head><body></body></html>';
   const render=async userAgent=>{
     const response=new Response(source,{headers:{'content-type':'text/html; charset=utf-8'}});
     const request=new Request('https://crm.test/notlar-v2.html',{headers:{'user-agent':userAgent}});
@@ -55,11 +57,19 @@ test('Windows branding alone remaps notifications to the silent worker and suppr
   assert.match(crmBranding,/if\s*\(isWindows\s*&&[^)]*crmSilentDesktopWorker/);
   assert.match(windowsHtml,/id="crmSilentDesktopWorker"/);
   assert.match(windowsHtml,/CRM_SILENT_DESKTOP\s*=\s*true/);
-  assert.match(windowsHtml,/url\s*===\s*['"]\/agenda-sw\.js['"]\s*\?\s*['"]\/agenda-sw-silent\.js['"]/);
+  assert.match(windowsHtml,/silentUrl\s*=\s*['"]\/agenda-sw-silent\.js\?v=/);
+  assert.match(windowsHtml,/url\s*===\s*['"]\/agenda-sw\.js['"]\s*\?\s*silentUrl\s*:\s*url/);
+  assert.match(windowsHtml,/\/phone-reminders\.js\?v=20261013-desktop-silent3/);
+  assert.ok(windowsHtml.indexOf('id="crmSilentDesktopWorker"')<windowsHtml.indexOf('src="/phone-reminders.js'),'Windows silence must load before the shared reminder client');
   assert.match(windowsHtml,/id="crmSilentDesktopAlarm"/);
   assert.match(windowsHtml,/unlockReminderAudio\s*=\s*function\s*\(\)\s*\{\s*\}/);
-  assert.match(windowsHtml,/playReminderSound\s*=\s*function\s*\(\)\s*\{\s*\}/);
+  assert.match(windowsHtml,/playReminderSound\s*=\s*function\s*\(\)\s*\{\s*stopLegacyAudio\(\)\s*\}/);
   assert.match(windowsHtml,/reminderAudioContext\.close/);
+  assert.match(windowsHtml,/showAgendaReminder\s*=\s*silentShowAgenda/);
+  assert.match(windowsHtml,/renderAgendaAlarm\(note\|\|\{\}\)/);
+  assert.match(windowsHtml,/className=['"]crmAgendaAlarmTitle['"]/);
+  assert.match(windowsHtml,/className=['"]crmAgendaAlarmDetail/);
+  assert.match(windowsHtml,/openAgendaTitleDetail\(Number\(note&&note\.id\),note\)/);
   assert.match(windowsHtml,/reminders\.present\(data,\{sound:false\}\)/);
   assert.match(windowsHtml,/GÖRSEL UYARI TESTİ/);
   assert.match(windowsHtml,/BİLGİSAYARDA SESSİZ GÖRSEL UYARI/);
@@ -72,8 +82,16 @@ test('Windows branding alone remaps notifications to the silent worker and suppr
   }
 });
 
+test('the shared reminder client gates every sound path only on the Windows flag',()=>{
+  assert.match(phoneReminders,/silentDesktop\s*=\s*\(\)\s*=>\s*window\.CRM_SILENT_DESKTOP===true/);
+  assert.match(phoneReminders,/function startSound\(\)\{stopSound\(\);if\(silentDesktop\(\)\)return/);
+  assert.match(phoneReminders,/function present\([^)]*\)\{if\(document\.hidden\)return;if\(silentDesktop\(\)\)sound=false/);
+  assert.match(phoneReminders,/visibilitychange[^\n]*document\.hidden\|\|silentDesktop\(\)/);
+  assert.match(phoneReminders,/navigator\.vibrate\?\.\(\[250,100,250\]\)/,'phone vibration must remain available outside Windows');
+});
+
 test('the silent worker shows a visual notification without sound, vibration, or in-page replay',async()=>{
-  const listeners={},notifications=[];
+  const listeners={},notifications=[],receipts=[];
   const self={
     location:{origin:'https://crm.test'},
     addEventListener(name,listener){listeners[name]=listener},
@@ -87,10 +105,11 @@ test('the silent worker shows a visual notification without sound, vibration, or
     },
     async skipWaiting(){}
   };
-  new Script(legacySilentWorker).runInNewContext({self,URL,fetch});
+  const workerFetch=async(url,options)=>{receipts.push({url,options});return new Response('{}',{status:200,headers:{'content-type':'application/json'}})};
+  new Script(legacySilentWorker).runInNewContext({self,URL,fetch:workerFetch,Response});
   let pending;
   listeners.push({
-    data:{json:()=>({title:'Sessiz ajanda',body:'Hatırlatma',tag:'agenda-regression'})},
+    data:{json:()=>({title:'Sessiz ajanda',body:'Hatırlatma',tag:'agenda-regression',deviceId:'windows-device',id:17,remind_at:'2030-09-20T12:00'})},
     waitUntil(promise){pending=promise}
   });
   await pending;
@@ -98,6 +117,9 @@ test('the silent worker shows a visual notification without sound, vibration, or
   assert.equal(notifications[0].options.silent,true);
   assert.equal(notifications[0].options.renotify,false);
   assert.equal('vibrate' in notifications[0].options,false);
+  assert.equal(receipts.length,1);
+  assert.equal(receipts[0].url,'/api/push/received');
+  assert.deepEqual(JSON.parse(receipts[0].options.body),{deviceId:'windows-device',id:17,remind_at:'2030-09-20T12:00'});
   assert.doesNotMatch(legacySilentWorker,/CRM_REMINDER|\.postMessage\s*\(/);
 });
 

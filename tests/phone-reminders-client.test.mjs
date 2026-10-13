@@ -4,11 +4,11 @@ import {Script} from 'node:vm';
 import test from 'node:test';
 
 const code=await readFile('public/phone-reminders.js','utf8');
-function browser({permission='default',allowed='granted',audioSuspended=false}={}){
-  const nodes=new Map(),storage=new Map([['crm_notifications_enabled','0']]),timers=new Map(),calls=[],notifications=[],oscillators=[];
+function browser({permission='default',allowed='granted',audioSuspended=false,silentDesktop=false}={}){
+  const nodes=new Map(),storage=new Map([['crm_notifications_enabled','0']]),timers=new Map(),calls=[],notifications=[],oscillators=[],vibrations=[],documentListeners=new Map(),workerListeners=new Map();
   let timerId=0,subscription=null;
   const element=()=>({style:{},setAttribute(){},classList:{add(){},remove(){}},querySelector(){return this.button||=( {focus(){}} )}});
-  const document={hidden:false,readyState:'loading',head:{appendChild(){}},body:{appendChild(node){nodes.set(node.id,node);nodes.set('crmAlarmTitle',element());nodes.set('crmAlarmBody',element())}},createElement:element,getElementById:id=>nodes.get(id)||null,addEventListener(){}};
+  const document={hidden:false,readyState:'loading',head:{appendChild(){}},body:{appendChild(node){nodes.set(node.id,node);nodes.set('crmAlarmTitle',element());nodes.set('crmAlarmBody',element())}},createElement:element,getElementById:id=>nodes.get(id)||null,addEventListener(name,listener){documentListeners.set(name,listener)}};
   const key='BAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
   const registration={
     pushManager:{async getSubscription(){return subscription},async subscribe(options){subscription={options,toJSON:()=>({endpoint:'https://fcm.googleapis.com/fcm/send/client-test',keys:{p256dh:key,auth:'AAAAAAAAAAAAAAAAAAAAAA'}}),async unsubscribe(){subscription=null;return true}};return subscription}},
@@ -23,10 +23,11 @@ function browser({permission='default',allowed='granted',audioSuspended=false}={
   const NativeNotification={permission,async requestPermission(){this.permission=allowed;return allowed}};
   const window={isSecureContext:true,PushManager:function(){},Notification:NativeNotification,AudioContext,
     async fetch(path,options){calls.push({path,options});return new Response(JSON.stringify(path==='/api/push/config'?{publicKey:key}:{ok:true,deviceId:'test-device'}),{headers:{'content-type':'application/json'}})},addEventListener(){},dispatchEvent(){}};
-  const navigator={serviceWorker:{async register(){return registration},ready:Promise.resolve(registration),async getRegistration(){return registration},addEventListener(){}},vibrate(){}};
+  if(silentDesktop)window.CRM_SILENT_DESKTOP=true;
+  const navigator={serviceWorker:{async register(){return registration},ready:Promise.resolve(registration),async getRegistration(){return registration},addEventListener(name,listener){workerListeners.set(name,listener)}},vibrate(pattern){vibrations.push(pattern);return true}};
   const context={window,document,navigator,Notification:NativeNotification,localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},location:{href:'https://crm.test/notlar-v2.html',search:''},URL,URLSearchParams,Uint8Array,atob,Event,setTimeout(fn,ms){timers.set(++timerId,{fn,ms});return timerId},setInterval(fn,ms){timers.set(++timerId,{fn,ms});return timerId},clearTimeout:id=>timers.delete(id),clearInterval:id=>timers.delete(id)};
   new Script(code).runInNewContext(context);
-  return {reminders:window.crmReminders,window,document,nodes,timers,calls,notifications,oscillators,storage};
+  return {reminders:window.crmReminders,window,document,nodes,timers,calls,notifications,oscillators,storage,vibrations,documentListeners,workerListeners};
 }
 
 test('phone permission and subscription must both succeed before the app reports notifications connected',async()=>{
@@ -56,6 +57,42 @@ test('hidden pages leave notification delivery to the server and suspended audio
   await b.reminders.fire({id:1,note:'Gizli sekme',remind_at:'2030-09-20T12:00'});assert.equal(b.notifications.length,0);assert.equal(b.oscillators.length,0);
   b.document.hidden=false;
   await b.reminders.fire({id:2,note:'Sesli telefon uyarısı',remind_at:'2030-09-20T12:00'});assert.equal(b.notifications[0].options.silent,false);
+});
+
+test('Windows service-worker reminders stay visual-only, including after visibility returns',()=>{
+  const b=browser({silentDesktop:true});
+  b.storage.set('crm_notifications_enabled','1');
+  const message=b.workerListeners.get('message');
+  assert.equal(typeof message,'function');
+  message({data:{type:'CRM_REMINDER',reminder:{id:10,title:'Windows başlığı',body:'Windows açıklaması',tag:'agenda-windows-10',remind_at:'2030-09-20T12:00'}}});
+
+  assert.equal(b.nodes.get('crmAlarmTitle').textContent,'Windows başlığı');
+  assert.equal(b.nodes.get('crmAlarmBody').textContent,'Windows açıklaması');
+  assert.equal(b.oscillators.length,0);
+  assert.equal(b.vibrations.some(value=>Array.isArray(value)&&value.length>0),false);
+
+  const visibility=b.documentListeners.get('visibilitychange');
+  assert.equal(typeof visibility,'function');
+  b.document.hidden=true;visibility();
+  b.document.hidden=false;visibility();
+  assert.equal(b.oscillators.length,0);
+  assert.equal(b.vibrations.some(value=>Array.isArray(value)&&value.length>0),false);
+});
+
+test('service-worker reminders keep phone sound and vibration before and after visibility returns',()=>{
+  const b=browser();
+  b.storage.set('crm_notifications_enabled','1');
+  const message=b.workerListeners.get('message');
+  message({data:{type:'CRM_REMINDER',reminder:{id:11,title:'Telefon başlığı',body:'Telefon açıklaması',tag:'agenda-phone-11',remind_at:'2030-09-20T12:00'}}});
+
+  assert.equal(b.oscillators.length,6);
+  assert.deepEqual(b.vibrations.filter(Array.isArray).map(value=>Array.from(value)),[[250,100,250]]);
+
+  const visibility=b.documentListeners.get('visibilitychange');
+  b.document.hidden=true;visibility();
+  b.document.hidden=false;visibility();
+  assert.equal(b.oscillators.length,12);
+  assert.deepEqual(b.vibrations.filter(Array.isArray).map(value=>Array.from(value)),[[250,100,250],[250,100,250]]);
 });
 
 
