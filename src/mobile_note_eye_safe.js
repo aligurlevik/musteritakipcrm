@@ -2,7 +2,8 @@ import worker from './agenda_day_colors_safe.js';
 
 const MOBILE_NOTE_EYE = String.raw`
 <style id="mobileNoteEyeSafeStyle">
-#list .noteText{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;display:block!important;max-height:none!important}
+#list .card:not(.hasMobileTitle) .noteText{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;display:block!important;max-height:none!important}
+#list .card.hasMobileTitle .noteText{white-space:pre-wrap!important;overflow:hidden!important;text-overflow:ellipsis!important;display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:3;min-height:var(--noteLine)!important;max-height:calc(var(--noteLine)*3)!important}
 #list .body.mobile-note-has-detail{position:relative;padding-right:34px!important}
 #list .mobile-note-eye-safe{position:absolute;right:2px;top:1px;width:28px;height:28px;border:0;border-radius:50%;background:#eaf4ff;color:#1769c2;display:grid;place-items:center;padding:0;font-size:15px;line-height:1;z-index:6;cursor:pointer}
 #list .mobile-note-eye-safe:active{transform:scale(.94)}
@@ -104,6 +105,15 @@ const MOBILE_NOTE_EYE = String.raw`
     if(!full){
       full=String(text.textContent||'');
       text.dataset.mobileFullNote=full;
+    }
+
+    var hasSeparateTitle=card.classList.contains('hasMobileTitle')||!!body.querySelector('.noteTitleMobile');
+    if(hasSeparateTitle){
+      if(text.textContent!==full)text.textContent=full;
+      var staleEye=body.querySelector('.mobile-note-eye-safe');
+      if(staleEye)staleEye.remove();
+      body.classList.remove('mobile-note-has-detail');
+      return;
     }
 
     var parts=splitNote(full);

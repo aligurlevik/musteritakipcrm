@@ -69,7 +69,8 @@ test('Not başlığı yalnızca telefon ekranında büyür',async()=>{
   assert.match(body,/\.noteTitleMobile\{font-size:17px;font-weight:950;line-height:24px/);
   assert.match(body,/\.card\.hasMobileTitle \.body\{background-image:none!important\}/);
   assert.match(body,/\.noteTitleMobile\{[^}]*border-bottom:4px solid #6686a3/);
-  assert.match(body,/\.card\.hasMobileTitle \.noteText\{background-image:repeating-linear-gradient/);
+  assert.doesNotMatch(body,/\.card\.hasMobileTitle \.noteText\{display:none!important\}/);
+  assert.match(body,/#list \.card\.hasMobileTitle \.noteText\{display:-webkit-box!important;[^}]*-webkit-line-clamp:3;[^}]*white-space:pre-wrap!important/);
   assert.match(body,/@media\(max-width:560px\)[\s\S]*?\.noteTitleMobile\{font-size:calc\(18px \+ 1pt\);line-height:calc\(26px \+ 1pt\);color:#081f35;border-bottom-color:#6686a3\}/);
   assert.match(body,/ALI GURLEVIK/);
   assert.match(body,/NOT DEFTERİ/);

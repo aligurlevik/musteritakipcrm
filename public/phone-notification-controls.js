@@ -7,27 +7,9 @@
   const onAgendaAlarmPage=()=>onPlanner()||onMainAgenda();
   let working=false;
   function flash(text){let el=document.getElementById('mobileNotifyMsg');if(!el){el=document.createElement('div');el.id='mobileNotifyMsg';el.style.cssText='position:fixed;left:12px;right:12px;bottom:90px;z-index:10001;background:#102f4d;color:#fff;padding:12px 14px;border-radius:10px;font-weight:900;text-align:center;box-shadow:0 8px 24px #0005';document.body.appendChild(el)}el.textContent=text;el.style.display='block';clearTimeout(window.__notifyMsgTimer);window.__notifyMsgTimer=setTimeout(()=>el.style.display='none',6500)}
-  function visualPayload(note){
-    const notebook=Math.max(1,Math.min(3,Number(note?.notebook_no)||1));
-    if(notebook>1)return {title:'🔒 Özel not hatırlatıcısı',body:'İçeriği görmek için Not '+notebook+' özel şifresini girin.',tag:'agenda-'+note.id+'-'+note.remind_at,id:Number(note.id),remind_at:note.remind_at,url:'/notlar-v2.html?page='+notebook+'&reminder='+note.id};
-    const title=String(note?.title||'').trim(),body=String(note?.note||'').trim();
-    return {title:(title||body.split('\n')[0]||'Ajanda hatırlatması').slice(0,120),body:body||title,tag:'agenda-'+note.id+'-'+note.remind_at,id:Number(note.id),remind_at:note.remind_at,url:'/notlar-v2.html?page='+notebook+'&reminder='+note.id};
-  }
-  function installVisualOnly(){
-    if(reminders.__visualOnly)return;
-    reminders.__visualOnly=true;
-    reminders.fire=async function(note){
-      if(document.hidden)return;
-      const data=visualPayload(note);
-      reminders.present(data,{sound:false});
-      if(reminders.status.deviceId){
-        try{await fetch('/api/push/ack',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'content-type':'application/json'},body:JSON.stringify({deviceId:reminders.status.deviceId,id:data.id,remind_at:data.remind_at})})}catch(_){}
-      }
-    };
-  }
-  async function ensureSilentWorker(){
+  async function ensureAlarmWorker(){
     if(!('serviceWorker'in navigator))return null;
-    try{return await navigator.serviceWorker.register('/agenda-sw-silent.js',{scope:'/',updateViaCache:'none'})}catch(_){return navigator.serviceWorker.getRegistration('/')}
+    try{return await navigator.serviceWorker.register('/agenda-sw.js',{scope:'/',updateViaCache:'none'})}catch(_){return navigator.serviceWorker.getRegistration('/')}
   }
   function update(){
     const btn=document.getElementById('mobileNotifyBtn'),status=document.getElementById('mobileNotifyStatus'),test=document.getElementById('mobileNotifyTest');if(!btn||!status)return;
@@ -36,29 +18,29 @@
     else if(!reminders.supported()){btn.textContent=onAgendaAlarmPage()?'📱 Telefon Alarmı':'🔔 Bildirim';text='Telefon bildirimi için güncel Chrome veya Safari kullanın.'}
     else if(Notification.permission==='denied'){btn.textContent='❌ BİLDİRİM İZNİ KAPALI';text='❌ TELEFON AYARLARINDAN BİLDİRİM İZNİNİ AÇIN';mode='bad'}
     else if(reminders.status.busy){btn.textContent='⏳ BAĞLANIYOR';text='⏳ TELEFON BİLDİRİMLERİ KURULUYOR'}
-    else if(reminders.enabled()&&reminders.status.connected){btn.textContent=onAgendaAlarmPage()?'✅ TELEFON UYARISI AÇIK':'✅ Bildirim Açık';text='✅ SESSİZ GÖRSEL UYARI AÇIK — SES VE TİTREŞİM YOK';mode='ok'}
+    else if(reminders.enabled()&&reminders.status.connected){btn.textContent=onAgendaAlarmPage()?'✅ SESLİ UYARI AÇIK':'✅ Bildirim Açık';text='✅ SESLİ AJANDA UYARISI AÇIK';mode='ok'}
     else if(reminders.status.error){btn.textContent=onAgendaAlarmPage()?'📱 TELEFON UYARISINI AÇ':'🔔 Bildirimi Aç';text=reminders.status.error}
     else if(!reminders.enabled()){btn.textContent=onAgendaAlarmPage()?'📱 TELEFON UYARISINI AÇ':'🔕 Bildirim Kapalı';text='🔕 TELEFON UYARILARI KAPALI — AÇMAK İÇİN BAS';mode='bad'}
-    else{btn.textContent=onAgendaAlarmPage()?'📱 TELEFON UYARISINI AÇ':'🔔 Bildirimi Aç';text='👁 AJANDA SAATİNDE SADECE GÖRSEL UYARI GÖSTERİLİR'}
+    else{btn.textContent=onAgendaAlarmPage()?'📱 TELEFON UYARISINI AÇ':'🔔 Bildirimi Aç';text='🔔 AJANDA SAATİNDE SESLİ UYARI VERİLİR'}
     status.textContent=text;status.dataset.mode=mode;status.disabled=btn.disabled;test.hidden=!(reminders.enabled()&&reminders.status.connected);test.disabled=working;
   }
-  async function toggle(){if(working)return;if(isiOS()&&!standalone()){flash('Safari → Paylaş → Ana Ekrana Ekle yapın. Sonra ajandayı ana ekrandaki simgeden açın.');return}working=true;update();try{await ensureSilentWorker();if(reminders.enabled()&&reminders.status.connected){await reminders.disable();flash('🔕 Telefon uyarıları kapatıldı.')}else{await reminders.enable();await ensureSilentWorker();flash('✅ Sessiz görsel Ajanda uyarısı açıldı. Ses ve titreşim yok.')}}catch(error){flash(error.message)}finally{working=false;update()}}
+  async function toggle(){if(working)return;if(isiOS()&&!standalone()){flash('Safari → Paylaş → Ana Ekrana Ekle yapın. Sonra ajandayı ana ekrandaki simgeden açın.');return}working=true;update();try{await ensureAlarmWorker();if(reminders.enabled()&&reminders.status.connected){await reminders.disable();flash('🔕 Telefon uyarıları kapatıldı.')}else{await reminders.enable();await ensureAlarmWorker();flash('✅ Sesli Ajanda uyarısı açıldı.')}}catch(error){flash(error.message)}finally{working=false;update()}}
   async function testAlarm(){
     if(working)return;working=true;update();
     try{
       if(Notification.permission!=='granted')await reminders.enable();
-      const reg=await ensureSilentWorker()||await navigator.serviceWorker.ready;
-      const tag='agenda-visual-test-'+Date.now();
-      await reg.showNotification('👁 Ajanda görsel uyarı testi',{body:'Bu uyarı sadece görüntüdür. Ses ve titreşim yok.',tag,icon:'/agenda-icon-192.png',badge:'/notes-logo-ag-v1.png',silent:true,requireInteraction:true,renotify:false,data:{url:'/'}});
+      const reg=await ensureAlarmWorker()||await navigator.serviceWorker.ready;
+      const tag='agenda-audible-test-'+Date.now();
+      await reg.showNotification('🔔 Ajanda sesli uyarı testi',{body:'Bu bildirim sesli ve titreşimli gelmelidir.',tag,icon:'/agenda-icon-192.png',badge:'/notes-logo-ag-v1.png',silent:false,vibrate:[500,180,500,180,700],requireInteraction:true,renotify:true,data:{url:'/'}});
       if(reminders.status.deviceId){
         fetch('/api/push/test',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'content-type':'application/json'},body:JSON.stringify({deviceId:reminders.status.deviceId})}).catch(()=>{});
       }
-      flash('✅ Sessiz görsel test gönderildi. Ses/titreşim olmaması normal.');
+      flash('✅ Sesli test gönderildi. Telefon sessizdeyse cihazın bildirim sesi ayarını kontrol edin.');
     }catch(error){flash(error.message)}finally{working=false;update()}
   }
   async function pairNativeAlarm(){if(working)return;working=true;update();try{const r=await fetch('/api/native-alarm/pair-code',{method:'POST',credentials:'same-origin',cache:'no-store'});let d={};try{d=await r.json()}catch(_){}if(!r.ok)throw new Error(d.error||'Eşleştirme kodu oluşturulamadı.');flash('📱 ALARM UYGULAMASI KODU: '+d.code+' — 10 dakika geçerli.')}catch(error){flash(error.message)}finally{working=false;update()}}
   function init(){
-    installVisualOnly();ensureSilentWorker();
+    ensureAlarmWorker();
     if(document.getElementById('mobileNotifyBtn')){update();return}
     const agendaHost=document.getElementById('agendaMonthControls');
     const host=agendaHost||document.querySelector('.mobileTopActions')||document.querySelector('.top .actions')||document.querySelector('.toprow');if(!host)return;
@@ -68,7 +50,7 @@
     if(agendaHost){btn.className='btn primary';agendaHost.appendChild(btn)}else host.insertBefore(btn,host.firstChild);
     const status=document.createElement('button');status.id='mobileNotifyStatus';status.type='button';status.onclick=toggle;
     if(agendaHost){status.style.display='none';agendaHost.appendChild(status)}else (document.querySelector('.tabs')||document.querySelector('.top')).insertAdjacentElement('afterend',status);
-    const test=document.createElement('button');test.id='mobileNotifyTest';test.type='button';test.textContent=onMainAgenda()?'👁 TELEFON UYARI TESTİ':onPlanner()?'👁 AJANDA UYARI TESTİ':'👁 BİLDİRİM TESTİ';test.onclick=testAlarm;
+    const test=document.createElement('button');test.id='mobileNotifyTest';test.type='button';test.textContent=onMainAgenda()?'🔔 TELEFON SES TESTİ':onPlanner()?'🔔 AJANDA SES TESTİ':'🔔 BİLDİRİM TESTİ';test.onclick=testAlarm;
     if(agendaHost)agendaHost.appendChild(test);else status.insertAdjacentElement('afterend',test);
     if(!onAgendaAlarmPage()){const pair=document.createElement('button');pair.id='nativeAlarmPair';pair.type='button';pair.textContent='📱 GERÇEK ALARM UYGULAMASINI BAĞLA';pair.onclick=pairNativeAlarm;test.insertAdjacentElement('afterend',pair)}
     update();

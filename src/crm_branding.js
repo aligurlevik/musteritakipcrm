@@ -132,10 +132,68 @@ export async function applyCrmBranding(response,request){
     html=html.replace(/<\/body>/i,permanentPolicy+'\n</body>');
   }
 
-  // Windows'ta ses yok; fakat görsel uyarı kapatılmaz.
+  // Windows'ta telefonun sesli alarm ayarını kullanma: bildirim görünür kalır,
+  // fakat Web Audio, titreşim ve işletim sistemi bildirim sesi kapatılır.
+  if(isWindows&&!html.includes('id="crmSilentDesktopWorker"')){
+    const silentWorker=`<script id="crmSilentDesktopWorker">
+(function(){
+  window.CRM_SILENT_DESKTOP=true;
+  if(!('serviceWorker' in navigator))return;
+  try{
+    var rawRegister=navigator.serviceWorker.register.bind(navigator.serviceWorker);
+    navigator.serviceWorker.register=function(url,options){
+      return rawRegister(url==='/agenda-sw.js'?'/agenda-sw-silent.js':url,options);
+    };
+    rawRegister('/agenda-sw-silent.js',{scope:'/',updateViaCache:'none'}).catch(function(){});
+  }catch(_){}
+  try{
+    var proto=window.ServiceWorkerRegistration&&window.ServiceWorkerRegistration.prototype;
+    if(proto&&typeof proto.showNotification==='function'&&!proto.showNotification.__crmSilentDesktop){
+      var rawShow=proto.showNotification;
+      var silentShow=function(title,options){
+        var safe=Object.assign({},options||{},{silent:true,renotify:false});
+        try{delete safe.vibrate}catch(_){}
+        return rawShow.call(this,title,safe);
+      };
+      silentShow.__crmSilentDesktop=true;
+      proto.showNotification=silentShow;
+    }
+  }catch(_){}
+})();
+</script>`;
+    html=html.replace(/<\/head>/i,silentWorker+'\n</head>');
+  }
+
+  // Windows'ta ses yok; ekrandaki büyük görsel uyarı ve sessiz sistem bildirimi kalır.
   if(isWindows&&!html.includes('id="crmSilentDesktopAlarm"')){
     const silentDesktop=`<script id="crmSilentDesktopAlarm">
 (function(){
+  function visualPayload(note){
+    var notebook=Math.max(1,Math.min(3,Number(note&&note.notebook_no)||1));
+    if(notebook>1)return {title:'🔒 Özel not hatırlatıcısı',body:'İçeriği görmek için Not '+notebook+' özel şifresini girin.',tag:'agenda-'+note.id+'-'+note.remind_at,id:Number(note.id),remind_at:note.remind_at,url:'/notlar-v2.html?page='+notebook+'&reminder='+note.id};
+    var title=String(note&&note.title||'').trim(),body=String(note&&note.note||'').trim();
+    return {title:(title||body.split('\\n')[0]||'Ajanda hatırlatması').slice(0,120),body:body||title,tag:'agenda-'+note.id+'-'+note.remind_at,id:Number(note.id),remind_at:note.remind_at,url:'/notlar-v2.html?page='+notebook+'&reminder='+note.id};
+  }
+  function labelSilentControls(){
+    var test=document.getElementById('mobileNotifyTest');
+    if(test&&test.textContent!=='👁 GÖRSEL UYARI TESTİ')test.textContent='👁 GÖRSEL UYARI TESTİ';
+    var visualTest=document.getElementById('agendaVisualTest');
+    if(visualTest&&visualTest.textContent!=='GÖRSEL TEST')visualTest.textContent='GÖRSEL TEST';
+    var visualState=document.getElementById('agendaVisualState');
+    if(visualState&&visualState.textContent!=='Sessiz görsel uyarı hazır')visualState.textContent='Sessiz görsel uyarı hazır';
+    var button=document.getElementById('mobileNotifyBtn');
+    if(button&&/SESLİ UYARI AÇIK/.test(button.textContent||''))button.textContent='✅ SESSİZ UYARI AÇIK';
+    var status=document.getElementById('mobileNotifyStatus');
+    if(status&&/SESLİ AJANDA UYARISI AÇIK/.test(status.textContent||''))status.textContent='✅ BİLGİSAYARDA SESSİZ GÖRSEL UYARI — SES YOK';
+    if(status&&/AJANDA SAATİNDE SESLİ UYARI VERİLİR/.test(status.textContent||''))status.textContent='👁 AJANDA SAATİNDE SESSİZ GÖRSEL UYARI VERİLİR';
+    var visualText=document.getElementById('agendaVisualText');
+    if(visualText&&visualText.textContent==='Sesli ajanda uyarısı açıldı.')visualText.textContent='Sessiz görsel ajanda uyarısı açıldı. Ses yok.';
+    var flash=document.getElementById('mobileNotifyMsg');
+    if(flash&&/^✅ Sesli Ajanda uyarısı açıldı\.?$/.test(flash.textContent||''))flash.textContent='✅ Sessiz görsel Ajanda uyarısı açıldı. Ses yok.';
+    if(flash&&/^✅ Sesli test gönderildi\./.test(flash.textContent||''))flash.textContent='✅ Sessiz görsel test gönderildi. Ses yok.';
+    var closeButton=document.querySelector('#crmPhoneAlarm button');
+    if(closeButton&&closeButton.textContent!=='✓ Tamam — Kapat')closeButton.textContent='✓ Tamam — Kapat';
+  }
   function silence(){
     try{window.unlockReminderAudio=function(){}}catch(_){}
     try{window.playReminderSound=function(){}}catch(_){}
@@ -146,15 +204,34 @@ export async function applyCrmBranding(response,request){
       }
     }catch(_){}
     try{
+      var reminders=window.crmReminders;
+      if(reminders&&!reminders.__silentDesktop){
+        reminders.__silentDesktop=true;
+        reminders.fire=async function(note){
+          if(document.hidden)return;
+          var data=visualPayload(note);
+          reminders.present(data,{sound:false});
+          labelSilentControls();
+          if(reminders.status&&reminders.status.deviceId){
+            try{await fetch('/api/push/ack',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'content-type':'application/json'},body:JSON.stringify({deviceId:reminders.status.deviceId,id:data.id,remind_at:data.remind_at})})}catch(_){}
+          }
+        };
+      }
+    }catch(_){}
+    try{
       window.showDesktopReminder=function(title,body,tag){
         if(!('Notification' in window)||Notification.permission!=='granted')return;
         var notice=new Notification(title,{body:body,tag:tag,requireInteraction:true,renotify:false,silent:true});
         notice.onclick=function(){try{window.focus()}catch(_){};try{notice.close()}catch(_){}};
       };
     }catch(_){}
+    labelSilentControls();
   }
   silence();
+  try{new MutationObserver(labelSilentControls).observe(document.documentElement,{childList:true,subtree:true,characterData:true})}catch(_){}
   window.addEventListener('load',silence,{once:true});
+  window.addEventListener('crm-reminders-state',silence);
+  setTimeout(silence,0);
 })();
 </script>`;
     html=html.replace(/<\/body>/i,silentDesktop+'\n</body>');

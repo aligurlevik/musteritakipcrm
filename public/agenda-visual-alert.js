@@ -81,10 +81,10 @@
     try{window.focus()}catch(_){ }
   }
 
-  async function registerSilentWorker(){
+  async function registerAlarmWorker(){
     if(!('serviceWorker' in navigator))return null;
     try{
-      const reg=await navigator.serviceWorker.register('/agenda-sw-silent.js',{scope:'/',updateViaCache:'none'});
+      const reg=await navigator.serviceWorker.register('/agenda-sw.js',{scope:'/',updateViaCache:'none'});
       await navigator.serviceWorker.ready;
       return reg;
     }catch(_){return null}
@@ -95,7 +95,7 @@
     if(Notification.permission==='denied')return 'Bildirim izni kapalı';
     if(window.crmReminders?.status?.connected)return 'Telefon/masaüstü bildirimi bağlı';
     if(Notification.permission==='granted')return 'Bildirim izni açık';
-    return 'Sessiz görsel uyarı hazır';
+    return 'Sesli ajanda uyarısı hazır';
   }
 
   function updateControls(){
@@ -112,9 +112,9 @@
         if(p!=='granted')throw new Error('Bildirim izni verilmedi.');
       }
       if(window.crmReminders?.enable)await window.crmReminders.enable();
-      await registerSilentWorker();
+      await registerAlarmWorker();
       updateControls();
-      showVisual({id:'enabled',title:'Uyarı sistemi açık',note:'Sessiz görsel uyarı sistemi açıldı.',remind_at:new Date().toISOString()},{force:true});
+      showVisual({id:'enabled',title:'Uyarı sistemi açık',note:'Sesli ajanda uyarısı açıldı.',remind_at:new Date().toISOString()},{force:true});
     }catch(error){
       showVisual({id:'error',title:'Uyarı açılamadı',note:String(error?.message||error),remind_at:new Date().toISOString()},{force:true});
       updateControls();
@@ -125,8 +125,8 @@
     showVisual({id:'test',note:'DENEME UYARISI — Görüntü sistemi çalışıyor.',remind_at:new Date().toISOString()},{force:true});
     if('Notification' in window&&Notification.permission==='granted'){
       try{
-        const reg=await registerSilentWorker();
-        await reg?.showNotification('🔔 Ajanda deneme uyarısı',{body:'Sessiz görsel bildirim çalışıyor.',tag:'agenda-visual-test-'+Date.now(),icon:'/agenda-icon-192.png',silent:true,requireInteraction:true,renotify:false,data:{url:location.pathname}});
+        const reg=await registerAlarmWorker();
+        await reg?.showNotification('🔔 Ajanda deneme uyarısı',{body:'Sesli bildirim ve titreşim çalışmalıdır.',tag:'agenda-audible-test-'+Date.now(),icon:'/agenda-icon-192.png',silent:false,vibrate:[500,180,500,180,700],requireInteraction:true,renotify:true,data:{url:location.pathname}});
       }catch(_){ }
     }
   }
@@ -140,7 +140,7 @@
     if(document.getElementById('agendaVisualControls'))return;
     const wrap=document.createElement('div');
     wrap.id='agendaVisualControls';
-    wrap.innerHTML='<button id="agendaVisualEnable" type="button">🔔 UYARIYI AÇ</button><button id="agendaVisualTest" type="button">TEST</button><span id="agendaVisualState">Sessiz görsel uyarı hazır</span>';
+    wrap.innerHTML='<button id="agendaVisualEnable" type="button">🔔 UYARIYI AÇ</button><button id="agendaVisualTest" type="button">SES TESTİ</button><span id="agendaVisualState">Sesli ajanda uyarısı hazır</span>';
     wrap.querySelector('#agendaVisualEnable').onclick=enableAlerts;
     wrap.querySelector('#agendaVisualTest').onclick=testAlert;
     document.body.appendChild(wrap);
@@ -148,6 +148,8 @@
   }
 
   async function poll(){
+    // Windows ana CRM kendi Ajanda penceresini kullanır; ikinci pencere açma.
+    if(window.CRM_SILENT_DESKTOP&&onMainAgenda())return;
     try{
       const response=await fetch('/api/agenda/reminders',{credentials:'same-origin',cache:'no-store'});
       if(!response.ok)return;
@@ -158,23 +160,25 @@
         const when=ms(item?.remind_at);
         return item?.reminder_status==='Açık'&&Number.isFinite(when)&&when<=now&&now-when<86400000&&!shown.has(String(item.id)+'|'+String(item.remind_at));
       }).sort((a,b)=>String(a.remind_at).localeCompare(String(b.remind_at)));
-      if(due.length&&!document.hidden&&!currentKey)showVisual(due[0]);
+      if(due.length&&!document.hidden&&!currentKey){
+        const item=due[0];
+        if(window.CRM_SILENT_DESKTOP&&window.crmReminders?.fire){
+          shown.add(String(item.id)+'|'+String(item.remind_at));
+          window.crmReminders.fire(item);
+        }else{
+          showVisual(item);
+          if(!onMainAgenda()&&window.crmReminders?.fire)window.crmReminders.fire(item);
+        }
+      }
     }catch(_){ }
-  }
-
-  // Ana CRM'deki eski Ajanda uyarısını da sessiz görsele çevir.
-  function replaceLegacyAgendaAlert(){
-    try{window.showAgendaReminder=function(item){showVisual(item)}}catch(_){ }
   }
 
   function init(){
     ensureControls();
     ensureModal();
-    replaceLegacyAgendaAlert();
-    registerSilentWorker();
+    registerAlarmWorker();
     poll();
     setInterval(poll,5000);
-    setInterval(replaceLegacyAgendaAlert,3000);
     window.addEventListener('crm-reminders-state',updateControls);
   }
 

@@ -91,3 +91,15 @@ test('mobile card titles stay attached to their own notes after day ordering cha
   assert.equal(cards[0].body.title,'Bugün');
   assert.equal(cards[1].body.title,'Dün');
 });
+
+test('a separately stored mobile title keeps the note body visible underneath',async()=>{
+  const [latest,eye]=await Promise.all([
+    readFile('src/mobile_latest_entry.js','utf8'),
+    readFile('src/mobile_note_eye_safe.js','utf8')
+  ]);
+  assert.doesNotMatch(latest,/\.card\.hasMobileTitle \.noteText\{display:none!important\}/);
+  assert.match(latest,/#list \.card\.hasMobileTitle \.noteText\{display:-webkit-box!important;[^}]*-webkit-line-clamp:3;[^}]*white-space:pre-wrap!important/);
+  assert.match(eye,/var hasSeparateTitle=card\.classList\.contains\('hasMobileTitle'\)\|\|!!body\.querySelector\('\.noteTitleMobile'\)/);
+  assert.match(eye,/if\(hasSeparateTitle\)\{[\s\S]*?if\(text\.textContent!==full\)text\.textContent=full;[\s\S]*?return;/);
+  assert.match(eye,/#list \.card:not\(\.hasMobileTitle\) \.noteText\{white-space:nowrap!important/);
+});
