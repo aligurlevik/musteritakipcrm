@@ -31,14 +31,18 @@ body.crm-role-tracking #g_price,body.crm-role-tracking label:has(#g_price){displ
 <script data-graphic-mini-calendar-v4>
 (function(){
 function setRole(role){document.body.classList.toggle('crm-role-admin',role==='admin');document.body.classList.toggle('crm-role-graphic',role==='graphic');document.body.classList.toggle('crm-role-tracking',role==='tracking')}
-function syncAccessRole(){const original=window.applyAccess;if(typeof original!=='function'||original.__crmRoleClassSync)return;const wrapped=function(role){setRole(role);return original.apply(this,arguments)};wrapped.__crmRoleClassSync=true;window.applyAccess=wrapped}
+function syncAccessRole(){const original=window.applyAccess;if(typeof original!=='function'||original.__crmRoleClassSync)return;const wrapped=function(role){setRole(role);const result=original.apply(this,arguments);scheduleMonthlyRevenue();return result};wrapped.__crmRoleClassSync=true;window.applyAccess=wrapped}
+let monthlyTimer,monthlyRequest=0;
+function scheduleMonthlyRevenue(){clearTimeout(monthlyTimer);monthlyTimer=setTimeout(renderMonthlyRevenue,100)}
+function syncGraphicRender(){const original=window.renderGraphicJobs;if(typeof original!=='function'||original.__monthlyRevenueSync)return;const wrapped=function(){const result=original.apply(this,arguments);scheduleMonthlyRevenue();return result};wrapped.__monthlyRevenueSync=true;window.renderGraphicJobs=wrapped}
 async function renderMonthlyRevenue(){
- if(!document.body.classList.contains('crm-role-admin'))return;
+ const requestId=++monthlyRequest;
+ if(!document.body.classList.contains('crm-role-admin')){document.getElementById('graphicMonthlyRevenue')?.remove();return;}
  const selected=document.getElementById('g_date')?.value||new Date().toISOString().slice(0,10),parts=selected.split('-'),year=Number(parts[0]),month=Number(parts[1]);
- const from=year+'-'+String(month).padStart(2,'0')+'-01',to=new Date(year,month,0).toISOString().slice(0,10);
+ const from=year+'-'+String(month).padStart(2,'0')+'-01',to=year+'-'+String(month).padStart(2,'0')+'-'+new Date(year,month,0).getDate();
  try{
   const response=await fetch('/api/graphic-jobs?created_from='+encodeURIComponent(from)+'&created_to='+encodeURIComponent(to),{cache:'no-store'});if(!response.ok)return;
-  const jobs=await response.json(),items=Array.isArray(jobs)?jobs:[],total=items.reduce((sum,job)=>sum+Number(job.price||0),0),months=['OCAK','ŞUBAT','MART','NİSAN','MAYIS','HAZİRAN','TEMMUZ','AĞUSTOS','EYLÜL','EKİM','KASIM','ARALIK'];
+  const jobs=await response.json();if(requestId!==monthlyRequest||!document.body.classList.contains('crm-role-admin')||selected!==(document.getElementById('g_date')?.value||new Date().toISOString().slice(0,10)))return;const items=Array.isArray(jobs)?jobs:[],total=items.reduce((sum,job)=>sum+Number(job.price||0),0),months=['OCAK','ŞUBAT','MART','NİSAN','MAYIS','HAZİRAN','TEMMUZ','AĞUSTOS','EYLÜL','EKİM','KASIM','ARALIK'];
   let box=document.getElementById('graphicMonthlyRevenue');if(!box){box=document.createElement('div');box.id='graphicMonthlyRevenue'}
   box.textContent='AYLIK CİRO • '+months[month-1]+' '+year+': '+total.toLocaleString('tr-TR')+' TL • '+items.length+' iş';
   const host=document.getElementById('graphicTurnoverPanel')||document.getElementById('graphicCompactTurnoverRow');if(host&&!box.isConnected)host.appendChild(box);
@@ -60,7 +64,7 @@ function mountMiniCalendar(){
  button.addEventListener('click',function(event){event.stopPropagation();picker.value=delivery.value||'';picker.classList.toggle('open');if(picker.classList.contains('open')&&typeof picker.showPicker==='function')picker.showPicker()});
  picker.addEventListener('click',event=>event.stopPropagation());picker.addEventListener('change',function(){if(!picker.value)return;delivery.value=picker.value;delivery.dispatchEvent(new Event('change',{bubbles:true}));picker.classList.remove('open')});document.addEventListener('click',()=>picker.classList.remove('open'));return true;
 }
-async function start(){try{const response=await fetch('/api/session',{cache:'no-store'});setRole(response.ok?(await response.json()).role:'')}catch(_){setRole('')}mountMiniCalendar();renderMonthlyRevenue();document.getElementById('g_date')?.addEventListener('change',()=>setTimeout(renderMonthlyRevenue,100));let tries=0;const timer=setInterval(()=>{mountMiniCalendar();renderMonthlyRevenue();if(++tries>12)clearInterval(timer)},250)}
+async function start(){try{const response=await fetch('/api/session',{cache:'no-store'});setRole(response.ok?(await response.json()).role:'')}catch(_){setRole('')}mountMiniCalendar();syncGraphicRender();scheduleMonthlyRevenue();document.getElementById('g_date')?.addEventListener('change',scheduleMonthlyRevenue);let tries=0;const timer=setInterval(()=>{mountMiniCalendar();syncGraphicRender();scheduleMonthlyRevenue();if(++tries>12)clearInterval(timer)},250)}
 syncAccessRole();
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();

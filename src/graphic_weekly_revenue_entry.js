@@ -1,14 +1,14 @@
 import worker from './graphic_calendar_security_entry.js';
 
 const weeklyRevenuePatch=String.raw`
-<style data-graphic-weekly-revenue-v2>
+<style data-graphic-monthly-revenue-v3>
 #graphicJobs #graphicTurnoverPanel{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important;width:100%!important}
 #graphicJobs #graphicTurnoverPanel>.graphic-daily-total{grid-column:1!important;grid-row:1!important;width:100%!important;min-width:0!important;margin:0!important}
-#graphicJobs #graphicTurnoverPanel>#graphicPeriodTotals{display:block!important;grid-column:2!important;grid-row:1!important;width:100%!important;min-width:0!important;margin:0!important}
-#graphicJobs #graphicTurnoverPanel>#graphicPeriodTotals>.graphic-period-total{width:100%!important;min-width:0!important;margin:0!important}
-#graphicMonthlyRevenue{display:none!important}
+#graphicJobs #graphicTurnoverPanel>#graphicMonthlyRevenue{display:flex!important;grid-column:2!important;grid-row:1!important;width:100%!important;min-width:0!important;margin:0!important}
+#graphicJobs #graphicTurnoverPanel>#graphicPeriodTotals{display:none!important}
 body:not(.crm-role-admin) #graphicJobs .graphic-daily-total,
-body:not(.crm-role-admin) #graphicJobs #graphicPeriodTotals{display:none!important}
+body:not(.crm-role-admin) #graphicJobs #graphicPeriodTotals,
+body:not(.crm-role-admin) #graphicJobs #graphicMonthlyRevenue{display:none!important}
 </style>`;
 
 function rebuild(response,html){

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
+import vm from 'node:vm';
 
 const readProjectFile=path=>readFile(new URL(`../${path}`,import.meta.url),'utf8');
 
@@ -15,7 +16,7 @@ function contextAfter(source,marker,length=1600){
   return index<0?'':source.slice(index,index+length);
 }
 
-test('deployed Grafik Isleri revenue layer reuses the existing seven-day card',async()=>{
+test('deployed Grafik Isleri revenue layer shows the monthly card beside the daily card',async()=>{
   const [wrangler,revenueEntry]=await Promise.all([
     readProjectFile('wrangler.jsonc'),
     readProjectFile('src/graphic_weekly_revenue_entry.js')
@@ -24,7 +25,8 @@ test('deployed Grafik Isleri revenue layer reuses the existing seven-day card',a
   const deployedEntry=wrangler.match(/"main"\s*:\s*"([^"]+)"/)?.[1];
   assert.equal(deployedEntry,'src/graphic_weekly_revenue_entry.js');
   assert.match(revenueEntry,/import worker from '\.\/graphic_calendar_security_entry\.js'/);
-  assert.match(revenueEntry,/#graphicPeriodTotals/);
+  assert.match(revenueEntry,/#graphicMonthlyRevenue\{display:flex!important/);
+  assert.ok(cssRuleHides(revenueEntry,/#graphicTurnoverPanel>#graphicPeriodTotals/));
   assert.doesNotMatch(revenueEntry,/graphicWeeklyRevenue/);
   assert.doesNotMatch(revenueEntry,/renderWeeklyRevenue/);
   assert.doesNotMatch(revenueEntry,/created_from=/);
@@ -45,8 +47,10 @@ test('revenue totals are admin-only while Cagatay keeps the price input',async()
   );
   assert.ok(
     cssRuleHides(revenueEntry,/body:not\(\.crm-role-admin\)[^,{]*#graphicPeriodTotals/),
-    '7 GUNLUK CIRO must be hidden for non-admin roles'
+    'legacy seven-day totals must be hidden for non-admin roles'
   );
+
+  assert.ok(cssRuleHides(revenueEntry,/body:not\(\.crm-role-admin\)[^,{]*#graphicMonthlyRevenue/),'monthly revenue must be hidden for non-admin roles');
 
   for(const role of ['admin','graphic','tracking']){
     assert.match(
@@ -89,4 +93,32 @@ test('direct graphic revenue summary is bounded to the trailing seven days',asyn
       /setDate\([^)]*-\s*6\s*\)/.test(summaryRoute),
     'summary range must start six days before its end date'
   );
+});
+
+
+test('monthly revenue includes the final day, follows the selected month and clears on logout',async()=>{
+  const entry=await readProjectFile('src/graphic_calendar_security_entry.js');
+  const source=entry.slice(entry.indexOf('let monthlyTimer'),entry.indexOf('function mountMiniCalendar'));
+  let admin=true,selected='2026-10-14',box,requested=[];
+  const host={appendChild(node){box=node;node.isConnected=true}};
+  const context=vm.createContext({
+    document:{
+      body:{classList:{contains:()=>admin}},
+      getElementById(id){return id==='g_date'?{value:selected}:id==='graphicMonthlyRevenue'?box:id==='graphicTurnoverPanel'?host:null},
+      createElement(){return {remove(){box=undefined}}}
+    },
+    fetch:async url=>{requested.push(url);return {ok:true,json:async()=>[{price:850},{price:1700}]}},
+    console,Date,setTimeout,clearTimeout
+  });
+  await vm.runInContext(''+source+';renderMonthlyRevenue()',context);
+  assert.match(requested[0],/created_from=2026-10-01&created_to=2026-10-31/);
+  assert.match(box.textContent,/EKİM 2026: 2.550 TL • 2 iş/);
+  selected='2026-02-14';
+  await vm.runInContext('renderMonthlyRevenue()',context);
+  assert.match(requested[1],/created_from=2026-02-01&created_to=2026-02-28/);
+  assert.match(box.textContent,/ŞUBAT 2026/);
+  admin=false;
+  await vm.runInContext('renderMonthlyRevenue()',context);
+  assert.equal(box,undefined);
+  assert.equal(requested.length,2);
 });
