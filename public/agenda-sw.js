@@ -1,19 +1,24 @@
+const isWindowsDesktop=/Windows/i.test((self.navigator&&self.navigator.userAgent)||'');
+
 async function showReminder(message){
-  await self.registration.showNotification('⏰ '+String(message.title||'Ajanda hatırlatması'),{
+  const options={
     body:String(message.body||'Hatırlatma zamanı geldi.'),
     tag:message.tag||'agenda-reminder',
     icon:'/agenda-icon-192.png',
     badge:'/notes-logo-ag-v1.png',
-    silent:false,
-    vibrate:[500,180,500,180,500,180,900],
+    silent:isWindowsDesktop,
     requireInteraction:true,
-    renotify:true,
+    renotify:!isWindowsDesktop,
     timestamp:Date.now(),
     data:{url:message.url||'/notlar-v2.html',deviceId:message.deviceId||'',id:Number(message.id)||0,remind_at:message.remind_at||''},
     actions:[{action:'open',title:'Ajandayı Aç'}]
-  });
-  const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
-  for(const client of windows)client.postMessage({type:'CRM_REMINDER',reminder:message});
+  };
+  if(!isWindowsDesktop)options.vibrate=[500,180,500,180,500,180,900];
+  await self.registration.showNotification('⏰ '+String(message.title||'Ajanda hatırlatması'),options);
+  if(!isWindowsDesktop){
+    const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    for(const client of windows)client.postMessage({type:'CRM_REMINDER',reminder:message});
+  }
 }
 async function pullDueReminders(){
   const subscription=await self.registration.pushManager.getSubscription();
