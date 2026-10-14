@@ -1,4 +1,5 @@
 import worker from './graphic_calendar_security_entry.js';
+import {addAgendaTitleDetailUi} from './agenda_title_detail_ui.js';
 
 const weeklyRevenuePatch=String.raw`
 <style data-graphic-monthly-revenue-v3>
@@ -16,7 +17,7 @@ function rebuild(response,html){
  for(const name of ['content-length','content-encoding','etag'])headers.delete(name);
  headers.set('content-type','text/html; charset=utf-8');
  headers.set('cache-control','no-cache, no-store, must-revalidate');
- return new Response(html.replace('</body>',weeklyRevenuePatch+'</body>'),{status:response.status,statusText:response.statusText,headers});
+ return new Response(addAgendaTitleDetailUi(html).replace('</body>',weeklyRevenuePatch+'</body>'),{status:response.status,statusText:response.statusText,headers});
 }
 
 export default {
