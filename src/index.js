@@ -202,17 +202,19 @@ async function api(request, env) {
   if(path==='/api/tracking'&&request.method==='GET'){
     const today=istanbulDate(new Date());
     const tomorrow=nextWorkingDate(today);
+    const requestedDate=url.searchParams.get('date');
+    if(requestedDate&&(!/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)||Number.isNaN(dateAtNoon(requestedDate).getTime())||istanbulDate(dateAtNoon(requestedDate))!==requestedDate))return json({error:'Geçerli bir tarih seçin.'},400);
+    const selectedDate=requestedDate||(url.searchParams.get('day')==='tomorrow'?tomorrow:today);
     const nowInIstanbul=new Intl.DateTimeFormat('en-US',{timeZone:'Europe/Istanbul',weekday:'short',hour:'2-digit',hourCycle:'h23'}).formatToParts(new Date());
     const weekday=nowInIstanbul.find(x=>x.type==='weekday')?.value;
     const hour=Number(nowInIstanbul.find(x=>x.type==='hour')?.value||0);
-    if(isNonWorkingDate(today)||(weekday==='Sat'&&hour>=13)){
+    if(selectedDate===today&&(isNonWorkingDate(today)||(weekday==='Sat'&&hour>=13))){
       await env.DB.prepare(`INSERT INTO graphic_job_delays(graphic_job_id,delayed_from,delayed_to,note,delayed_by)
         SELECT id,work_date,?,COALESCE(tracking_note,''),'Sistem' FROM graphic_jobs
         WHERE work_date=? AND status LIKE 'İmalat%' AND status NOT LIKE '%Bitti'`).bind(tomorrow,today).run();
       await env.DB.prepare(`UPDATE graphic_jobs SET work_date=?,remind_at='',tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP
         WHERE work_date=? AND status LIKE 'İmalat%' AND status NOT LIKE '%Bitti'`).bind(tomorrow,today).run();
     }
-    const selectedDate=url.searchParams.get('day')==='tomorrow'?tomorrow:today;
     return json((await env.DB.prepare("SELECT g.id,g.work_date,g.job_no,g.customer_name,g.description,g.note,g.tracking_note,g.status,g.remind_at,COALESCE(NULLIF(g.delivery_place,''),(SELECT g2.delivery_place FROM graphic_jobs g2 WHERE lower(g2.job_no)=lower(g.job_no) AND COALESCE(g2.delivery_place,'')<>'' ORDER BY g2.id DESC LIMIT 1),'') delivery_place,g.tracking_status,g.tracked_by,g.tracked_at FROM graphic_jobs g WHERE g.work_date=? AND g.status LIKE 'İmalat%' ORDER BY CASE WHEN COALESCE(g.remind_at,'')='' THEN 1 ELSE 0 END,g.remind_at,g.id").bind(selectedDate).all()).results)
   }
   const trackingJob=path.match(/^\/api\/tracking\/(\d+)$/);
