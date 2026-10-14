@@ -5,7 +5,6 @@ export const AGENDA_TITLE_DETAIL_LIVE = String.raw`
 #agenda .agenda-title-live{font-weight:850;cursor:pointer;border-radius:6px;padding:2px 4px;margin-left:-4px;display:inline-block;max-width:100%;white-space:normal;overflow-wrap:anywhere;vertical-align:middle}
 #agenda .agenda-title-live:hover{background:#dbeafe;color:#1d4ed8}
 #agenda .agenda-title-live:after{content:'  ▸';font-size:11px;color:#64748b}
-#agenda .agenda-detail-live{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:5px;font-size:15px;line-height:1.5;color:#334155;font-weight:500}
 #agenda .agenda-detail-label{display:block;font-size:11px;font-weight:900;color:#475569;margin:4px 0}
 #agendaTitleDetailLiveOverlay{position:fixed;inset:0;z-index:320;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.58)}
 #agendaTitleDetailLiveOverlay.open{display:flex}
@@ -187,12 +186,7 @@ export const AGENDA_TITLE_DETAIL_LIVE = String.raw`
       var id=idFromElement(el),item=id&&findItem(id);if(!item)return;
       var parts=partsForItem(item),title=parts.title||'Başlıksız';
       if(el.textContent!==title)el.textContent=title;
-      el.parentElement.style.display='block';
-      var detail=el.parentElement.querySelector('.agenda-detail-live');
-      if(parts.detail){
-        if(!detail){detail=document.createElement('div');detail.className='agenda-detail-live';el.insertAdjacentElement('afterend',detail)}
-        if(detail.textContent!==parts.detail)detail.textContent=parts.detail;
-      }else if(detail)detail.remove();
+      el.parentElement.querySelector('.agenda-detail-live')?.remove();
       el.classList.add('agenda-title-live');
       el.title=parts.detail?'Ayrıntıları aç':'Notu aç';
       el.onclick=function(event){event.preventDefault();event.stopPropagation();openOverlay(id,false)};

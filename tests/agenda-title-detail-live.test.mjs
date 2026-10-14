@@ -105,9 +105,9 @@ test('eski birleşik not biçimi geçici kayıtta da başlık ve ayrıntıya ayr
 });
 
 
-test('telefon notu masaüstünde başlık üstte açıklama altta gösterilir',()=>{
+test('masaüstü listesinde yalnız başlık görünür ve tıklanınca açıklama açılır',()=>{
   let apply;
-  const {context}=browser({setTimeout(fn){apply=fn;return 0}});
+  const {context,elements}=browser({setTimeout(fn){apply=fn;return 0}});
   const title=element();title.id='agendaTodayText-93';title.textContent='Başlık';
   const parent={style:{},querySelector(){return this.detail||null}};
   title.parentElement=parent;
@@ -116,9 +116,11 @@ test('telefon notu masaüstünde başlık üstte açıklama altta gösterilir',(
   context.document.querySelectorAll=selector=>selector.includes('done-note')?[title]:[];
   apply();
   assert.equal(title.textContent,'Telefon başlığı');
-  assert.equal(parent.style.display,'block');
-  assert.equal(parent.detail.textContent,'Birinci açıklama\nİkinci açıklama');
-  assert.equal(parent.detail.className,'agenda-detail-live');
+  assert.equal(parent.detail,undefined);
+  title.onclick({preventDefault(){},stopPropagation(){}});
+  assert.equal(elements.get('agendaTitleDetailLiveOverlay').classList.contains('open'),true);
+  assert.equal(elements.get('agendaTitleDetailLiveHeading').textContent,'Telefon başlığı');
+  assert.equal(elements.get('agendaTitleDetailLiveText').textContent,'Birinci açıklama\nİkinci açıklama');
 });
 
 test('telefondan gelen not düzenlenince ayrı başlığı ve çok satırlı açıklaması korunur',async()=>{
