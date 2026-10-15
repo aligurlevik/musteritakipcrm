@@ -7,11 +7,48 @@ $AgentFile = Join-Path $Root 'engview-agent.ps1'
 $Folder = 'J:\Dat2026'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 if ($Install) {
+    trap {
+        Write-Host ('KURULUM HATASI: ' + $_.Exception.Message) -ForegroundColor Red
+        exit 1
+    }
     Write-Host 'CRM EngView - Tek bilgisayara bir kez kurun.'
     if (!(Test-Path -LiteralPath $Folder)) { throw 'J:\Dat2026 bulunamadi. Ortak surucuye bagli bilgisayarda kurun.' }
-    $Token = Read-Host 'CRM EngView baglantisi ekranindaki anahtari yapistirin' -AsSecureString
-    $Credential = New-Object System.Management.Automation.PSCredential('engview', $Token)
-    $Plain = $Credential.GetNetworkCredential().Password.Trim()
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+    $Dialog = New-Object Windows.Forms.Form
+    $Dialog.Text = 'CRM EngView Kurulumu'
+    $Dialog.Size = New-Object Drawing.Size(540, 215)
+    $Dialog.StartPosition = 'CenterScreen'
+    $Dialog.TopMost = $true
+    $Dialog.FormBorderStyle = 'FixedDialog'
+    $Dialog.MaximizeBox = $false
+    $Label = New-Object Windows.Forms.Label
+    $Label.Text = 'CRM ekraninda Kopyala dugmesine basin, sonra anahtari buraya yapistirin:'
+    $Label.SetBounds(18, 18, 490, 36)
+    $Input = New-Object Windows.Forms.TextBox
+    $Input.SetBounds(18, 62, 490, 26)
+    $Input.UseSystemPasswordChar = $true
+    $Input.MaxLength = 128
+    $Paste = New-Object Windows.Forms.Button
+    $Paste.Text = 'Yapistir'
+    $Paste.SetBounds(18, 110, 100, 30)
+    $Paste.Add_Click({ $Input.Text = [Windows.Forms.Clipboard]::GetText().Trim() })
+    $Ok = New-Object Windows.Forms.Button
+    $Ok.Text = 'Baglan'
+    $Ok.SetBounds(278, 110, 110, 30)
+    $Ok.DialogResult = [Windows.Forms.DialogResult]::OK
+    $Cancel = New-Object Windows.Forms.Button
+    $Cancel.Text = 'Vazgec'
+    $Cancel.SetBounds(398, 110, 110, 30)
+    $Cancel.DialogResult = [Windows.Forms.DialogResult]::Cancel
+    $Dialog.AcceptButton = $Ok
+    $Dialog.CancelButton = $Cancel
+    $Dialog.Controls.AddRange(@($Label, $Input, $Paste, $Ok, $Cancel))
+    $Result = $Dialog.ShowDialog()
+    $Plain = $Input.Text.Trim()
+    $Input.Clear()
+    $Dialog.Dispose()
+    if ($Result -ne [Windows.Forms.DialogResult]::OK) { Write-Host 'Kurulum iptal edildi. Tekrar acabilirsiniz.'; exit 2 }
     if ($Plain -notmatch '^[a-f0-9]{64}$') { throw 'Anahtar 64 karakter olmali.' }
     # A harmless validation request: 400 means the token is valid but no job code was supplied.
     try { Invoke-WebRequest -UseBasicParsing -Uri ($CrmBase + '/api/engview/sync') -Method Put -Headers @{Authorization=('Bearer ' + $Plain)} | Out-Null }
