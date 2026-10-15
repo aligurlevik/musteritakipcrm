@@ -55,3 +55,9 @@ test('new device replaces previous key; unrelated API routes are passed through'
 test('installer watches only Dat2026 EVD files and persists credentials using Windows protection',async()=>{
  const source=await readFile('public/engview-agent.ps1','utf8');assert.match(source,/J:\\Dat2026/);assert.match(source,/-Filter '\*\.evd' -File/);assert.doesNotMatch(source,/-Recurse/);assert.match(source,/Export-Clixml -LiteralPath \$ConfigFile/);assert.match(source,/FileShare\]::Read/);assert.match(source,/if \(\$State\[\$File.Name\] -eq \$Stamp\)/);
 });
+
+test('Windows installer uses a separate STA file process and a pasteable masked dialog',async()=>{
+ const cmd=await readFile('public/CRM-EngView-Kur.cmd','utf8');const agent=await readFile('public/engview-agent.ps1','utf8');
+ assert.match(cmd,/-STA .*?-File/);assert.doesNotMatch(cmd,/& \$p -Install/);
+ assert.doesNotMatch(agent,/Read-Host/);assert.match(agent,/UseSystemPasswordChar = \$true/);assert.match(agent,/Clipboard\]::GetText\(\)/);assert.match(agent,/Kurulum iptal edildi/);assert.match(agent,/KURULUM HATASI:/);
+});
