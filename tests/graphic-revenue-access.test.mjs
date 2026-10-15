@@ -23,7 +23,8 @@ test('deployed Grafik Isleri revenue layer shows the monthly card beside the dai
   ]);
 
   const deployedEntry=wrangler.match(/"main"\s*:\s*"([^"]+)"/)?.[1];
-  assert.equal(deployedEntry,'src/graphic_weekly_revenue_entry.js');
+  assert.equal(deployedEntry,'src/engview_entry.js');
+  assert.match(await readProjectFile(deployedEntry),/import worker from '\.\/graphic_weekly_revenue_entry\.js'/);
   assert.match(revenueEntry,/import worker from '\.\/graphic_calendar_security_entry\.js'/);
   assert.match(revenueEntry,/#graphicMonthlyRevenue\{display:flex!important/);
   assert.ok(cssRuleHides(revenueEntry,/#graphicTurnoverPanel>#graphicPeriodTotals/));
