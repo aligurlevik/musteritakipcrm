@@ -1,4 +1,4 @@
-import worker from './graphic_weekly_revenue_entry.js';
+import worker from './native_alarm_agenda_schema_fix.js';
 import {drawingApi} from './engview_drawings.js';
 export default {
  async fetch(request,env,ctx){
