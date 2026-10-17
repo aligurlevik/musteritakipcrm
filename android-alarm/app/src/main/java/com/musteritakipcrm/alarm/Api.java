@@ -1,12 +1,12 @@
 package com.musteritakipcrm.alarm;
 import org.json.*;import java.io.*;import java.net.*;import java.nio.charset.StandardCharsets;import java.util.*;
 final class Api{
- static final String BASE="https://musteri-takip-crm.musteritakipcrm.workers.dev";
+ static final String BASE="https://musteri-takip-crm.musteritakipcrm.workers.dev";private static volatile Entry pendingEntry;
  static final class Reminder{final int id;final String remindAt;final long when;final String title;final String body;Reminder(int i,String r,long w,String t,String b){id=i;remindAt=r;when=w;title=t;body=b;}String key(){return id+"|"+remindAt;}}
  static final class Entry{final int id;final String date,note,remindAt,status;Entry(int i,String d,String n,String r,String s){id=i;date=d;note=n;remindAt=r;status=s;}boolean archived(){return "Yapıldı".equals(status);}}
  static String pair(String code,String label)throws Exception{return request("POST","/api/native-alarm/pair","",new JSONObject().put("code",code).put("label",label)).getString("token");}
- static List<Entry> agenda(String token)throws Exception{JSONArray a=request("GET","/api/native-alarm/agenda",token,null).optJSONArray("entries");List<Entry>x=new ArrayList<>();if(a!=null)for(int i=0;i<a.length();i++){JSONObject o=a.getJSONObject(i);x.add(new Entry(o.getInt("id"),o.optString("entry_date",""),o.optString("note",""),o.optString("remind_at",""),o.optString("entry_status","Yapılacak")));}return x;}
- static int addEntry(String token,String date,String note,String remind)throws Exception{return request("POST","/api/native-alarm/agenda",token,new JSONObject().put("entry_date",date).put("note",note).put("remind_at",remind)).optInt("id",0);}
+ static List<Entry> agenda(String token)throws Exception{JSONArray a=request("GET","/api/native-alarm/agenda",token,null).optJSONArray("entries");List<Entry>x=new ArrayList<>();if(a!=null)for(int i=0;i<a.length();i++){JSONObject o=a.getJSONObject(i);x.add(new Entry(o.getInt("id"),o.optString("entry_date",""),o.optString("note",""),o.optString("remind_at",""),o.optString("entry_status","Yapılacak")));}Entry p=pendingEntry;if(p!=null){boolean found=false;for(Entry e:x)if(e.id==p.id){found=true;break;}if(found)pendingEntry=null;else x.add(0,p);}return x;}
+ static int addEntry(String token,String date,String note,String remind)throws Exception{int id=request("POST","/api/native-alarm/agenda",token,new JSONObject().put("entry_date",date).put("note",note).put("remind_at",remind)).optInt("id",0);if(id>0)pendingEntry=new Entry(id,date,note,remind,"Yapılacak");return id;}
  static void updateEntry(String token,int id,String date,String note,String remind)throws Exception{request("PUT","/api/native-alarm/agenda/"+id,token,new JSONObject().put("entry_date",date).put("note",note).put("remind_at",remind));}
  static void archive(String token,int id,boolean archived)throws Exception{request("POST","/api/native-alarm/agenda/"+id,token,new JSONObject().put("archived",archived));}
  static void deleteEntry(String token,int id)throws Exception{request("DELETE","/api/native-alarm/agenda/"+id,token,null);}
