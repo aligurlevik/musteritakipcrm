@@ -138,9 +138,12 @@ async function simplifyCrmMenu(response,request){
 
 export default{
   async fetch(request,env,ctx){
-    try{await cleanupDemoCustomers(env)}catch(_){}
-    try{await restorePortfolioCustomers(env)}catch(error){console.error('Portfolio restore failed',error?.message||error)}
     const requestUrl=new URL(request.url),path=requestUrl.pathname;
+    // Static files, login and alarm polling must not scan the customer portfolio.
+    if(path.startsWith('/api/customers')||path.startsWith('/api/portfolio-')){
+      try{await cleanupDemoCustomers(env)}catch(_){}
+      try{await restorePortfolioCustomers(env)}catch(error){console.error('Portfolio restore failed',error?.message||error)}
+    }
 
     if(request.method==='GET'&&path==='/musteri-portfoyu.html'){
       return servePortfolioDirect(request,env);

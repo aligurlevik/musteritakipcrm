@@ -1,3 +1,4 @@
+import {databaseFailure} from './database_errors.js';
 import worker from './graphic_fast_daily_load_patch.js';
 
 const enc = new TextEncoder();
@@ -36,7 +37,10 @@ async function safeLogin(request,env){
   let b={};try{b=await request.json()}catch{}
   const requestedRole=b.user==='Çağatay'?'graphic':b.user==='Recep'?'tracking':'admin';
   let saved=null;
-  try{saved=await env.DB.prepare('SELECT salt,password_hash FROM user_passwords WHERE role=?').bind(requestedRole).first()}catch{}
+  try{saved=await env.DB.prepare('SELECT salt,password_hash FROM user_passwords WHERE role=?').bind(requestedRole).first()}catch(error){
+    // Only a genuinely absent legacy password table permits the configured fallback.
+    if(!/no such table:\s*user_passwords/i.test(String(error?.message||error)))return databaseFailure(error);
+  }
   const fallback=requestedRole==='admin'?env.ADMIN_PASSWORD:requestedRole==='graphic'?(env.CAGATAY_PASSWORD||'4444'):(env.RECEP_PASSWORD||'3333');
   const valid=saved?await passwordMatches(b.password,saved):Boolean(fallback&&b.password===fallback);
   if(!valid)return json({error:'Şifre hatalı'},401);

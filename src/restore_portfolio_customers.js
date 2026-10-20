@@ -1,4 +1,5 @@
-let restorePromise;
+const restoreStates=new WeakMap();
+const RESTORE_CHECK_MS=15*60*1000;
 
 const LEADS=[
   {company:'Polus Group Ambalaj A.Ş.',phones:['0312 255 00 25'],emails:['info@polusgroup.com.tr'],region:'Etimesgut / Şaşmaz',priority:'KRİTİK',note:'İlk arama yapılacak — karton kutu üretimi ve kesim/yapıştırma hattı var. Kesim kalıbı/bıçak tedarik yetkilisi sorulacak.'},
@@ -52,13 +53,12 @@ async function columns(env){
 }
 
 export async function restorePortfolioCustomers(env){
-  // Aynı anda gelen istekleri tek restore işleminde birleştir; fakat başarılı işlemden
-  // sonra Promise'i kalıcı cache'leme. Böylece sonraki portföy açılışında kayıtlar
-  // gerçekten hâlâ var mı yeniden doğrulanır. Eski kod resolved Promise'i ömür boyu
-  // tuttuğu için kayıtlar sonradan kaybolduğunda restore bir daha çalışmıyordu.
-  if(restorePromise)return restorePromise;
-
-  restorePromise=(async()=>{
+  let state=restoreStates.get(env.DB);
+  if(state?.promise)return state.promise;
+  if(state?.error&&Date.now()-state.failedAt<60000)throw state.error;
+  if(state?.result&&Date.now()-state.checkedAt<RESTORE_CHECK_MS)return state.result;
+  state={};restoreStates.set(env.DB,state);
+  const restorePromise=state.promise=(async()=>{
     await env.DB.prepare("CREATE TABLE IF NOT EXISTS app_meta(key TEXT PRIMARY KEY,value TEXT DEFAULT '')").run();
     await ensureCustomerTable(env);
 
@@ -117,8 +117,12 @@ export async function restorePortfolioCustomers(env){
   })();
 
   try{
-    return await restorePromise;
+    const result=await restorePromise;
+    state.result=result;state.checkedAt=Date.now();
+    return result;
+  }catch(error){
+    state.error=error;state.failedAt=Date.now();throw error;
   }finally{
-    restorePromise=null;
+    state.promise=null;
   }
 }

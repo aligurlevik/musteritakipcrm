@@ -16,10 +16,10 @@ function json(data,status=200){
 async function authOk(request,env,ctx){
   try{
     const u=new URL(request.url);
-    u.pathname='/api/customers';
+    u.pathname='/api/session';
     u.search='';
     const response=await stableWorker.fetch(new Request(u,{method:'GET',headers:request.headers}),env,ctx);
-    return response.ok;
+    return response.ok&&(await response.json()).role==='admin';
   }catch(_){return false}
 }
 

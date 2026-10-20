@@ -138,12 +138,12 @@ async function ensureSchema(env) {
 
 // Ayni Worker calisirken her API isteginde onlarca PRAGMA/CREATE sorgusunu
 // yeniden kosma. Ilk kontrol tamamlaninca sonraki istekler dogrudan veriye gider.
-let schemaReadyPromise;
+const schemaReadyPromises=new WeakMap();
 async function ensureSchemaReady(env) {
-  if (!schemaReadyPromise) {
-    schemaReadyPromise=ensureSchema(env).catch(error=>{schemaReadyPromise=undefined;throw error});
+  if (!schemaReadyPromises.has(env.DB)) {
+    schemaReadyPromises.set(env.DB,ensureSchema(env).catch(error=>{schemaReadyPromises.delete(env.DB);throw error}));
   }
-  return schemaReadyPromise;
+  return schemaReadyPromises.get(env.DB);
 }
 
 async function api(request, env) {

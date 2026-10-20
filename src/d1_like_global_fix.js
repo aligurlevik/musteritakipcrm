@@ -25,7 +25,9 @@ function skippedStatement(){
   return stmt;
 }
 
+const databaseWrappers=new WeakMap();
 function safeDatabase(db){
+  if(databaseWrappers.has(db))return databaseWrappers.get(db);
   const prepare=(sql)=>{
     if(isProblematicLegacyLike(sql)){
       console.warn('Eski problemli dinamik LIKE eşleştirmesi atlandı.');
@@ -34,12 +36,14 @@ function safeDatabase(db){
     return db.prepare(sql);
   };
   // Proxy yerine sade bir sarmalayıcı kullanıyoruz; D1 binding davranışı daha öngörülebilir.
-  return {
+  const wrapped={
     prepare,
     batch: typeof db.batch==='function' ? db.batch.bind(db) : undefined,
     exec: typeof db.exec==='function' ? db.exec.bind(db) : undefined,
     dump: typeof db.dump==='function' ? db.dump.bind(db) : undefined
   };
+  databaseWrappers.set(db,wrapped);
+  return wrapped;
 }
 
 export default{
