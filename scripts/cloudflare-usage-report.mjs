@@ -32,6 +32,11 @@ async function main(){
  for(const item of rows){const date=item.dimensions.date;daily[date]??={rowsRead:0,rowsWritten:0};daily[date].rowsRead+=Number(item.sum.rowsRead||0);daily[date].rowsWritten+=Number(item.sum.rowsWritten||0);}
  const reads=rows.reduce((s,x)=>s+Number(x.sum.rowsRead||0),0),writes=rows.reduce((s,x)=>s+Number(x.sum.rowsWritten||0),0);
  let storageBytes=null;try{let size=0;for(let page=1;page<=100;page++){const dbs=await call('https://api.cloudflare.com/client/v4/accounts/'+account+'/d1/database?per_page=100&page='+page);for(const db of dbs.result||[]){if(typeof db.file_size!=='number')throw Error('SIZE_UNAVAILABLE');size+=db.file_size;}if((dbs.result||[]).length<100)break;}storageBytes=size;}catch{}
+ if(storageBytes==null){try{
+  const node=await graphql(`query($accountTag:string!,$start:Date!,$end:Date!){viewer{accounts(filter:{accountTag:$accountTag}){d1StorageAdaptiveGroups(limit:10000,filter:{date_geq:$start,date_leq:$end}){dimensions{databaseId}max{databaseSizeBytes}}}}}`,{start:today,end:today});
+  const storage=node.d1StorageAdaptiveGroups||[];
+  if(storage.length)storageBytes=storage.reduce((sum,row)=>sum+Number(row.max.databaseSizeBytes||0),0);
+ }catch{}}
  let requests=0,cpuTimeUs=0,workersComplete=true;
  for(let day=new Date(START+'T00:00:00Z');day<=now;day=new Date(day.getTime()+86400000)){
   const end=new Date(Math.min(day.getTime()+86400000,now.getTime()));
