@@ -1,0 +1,48 @@
+name: Verify Cloudflare Analytics Access
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/verify-cloudflare-analytics.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check read-only D1 analytics permission
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.error,datetime
+          token=os.environ.get('CLOUDFLARE_API_TOKEN','')
+          account=os.environ.get('CLOUDFLARE_ACCOUNT_ID','')
+          if not token or not account:
+              raise SystemExit('ANALYTICS_ACCESS: missing GitHub secret')
+          today=datetime.datetime.now(datetime.timezone.utc).date().isoformat()
+          query='''query($accountTag: string!, $start: Date!, $end: Date!){
+            viewer { accounts(filter:{accountTag:$accountTag}) {
+              d1AnalyticsAdaptiveGroups(limit:1,filter:{date_geq:$start,date_leq:$end}) {
+                sum { rowsRead rowsWritten }
+              }
+            }}
+          }'''
+          data=json.dumps({'query':query,'variables':{'accountTag':account,'start':today,'end':today}}).encode()
+          req=urllib.request.Request('https://api.cloudflare.com/client/v4/graphql',data=data,headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'})
+          try:
+              with urllib.request.urlopen(req,timeout=40) as response:
+                  result=json.load(response)
+          except urllib.error.HTTPError as error:
+              raise SystemExit('ANALYTICS_ACCESS: HTTP '+str(error.code))
+          except Exception:
+              raise SystemExit('ANALYTICS_ACCESS: network failure')
+          if result.get('errors'):
+              raise SystemExit('ANALYTICS_ACCESS: denied or unsupported query; no usage data published')
+          accounts=(result.get('data') or {}).get('viewer',{}).get('accounts',[])
+          if not accounts:
+              raise SystemExit('ANALYTICS_ACCESS: account unavailable')
+          print('ANALYTICS_ACCESS: OK; read-only query succeeded; usage values kept private')
+          PY
