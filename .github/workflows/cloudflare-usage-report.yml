@@ -1,0 +1,25 @@
+name: Cloudflare Private Usage Report
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cloudflare-usage-report.yml', 'scripts/cloudflare-usage-report.mjs', 'scripts/cloudflare-report-public.pem']
+  schedule:
+    - cron: '0 17 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  report:
+    if: github.event_name != 'schedule' || github.event.schedule == '0 17 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Collect and encrypt usage
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/cloudflare-usage-report.mjs
