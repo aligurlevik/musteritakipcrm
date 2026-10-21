@@ -9,7 +9,7 @@ function json(data,status=200,extra={}){return new Response(JSON.stringify(data)
 
 const calendarPatch=String.raw`
 <style data-graphic-mini-calendar-v4>
-body:not(.crm-role-admin) .graphic-price,body:not(.crm-role-admin) #ge_price,body:not(.crm-role-admin) label:has(#ge_price),body:not(.crm-role-admin) [data-revenue-only]{display:none!important}
+body.crm-role-tracking .graphic-price,body.crm-role-tracking #ge_price,body.crm-role-tracking label:has(#ge_price),body:not(.crm-role-admin) [data-revenue-only]{display:none!important}
 body.crm-role-tracking #g_price,body.crm-role-tracking label:has(#g_price){display:none!important}
 #graphicMiniCalendarWrap{position:relative;display:inline-flex;align-items:center}
 #graphicMiniCalendarButton{height:27px;min-width:35px;padding:0 8px;border:1px solid #2563eb;border-radius:7px;background:#eff6ff;color:#1d4ed8;font-size:16px;line-height:1;cursor:pointer}
@@ -76,8 +76,17 @@ function rebuild(response,html){const headers=new Headers(response.headers);for(
 export default{async fetch(request,env,ctx){
  const url=new URL(request.url),role=await sessionRole(request,env);
  if(request.method==='GET'&&url.pathname==='/api/graphic-jobs-summary'&&role!=='admin')return json({error:'Ciro bilgisi yalnızca Ali kullanıcısına açıktır.'},403);
- if(url.pathname==='/api/graphic-jobs'&&request.method==='GET'&&role!=='admin'){const response=await worker.fetch(request,env,ctx);if(!response.ok)return response;return json(redactGraphicRevenue(await response.json()),response.status,{'x-crm-revenue-redacted':'1'})}
+ if(url.pathname==='/api/graphic-jobs'&&request.method==='GET'&&role!=='admin'){const response=await worker.fetch(request,env,ctx);if(!response.ok)return response;return json(redactGraphicRevenue(await response.json(),role==='graphic'),response.status,{'x-crm-revenue-redacted':'1'})}
  if(url.pathname==='/api/graphic-jobs'&&request.method==='POST'&&role==='tracking'){const payload=await request.clone().json().catch(()=>({}));delete payload.price;request=new Request(request,{body:JSON.stringify(payload),headers:new Headers(request.headers)})}
  if(/^\/api\/graphic-jobs\/\d+$/.test(url.pathname)&&request.method==='PUT'&&role==='tracking'){const payload=await request.clone().json().catch(()=>({}));delete payload.price;request=new Request(request,{body:JSON.stringify(payload),headers:new Headers(request.headers)})}
+ if(['admin','graphic','tracking'].includes(role)&&((url.pathname==='/api/graphic-jobs'&&request.method==='POST')||(/^\/api\/graphic-jobs\/\d+$/.test(url.pathname)&&request.method==='PUT'))){
+  const payload=await request.clone().json().catch(()=>({}));
+  const id=Number(url.pathname.split('/').pop());
+  const existing=request.method==='PUT'?await env.DB.prepare('SELECT status,price FROM graphic_jobs WHERE id=?').bind(id).first():null;
+  if(request.method==='PUT'&&!existing)return json({error:'İş bulunamadı.'},404);
+  const status=payload.status===undefined?existing?.status:payload.status;
+  const price=payload.price===undefined?existing?.price:payload.price;
+  if((String(status||'').includes('Bitti')||['Bitti','Tamamlandı'].includes(status))&&!(Number.isFinite(Number(price))&&Number(price)>0))return json({error:'Fiyat girmeden onay verilemez. Önce sıfırdan büyük bir fiyat girin.'},400);
+ }
  const response=await worker.fetch(request,env,ctx);if(request.method==='GET'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html'))return rebuild(response,addGraphicCalendarPatch(await response.text()));return response
 },async scheduled(controller,env,ctx){if(typeof worker.scheduled==='function')return worker.scheduled(controller,env,ctx)}};
