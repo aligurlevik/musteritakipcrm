@@ -86,7 +86,7 @@ async function ensureSchema(env) {
   )`).run();
 
   for (const [name,def] of [
-    ['invoice_title',"TEXT DEFAULT ''"],['tax_office',"TEXT DEFAULT ''"],['tax_number',"TEXT DEFAULT ''"],
+    ['city',"TEXT DEFAULT ''"],['district',"TEXT DEFAULT ''"],['neighborhood',"TEXT DEFAULT ''"],['invoice_title',"TEXT DEFAULT ''"],['tax_office',"TEXT DEFAULT ''"],['tax_number',"TEXT DEFAULT ''"],
     ['invoice_address',"TEXT DEFAULT ''"],['record_status',"TEXT DEFAULT 'Aktif'"],
     ['special_notes',"TEXT DEFAULT ''"],['machine_info',"TEXT DEFAULT ''"],
     ['phones_json',"TEXT DEFAULT '[]'"],['emails_json',"TEXT DEFAULT '[]'"],['contacts_json',"TEXT DEFAULT '[]'"],
@@ -362,13 +362,13 @@ async function api(request, env) {
     const r=await env.DB.prepare(`INSERT INTO customers(
       company,contact_name,phone,email,region,sector,priority,stage,follow_date,
       invoice_title,tax_office,tax_number,invoice_address,record_status,
-      special_notes,machine_info,phones_json,emails_json,contacts_json,categories,note_image_data
-    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+      special_notes,machine_info,phones_json,emails_json,contacts_json,categories,note_image_data,city,district,neighborhood
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
       .bind(
         b.company,b.contact_name||'',phones[0]||'',emails[0]||'',b.region||'',categories,
         b.priority||'NORMAL',b.stage||'Yeni Lead',b.follow_date||'',
         b.invoice_title||'',b.tax_office||'',b.tax_number||'',b.invoice_address||'','Aktif',
-        b.special_notes||'',b.machine_info||'',JSON.stringify(phones),JSON.stringify(emails),JSON.stringify(contacts),categories,imageData
+        b.special_notes||'',b.machine_info||'',JSON.stringify(phones),JSON.stringify(emails),JSON.stringify(contacts),categories,imageData,String(b.city||'').trim(),String(b.district||'').trim(),String(b.neighborhood||'').trim()
       ).run();
     return json({id:r.meta.last_row_id},201);
   }
@@ -383,13 +383,14 @@ async function api(request, env) {
     await env.DB.prepare(`UPDATE customers SET
       company=?,contact_name=?,phone=?,email=?,region=?,sector=?,priority=?,stage=?,follow_date=?,
       invoice_title=?,tax_office=?,tax_number=?,invoice_address=?,
-      special_notes=?,machine_info=?,phones_json=?,emails_json=?,contacts_json=?,categories=?,note_image_data=?,
+      special_notes=?,machine_info=?,phones_json=?,emails_json=?,contacts_json=?,categories=?,note_image_data=?,city=COALESCE(?,city),district=COALESCE(?,district),neighborhood=COALESCE(?,neighborhood),
       updated_at=CURRENT_TIMESTAMP WHERE id=?`)
       .bind(
         b.company||'',b.contact_name||'',phones[0]||'',emails[0]||'',b.region||'',categories,
         b.priority||'NORMAL',b.stage||'Yeni Lead',b.follow_date||'',
         b.invoice_title||'',b.tax_office||'',b.tax_number||'',b.invoice_address||'',
         b.special_notes||'',b.machine_info||'',JSON.stringify(phones),JSON.stringify(emails),JSON.stringify(contacts),categories,imageData,
+        ...['city','district','neighborhood'].map(k=>b[k]===undefined?null:String(b[k]||'').trim()),
         Number(cm[1])
       ).run();
     return json({ok:true});
