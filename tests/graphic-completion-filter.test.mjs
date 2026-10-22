@@ -56,3 +56,17 @@ test('Istanbul transfer persists independently without changing status, price or
  for(const flag of [true,false]){const ctx=vm.createContext({env,request:{},graphicJob:[null,'1'],role:'admin',body:async()=>({istanbul_processing:flag}),json:x=>x});await vm.runInContext('(async()=>{'+code+'})()',ctx);const row=db.prepare('SELECT * FROM graphic_jobs').get();assert.equal(row.istanbul_processing,flag?1:0);assert.equal(row.status,'İmalat');assert.equal(row.price,1234);assert.equal(row.work_date,'2026-10-22');}
  db.close();
 });
+
+test('Ali and Cagatay use identical graphic job cards and tabs',()=>{
+ const render=html.slice(html.indexOf('function renderGraphicJobs(){'),html.indexOf('\nif(!CRM_STABILITY_MODE)setInterval',html.indexOf('function renderGraphicJobs(){')));
+ const tabSource=html.slice(html.indexOf('function setGraphicJobView('),html.indexOf('\nasync function toggleIstanbulProcessing'));
+ const outputs=[];
+ for(const role of ['admin','graphic']){
+  const elements={g_date:{value:'2026-10-22'},graphicJobRows:{innerHTML:''},graphicWorkingDay:{textContent:''},graphicCompletionFilter:{value:'active'}};
+  const title={innerHTML:''};const ctx=vm.createContext({Date,Intl,currentAccessRole:role,allGraphicJobs:[{id:1,work_date:'2026-10-22',created_date:'2026-10-22',customer_name:'Firma',job_no:'J1',status:'İmalat',price:100,created_by:'Ali'}],$:id=>elements[id],document:{querySelector:()=>title,querySelectorAll:()=>[]},compareGraphicJobs:()=>0,ensureGraphicUserSelector:()=>{},graphicEntryTime:()=>'',esc:x=>String(x??''),renderGraphicMonth:()=>{},renderGraphicEnteredJobs:()=>{}});
+  vm.runInContext(source+'\n'+tabSource+'\n'+render+'\nrenderGraphicJobs()',ctx);outputs.push(elements.graphicJobRows.innerHTML);
+  assert.match(outputs.at(-1),/İstanbul’da işlemde/);assert.match(outputs.at(-1),/updateGraphicJobStatus/);assert.match(outputs.at(-1),/toggleGraphicJobDone/);
+ }
+ assert.equal(outputs[0],outputs[1]);
+ assert.match(html,/selector.style.display='';selector.disabled=currentAccessRole==='graphic'/);
+});
