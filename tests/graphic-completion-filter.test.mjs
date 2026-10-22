@@ -26,5 +26,12 @@ test('active and completed lists share the same job mapping without changing rev
   assert.deepEqual(ids('editableGraphicJobsForDay'),[1]);
   assert.equal(jobs.length,5);
   assert.match(html,/produced=graphicJobsForSelectedDay\(\)\.filter/);
-  assert.match(html,/option.textContent='✓ Bitti'/);
+  assert.match(html,/option.textContent='✓ Teslim Edildi'/);
+});
+
+test('archive is clearly labeled and delivered production jobs leave tracking',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const worker=await readFile(new URL('../src/index.js',import.meta.url),'utf8');
+ assert.match(html,/>Arşiv — Teslim Edilen İşler<\/option>/);
+ assert.match(worker,/FROM graphic_jobs g WHERE g.work_date=\? AND g.status LIKE 'İmalat%' AND g.status NOT LIKE '%Bitti' ORDER BY/);
 });
