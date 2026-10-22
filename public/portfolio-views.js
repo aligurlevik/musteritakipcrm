@@ -76,29 +76,29 @@
   }
 
   function setButtons(view){
-    const buttons=[...document.querySelectorAll('.views .viewbtn')],names=['list','cards','analysis','map','timeline'];
-    buttons.forEach((button,index)=>{button.dataset.portfolioView=names[index]||'';button.classList.toggle('active',names[index]===view)});
+    const buttons=[...document.querySelectorAll('.views .viewbtn')],names=['list','analysis','map','timeline'];
+    buttons.forEach((button,index)=>{button.dataset.portfolioView=button.dataset.view||names[index]||'';button.classList.toggle('active',button.dataset.portfolioView===view)});
   }
   function openCustomer(id){
     try{if(typeof window.selectCustomer==='function')window.selectCustomer(Number(id));else if(typeof selectCustomer==='function')selectCustomer(Number(id))}catch(error){console.error('Karttan müşteri açılamadı',error)}
   }
 
-  function cardView(rows){
-    if(!rows.length)return '<div class="pv-empty">Bu filtrelerde gösterilecek müşteri yok.</div>';
-    return `<div class="pv-title"><h2>▣ Kart Görünümü</h2><span>${rows.length} firma</span></div><div class="pv-card-grid">${rows.map(c=>{const cls=String(c.priority||'NORMAL')==='KRİTİK'?'high':String(c.priority||'NORMAL')==='YÜKSEK'?'mid':'low';return `<article class="pv-customer-card" data-customer-id="${Number(c.id)}" tabindex="0"><div class="pv-card-head"><div class="pv-company">${esc(c.company||'Müşteri')}</div><span class="pv-pill ${cls}">${esc(priorityText(c))}</span></div><div class="pv-card-info"><div class="pv-info"><div class="pv-label">Yetkili</div><div class="pv-value">${esc(contactText(c))}</div></div><div class="pv-info"><div class="pv-label">Sonuç</div><div class="pv-value">${esc(resultText(c))}</div></div><div class="pv-info"><div class="pv-label">Telefon</div><div class="pv-value">${esc(phoneText(c))}</div></div><div class="pv-info"><div class="pv-label">E-posta</div><div class="pv-value">${esc(mailText(c))}</div></div><div class="pv-info wide"><div class="pv-label">İş Alanı</div><div class="pv-value">${esc(sectorText(c))}</div></div><div class="pv-info"><div class="pv-label">Aşama</div><div class="pv-value">${esc(c.stage||'—')}</div></div><div class="pv-info"><div class="pv-label">Sonraki İşlem</div><div class="pv-value">${esc(c.follow_date||'—')}</div></div></div></article>`}).join('')}</div>`;
-  }
-
-  function countBy(rows,getter){const map=new Map();rows.forEach(row=>{const key=String(getter(row)||'Belirtilmemiş').trim()||'Belirtilmemiş';map.set(key,(map.get(key)||0)+1});return [...map.entries()].sort((a,b)=>b[1]-a[1])}
+  function countBy(rows,getter){const map=new Map();rows.forEach(row=>{const key=String(getter(row)||'Belirtilmemiş').trim()||'Belirtilmemiş';map.set(key,(map.get(key)||0)+1)});return [...map.entries()].sort((a,b)=>b[1]-a[1])}
   function barRows(entries,total){if(!entries.length)return '<div class="pv-empty" style="padding:18px 4px">Veri yok.</div>';return entries.map(([name,count])=>{const pct=total?Math.round(count*100/total):0;return `<div class="pv-bar-row"><div class="pv-bar-name" title="${esc(name)}">${esc(name)}</div><div class="pv-bar"><i style="width:${pct}%"></i></div><div class="pv-bar-num">${count}</div></div>`}).join('')}
+  function locationLabel(c){
+    const loc=typeof customerLocation==='function'?customerLocation(c):{city:c.city||c.region||'',district:c.district||'',neighborhood:c.neighborhood||''};
+    const city=document.getElementById('city')?.value,district=document.getElementById('district')?.value;
+    return [loc.city,city?loc.district:'',city&&district?loc.neighborhood:''].filter(Boolean).join(' / ')||'Belirtilmemiş';
+  }
   function analysisView(rows){
     const total=rows.length,positive=rows.filter(c=>resultText(c)==='Olumlu').length,overdue=rows.filter(c=>c.follow_date&&c.follow_date<todayKey()&&!['Olumlu','Olumsuz'].includes(resultText(c))).length,high=rows.filter(c=>priorityText(c)==='Yüksek').length;
-    return `<div class="pv-title"><h2>⌁ Analiz</h2><span>Aktif filtrelerin özeti</span></div><div class="pv-analysis-grid"><div class="pv-stat"><b>${total}</b><span>Toplam Firma</span></div><div class="pv-stat"><b>${high}</b><span>Yüksek Potansiyel</span></div><div class="pv-stat"><b>${positive}</b><span>Olumlu Sonuç</span></div><div class="pv-stat"><b>${overdue}</b><span>Süresi Geçen Takip</span></div></div><div class="pv-panels"><section class="pv-panel"><h3>Potansiyel Dağılımı</h3>${barRows(countBy(rows,c=>priorityText(c)),total)}</section><section class="pv-panel"><h3>Sonuç Dağılımı</h3>${barRows(countBy(rows,c=>resultText(c)),total)}</section><section class="pv-panel"><h3>İş Alanları</h3>${barRows(countBy(rows,c=>sectorText(c)).slice(0,8),total)}</section><section class="pv-panel"><h3>İl / Bölge Dağılımı</h3>${barRows(countBy(rows,c=>c.region||'Belirtilmemiş').slice(0,8),total)}</section></div>`;
+    return `<div class="pv-title"><h2>⌁ Analiz</h2><span>Aktif filtrelerin özeti</span></div><div class="pv-analysis-grid"><div class="pv-stat"><b>${total}</b><span>Toplam Firma</span></div><div class="pv-stat"><b>${high}</b><span>Yüksek Potansiyel</span></div><div class="pv-stat"><b>${positive}</b><span>Olumlu Sonuç</span></div><div class="pv-stat"><b>${overdue}</b><span>Süresi Geçen Takip</span></div></div><div class="pv-panels"><section class="pv-panel"><h3>Potansiyel Dağılımı</h3>${barRows(countBy(rows,c=>priorityText(c)),total)}</section><section class="pv-panel"><h3>Sonuç Dağılımı</h3>${barRows(countBy(rows,c=>resultText(c)),total)}</section><section class="pv-panel"><h3>İş Alanları</h3>${barRows(countBy(rows,c=>sectorText(c)).slice(0,8),total)}</section><section class="pv-panel"><h3>Seçilen Bölgedeki Dağılım</h3>${barRows(countBy(rows,c=>locationLabel(c)).slice(0,8),total)}</section></div>`;
   }
 
   function mapView(rows){
-    const regions=countBy(rows,c=>c.region||'Belirtilmemiş');if(!regions.length)return '<div class="pv-empty">Haritada gösterilecek İl / Bölge bilgisi yok.</div>';
-    const byRegion=new Map();rows.forEach(c=>{const region=String(c.region||'Belirtilmemiş').trim()||'Belirtilmemiş';if(!byRegion.has(region))byRegion.set(region,[]);byRegion.get(region).push(c.company||'Müşteri')});
-    return `<div class="pv-title"><h2>⌖ Harita</h2><span>İl / Bölge alanlarına göre müşteri dağılımı</span></div><div class="pv-region-grid">${regions.map(([region,count])=>{const firms=(byRegion.get(region)||[]).slice(0,6),more=count-firms.length,link=region==='Belirtilmemiş'?'':`<a class="pv-map-link" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(region+', Türkiye')}">Haritada aç ↗</a>`;return `<section class="pv-region"><div class="pv-region-head"><b>${esc(region)}</b><span>${count}</span></div><div class="pv-region-firms">${firms.map(esc).join('<br>')}${more>0?`<br>+ ${more} firma daha`:''}</div>${link}</section>`}).join('')}</div>`;
+    const regions=countBy(rows,c=>locationLabel(c));if(!regions.length)return '<div class="pv-empty">Haritada gösterilecek konum bilgisi yok.</div>';
+    const byRegion=new Map();rows.forEach(c=>{const region=locationLabel(c);if(!byRegion.has(region))byRegion.set(region,[]);byRegion.get(region).push(c.company||'Müşteri')});
+    return `<div class="pv-title"><h2>⌖ Harita</h2><span>Seçilen il, ilçe ve mahalleye göre müşteri dağılımı</span></div><div class="pv-region-grid">${regions.map(([region,count])=>{const firms=(byRegion.get(region)||[]).slice(0,6),more=count-firms.length,link=region==='Belirtilmemiş'?'':`<a class="pv-map-link" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(region+', Türkiye')}">Haritada aç ↗</a>`;return `<section class="pv-region"><div class="pv-region-head"><b>${esc(region)}</b><span>${count}</span></div><div class="pv-region-firms">${firms.map(esc).join('<br>')}${more>0?`<br>+ ${more} firma daha`:''}</div>${link}</section>`}).join('')}</div>`;
   }
 
   function timelineView(rows){
@@ -111,15 +111,15 @@
 
   function renderCurrent(){
     renderQueued=false;if(currentView==='list')return;const h=host();if(!h)return;const rows=dataRows();
-    if(currentView==='cards')h.alt.innerHTML=cardView(rows);else if(currentView==='analysis')h.alt.innerHTML=analysisView(rows);else if(currentView==='map')h.alt.innerHTML=mapView(rows);else if(currentView==='timeline')h.alt.innerHTML=timelineView(rows);
+    if(currentView==='analysis')h.alt.innerHTML=analysisView(rows);else if(currentView==='map')h.alt.innerHTML=mapView(rows);else if(currentView==='timeline')h.alt.innerHTML=timelineView(rows);
     h.alt.querySelectorAll('[data-customer-id]').forEach(el=>{el.addEventListener('click',()=>openCustomer(el.dataset.customerId));el.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openCustomer(el.dataset.customerId)}})});
   }
   function queueRender(){if(renderQueued||currentView==='list')return;renderQueued=true;requestAnimationFrame(renderCurrent)}
-  function showView(view){const h=host();if(!h)return;currentView=view;setButtons(view);const list=view==='list';if(h.table)h.table.style.display=list?'':'none';if(h.pager)h.pager.style.display=list?'':'none';h.alt.classList.toggle('show',!list);if(!list)renderCurrent()}
+  function showView(view){const h=host();if(!h)return;currentView=view;setButtons(view);const list=view==='list';if(h.table)h.table.style.display=list?'':'none';if(h.pager)h.pager.style.display=list?'':'none';h.alt.classList.toggle('show',!list);if(!list)renderCurrent();if(view==='timeline'&&typeof loadMeetingData==='function')Promise.resolve(loadMeetingData()).then(queueRender).catch(()=>{})}
 
   function install(){
-    addStyles();const buttons=[...document.querySelectorAll('.views .viewbtn')];if(buttons.length<2){setTimeout(install,250);return}const names=['list','cards','analysis','map','timeline'];
-    buttons.forEach((button,index)=>{if(button.dataset.pvBound==='1')return;button.dataset.pvBound='1';button.type='button';button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();showView(names[index]||'list')})});setButtons(currentView);
+    addStyles();const buttons=[...document.querySelectorAll('.views .viewbtn')];if(buttons.length<2){setTimeout(install,250);return}const names=['list','analysis','map','timeline'];
+    buttons.forEach((button,index)=>{if(button.dataset.pvBound==='1')return;button.dataset.pvBound='1';button.type='button';button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();showView(button.dataset.view||names[index]||'list')})});setButtons(currentView);
     const body=document.getElementById('rows');if(body&&!body.dataset.pvObserved){body.dataset.pvObserved='1';new MutationObserver(queueRender).observe(body,{childList:true,subtree:false})}
     const count=document.getElementById('rowCount');if(count&&!count.dataset.pvObserved){count.dataset.pvObserved='1';new MutationObserver(queueRender).observe(count,{childList:true,characterData:true,subtree:true})}
   }
