@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS agenda_entries (
 );
 
 CREATE TABLE IF NOT EXISTS graphic_jobs (
+  istanbul_processing INTEGER DEFAULT 0,
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   work_date TEXT NOT NULL,
   job_no TEXT NOT NULL,

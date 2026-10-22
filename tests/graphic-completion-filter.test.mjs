@@ -35,3 +35,24 @@ test('archive is clearly labeled and delivered production jobs leave tracking',a
  assert.match(html,/>Arşiv — Teslim Edilen İşler<\/option>/);
  assert.match(worker,/FROM graphic_jobs g WHERE g.work_date=\? AND g.status LIKE 'İmalat%' AND g.status NOT LIKE '%Bitti' ORDER BY/);
 });
+
+test('Istanbul processing is separate from active jobs and completion takes precedence',()=>{
+ const elements={g_date:{value:'2026-10-22'},graphicCompletionFilter:{value:'active'}};
+ const jobs=[{id:1,work_date:'2026-10-22',status:'İmalat',price:100},{id:2,work_date:'2026-10-22',status:'İmalat',istanbul_processing:1,price:200},{id:3,work_date:'2026-10-01',status:'İmalat',istanbul_processing:1,price:300},{id:4,work_date:'2026-10-22',status:'İmalat Bitti',istanbul_processing:1,price:400}];
+ const ctx=vm.createContext({$:id=>elements[id],allGraphicJobs:jobs,compareGraphicJobs:(a,b)=>a.id-b.id});vm.runInContext(source,ctx);
+ const ids=()=>Array.from(vm.runInContext('visibleGraphicJobsForDay()',ctx),x=>x.id);
+ assert.deepEqual(ids(),[1]);elements.graphicCompletionFilter.value='istanbul';assert.deepEqual(ids(),[2,3]);
+ jobs[1].status='İmalat Bitti';assert.deepEqual(ids(),[3]);elements.graphicCompletionFilter.value='completed';assert.deepEqual(ids(),[2,4]);
+ assert.equal(jobs.reduce((sum,x)=>sum+x.price,0),1000);
+});
+
+test('Istanbul transfer persists independently without changing status, price or date',async()=>{
+ const {readFile}=await import('node:fs/promises');const {DatabaseSync}=await import('node:sqlite');
+ const worker=await readFile(new URL('../src/index.js',import.meta.url),'utf8');
+ const code=worker.split("if(graphicJob&&request.method==='PUT'){")[1].split("  if(graphicJob&&request.method==='DELETE')")[0].replace(/\n  }\s*$/,'');
+ const db=new DatabaseSync(':memory:');
+ db.exec("CREATE TABLE graphic_jobs(id INTEGER PRIMARY KEY,work_date TEXT,job_no TEXT,customer_name TEXT,description TEXT,quantity INTEGER,delivery_date TEXT,delivery_place TEXT,status TEXT,note TEXT,price REAL,created_by TEXT,completed_by TEXT,remind_at TEXT,completed_at TEXT,alarm_enabled INTEGER,istanbul_processing INTEGER DEFAULT 0,updated_at TEXT);INSERT INTO graphic_jobs(id,work_date,status,price) VALUES(1,'2026-10-22','İmalat',1234)");
+ const env={DB:{prepare(sql){return {bind(...v){return {run:async()=>db.prepare(sql).run(...v)}}}}}};
+ for(const flag of [true,false]){const ctx=vm.createContext({env,request:{},graphicJob:[null,'1'],role:'admin',body:async()=>({istanbul_processing:flag}),json:x=>x});await vm.runInContext('(async()=>{'+code+'})()',ctx);const row=db.prepare('SELECT * FROM graphic_jobs').get();assert.equal(row.istanbul_processing,flag?1:0);assert.equal(row.status,'İmalat');assert.equal(row.price,1234);assert.equal(row.work_date,'2026-10-22');}
+ db.close();
+});
