@@ -195,7 +195,7 @@ async function api(request, env) {
       .bind(target,secured.salt,secured.hash).run();
     return json({ok:true,user:b.user})
   }
-  if(role==='graphic'&&!path.startsWith('/api/graphic-jobs')&&path!=='/api/health')return json({error:'Bu bölüm yalnızca yöneticiye açıktır.'},403);
+  if(role==='graphic'&&!path.startsWith('/api/graphic-jobs')&&!path.startsWith('/api/tracking')&&path!=='/api/health')return json({error:'Bu bölüm yalnızca yöneticiye açıktır.'},403);
   if(role==='tracking'&&!path.startsWith('/api/tracking')&&path!=='/api/health')return json({error:'Recep yalnızca bugünkü takip işlerini görebilir.'},403);
   await ensureSchemaReady(env);
 
@@ -220,7 +220,7 @@ async function api(request, env) {
   }
   const trackingJob=path.match(/^\/api\/tracking\/(\d+)$/);
   if(trackingJob&&request.method==='PUT'){
-    const b=await body(request),done=Boolean(b.done),id=Number(trackingJob[1]);
+    const b=await body(request),done=Boolean(b.done),id=Number(trackingJob[1]),trackingActor=role==='graphic'?'Çağatay':'Recep';
     const today=istanbulDate(new Date());
     const tomorrow=nextWorkingDate(today);
     const selectedDate=b.action==='today'||b.view_day==='tomorrow'?tomorrow:today;
@@ -238,7 +238,7 @@ async function api(request, env) {
     }
     if(b.action==='tomorrow'){
       const job=await env.DB.prepare('SELECT tracking_note FROM graphic_jobs WHERE id=?').bind(id).first();
-      await env.DB.prepare('INSERT INTO graphic_job_delays(graphic_job_id,delayed_from,delayed_to,note,delayed_by) VALUES(?,?,?,?,?)').bind(id,today,tomorrow,String(job?.tracking_note||''),'Recep').run();
+      await env.DB.prepare('INSERT INTO graphic_job_delays(graphic_job_id,delayed_from,delayed_to,note,delayed_by) VALUES(?,?,?,?,?)').bind(id,today,tomorrow,String(job?.tracking_note||''),trackingActor).run();
       await env.DB.prepare("UPDATE graphic_jobs SET work_date=?,remind_at='',tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(tomorrow,id).run();
       return json({ok:true,work_date:tomorrow})
     }
@@ -247,7 +247,7 @@ async function api(request, env) {
       if(!/^\d{4}-\d{2}-\d{2}$/.test(target))return json({error:'Geçerli bir tarih seçin.'},400);
       if(isNonWorkingDate(target))return json({error:'Pazar ve resmî bayramlar çalışma günü değildir. Başka bir tarih seçin.'},400);
       const job=await env.DB.prepare('SELECT tracking_note,work_date FROM graphic_jobs WHERE id=?').bind(id).first();
-      await env.DB.prepare('INSERT INTO graphic_job_delays(graphic_job_id,delayed_from,delayed_to,note,delayed_by) VALUES(?,?,?,?,?)').bind(id,String(job?.work_date||today),target,String(job?.tracking_note||''),'Recep').run();
+      await env.DB.prepare('INSERT INTO graphic_job_delays(graphic_job_id,delayed_from,delayed_to,note,delayed_by) VALUES(?,?,?,?,?)').bind(id,String(job?.work_date||today),target,String(job?.tracking_note||''),trackingActor).run();
       await env.DB.prepare("UPDATE graphic_jobs SET work_date=?,remind_at='',tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(target,id).run();
       return json({ok:true,work_date:target})
     }
@@ -256,7 +256,7 @@ async function api(request, env) {
       await env.DB.prepare("UPDATE graphic_jobs SET work_date=?,tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(today,id).run();
       return json({ok:true,work_date:today})
     }
-    await env.DB.prepare("UPDATE graphic_jobs SET tracking_status=?,tracked_by=?,tracked_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(done?'Görüşüldü':'',done?'Recep':'',done?new Date().toISOString():'',id).run();
+    await env.DB.prepare("UPDATE graphic_jobs SET tracking_status=?,tracked_by=?,tracked_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(done?'Görüşüldü':'',done?trackingActor:'',done?new Date().toISOString():'',id).run();
     return json({ok:true})
   }
   if(path==='/api/reports/delays'&&request.method==='GET'){
