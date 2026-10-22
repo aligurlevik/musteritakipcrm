@@ -26,16 +26,16 @@ test('district and neighborhood options cascade and filter by the selected provi
 test('customer POST and PUT persist separate location columns; old clients preserve them',async()=>{
  const source=readFileSync(new URL('../src/index.js',import.meta.url),'utf8');
  const db=new DatabaseSync(':memory:');
- db.exec(`CREATE TABLE customers(id INTEGER PRIMARY KEY,company TEXT,contact_name TEXT,phone TEXT,email TEXT,region TEXT,sector TEXT,priority TEXT,stage TEXT,follow_date TEXT,invoice_title TEXT,tax_office TEXT,tax_number TEXT,invoice_address TEXT,record_status TEXT,special_notes TEXT,machine_info TEXT,phones_json TEXT,emails_json TEXT,contacts_json TEXT,categories TEXT,note_image_data TEXT,city TEXT,district TEXT,neighborhood TEXT,updated_at TEXT)`);
+ db.exec(`CREATE TABLE customers(id INTEGER PRIMARY KEY,company TEXT,contact_name TEXT,phone TEXT,email TEXT,region TEXT,sector TEXT,priority TEXT,stage TEXT,follow_date TEXT,invoice_title TEXT,tax_office TEXT,tax_number TEXT,invoice_address TEXT,record_status TEXT,special_notes TEXT,machine_info TEXT,phones_json TEXT,emails_json TEXT,contacts_json TEXT,categories TEXT,note_image_data TEXT,city TEXT,district TEXT,neighborhood TEXT,first_meeting_date TEXT,updated_at TEXT)`);
  const env={DB:{prepare(sql){return {bind(...values){const stmt=db.prepare(sql);return {run:async()=>({meta:{last_row_id:stmt.run(...values).lastInsertRowid}}),first:async()=>stmt.get(...values)};}};}}};
  const ctx={env,request:{},body:async()=>ctx.payload,json:x=>x,validAgendaImage:()=>'',cm:[null,'1']};vm.createContext(ctx);
  const post=source.split("if(path==='/api/customers' && request.method==='POST') {")[1].split('\n  const cm=')[0].replace(/\n  }\s*$/,'');
  const put=source.split("if(cm && request.method==='PUT') {")[1].split('\n  const customerResult=')[0].replace(/\n  }\s*$/,'');
  const run=code=>vm.runInContext('(async()=>{'+code+'})()',ctx);
- ctx.payload={company:'ANOLSAN',city:'Ankara',district:'Yenimahalle',neighborhood:'İvedikköy'};await run(post);
+ ctx.payload={company:'ANOLSAN',city:'Ankara',district:'Yenimahalle',neighborhood:'İvedikköy',first_meeting_date:'2026-09-10'};await run(post);
  assert.equal(db.prepare('SELECT neighborhood FROM customers').get().neighborhood,'İvedikköy');
  ctx.payload={company:'ANOLSAN',district:'Sincan',neighborhood:'Temelli'};await run(put);
- let row=db.prepare('SELECT * FROM customers').get();assert.equal(row.city,'Ankara');assert.equal(row.district,'Sincan');
+ let row=db.prepare('SELECT * FROM customers').get();assert.equal(row.first_meeting_date,'2026-09-10');assert.equal(row.city,'Ankara');assert.equal(row.district,'Sincan');
  ctx.payload={company:'ANOLSAN'};await run(put);row=db.prepare('SELECT * FROM customers').get();assert.equal(row.neighborhood,'Temelli');
- ctx.payload={company:'ANOLSAN',neighborhood:''};await run(put);assert.equal(db.prepare('SELECT neighborhood FROM customers').get().neighborhood,'');db.close();
+ ctx.payload={company:'ANOLSAN',neighborhood:'',first_meeting_date:'2026-08-01'};await run(put);assert.equal(db.prepare('SELECT neighborhood FROM customers').get().neighborhood,'');assert.equal(db.prepare('SELECT first_meeting_date FROM customers').get().first_meeting_date,'2026-08-01');db.close();
 });

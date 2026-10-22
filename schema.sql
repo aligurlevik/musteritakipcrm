@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS customers (
   phone TEXT,
   email TEXT,
   region TEXT,
+  first_meeting_date TEXT DEFAULT '',
   city TEXT DEFAULT '',
   district TEXT DEFAULT '',
   neighborhood TEXT DEFAULT '',

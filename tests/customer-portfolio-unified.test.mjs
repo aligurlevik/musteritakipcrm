@@ -6,7 +6,7 @@ import {CLEAN_PORTFOLIO_HTML as portfolio} from '../src/portfolio_clean_page.js'
 
 test('new customer saves once and refreshes the unified portfolio instead of the old customer table',async()=>{
  const script=root.match(/async function saveCustomer\(\)\{[\s\S]*?\n\}\n/)[0];
- const values={c_company:'ANOLSAN',c_id:'',c_emails:''};
+ const values={c_company:'ANOLSAN',c_id:'',c_emails:'',c_first_meeting_date:'2026-09-10'};
  const calls=[];
  const context={
   $:id=>({value:values[id]||''}),readCustomerContacts:()=>[],
@@ -18,6 +18,7 @@ test('new customer saves once and refreshes the unified portfolio instead of the
  vm.createContext(context);vm.runInContext(script,context);await context.saveCustomer();
  assert.equal(calls[0][0],'/api/customers');assert.equal(calls[0][1].method,'POST');
  assert.equal(JSON.parse(calls[0][1].body).company,'ANOLSAN');
+ assert.equal(JSON.parse(calls[0][1].body).first_meeting_date,'2026-09-10');
  assert.deepEqual(calls.at(-1),['page','portfolio']);
 });
 test('portfolio opens the customer form directly and the single menu retains portfolio features',()=>{
@@ -36,4 +37,15 @@ test('dashboard menu is removed and old dashboard links open the shared customer
  for(const [search,saved,expected] of [['?page=dash','dash','portfolio'],['','dash','portfolio'],['','','portfolio'],['?page=graphicJobs','','graphicJobs']]){
   const c={URLSearchParams,location:{search},sessionStorage:{getItem:()=>saved},CRM_PAGES:new Set(['dash','portfolio','graphicJobs'])};vm.createContext(c);vm.runInContext(fn,c);assert.equal(c.requestedCrmPage(),expected);
  }
+});
+
+
+test('first meeting date is editable and never filled from card creation; back controls are on the left',()=>{
+ assert.match(root,/id="c_first_meeting_date" type="date"/);
+ assert.match(portfolio,/id="dFirstMeetingDate" type="date"/);
+ assert.match(portfolio,/selected.first_meeting_date\|\|''/);
+ assert.doesNotMatch(root,/customerCreatedAt|Kart Açılış Tarihi|İlk Kayıt Tarihi/);
+ assert.doesNotMatch(portfolio,/dCardCreatedAt|Kart Açılış Tarihi/);
+ assert.match(portfolio,/<div class="detail-head"><button[^>]+onclick="closeCustomerDetail\(\)"[^>]*>← Liste/);
+ assert.match(root,/left:20px;bottom:20px/);
 });
