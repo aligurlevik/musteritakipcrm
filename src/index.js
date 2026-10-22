@@ -463,6 +463,23 @@ async function api(request, env) {
     await env.DB.prepare('UPDATE meetings SET remind_at=?,remind_note=?,reminder_status=? WHERE id=?').bind(remindAt,b.remind_note||'',remindAt?'Açık':'',meetingId).run();
     return json({ok:true});
   }
+  const relatedNote=path.match(/^\/api\/(offers|mails)\/(\d+)$/);
+  if(relatedNote&&request.method==='PATCH'){
+    const b=await body(request),table=relatedNote[1],field=table==='offers'?'note':'summary',id=Number(relatedNote[2]);
+    const existing=await env.DB.prepare(`SELECT id FROM ${table} WHERE id=?`).bind(id).first();
+    if(!existing)return json({error:'Kayıt bulunamadı'},404);
+    if(b[field]===undefined)return json({error:'Not alanı gerekli'},400);
+    await env.DB.prepare(`UPDATE ${table} SET ${field}=? WHERE id=?`).bind(String(b[field]||''),id).run();
+    return json({ok:true});
+  }
+  if(md&&request.method==='PATCH'){
+    const b=await body(request),meetingId=Number(md[1]);
+    const existing=await env.DB.prepare('SELECT id FROM meetings WHERE id=?').bind(meetingId).first();
+    if(!existing)return json({error:'Görüşme bulunamadı'},404);
+    await env.DB.prepare('UPDATE meetings SET note=COALESCE(?,note),meeting_date=COALESCE(?,meeting_date) WHERE id=?')
+      .bind(b.note===undefined?null:String(b.note),b.meeting_date===undefined?null:String(b.meeting_date),meetingId).run();
+    return json({ok:true});
+  }
   if(md&&request.method==='PUT'){
     const meetingId=Number(md[1]), b=await body(request);
     const existing=await env.DB.prepare('SELECT customer_id FROM meetings WHERE id=?').bind(meetingId).first();
