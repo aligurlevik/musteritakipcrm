@@ -14,7 +14,7 @@ function setup(){
  const ctx={document:doc,window:{},console,requestAnimationFrame:f=>f(),MutationObserver:class{constructor(fn){observers.push(fn)}observe(){}},visibleRows:[{id:1,company:'Anolsan',city:'Ankara',district:'Yenimahalle',neighborhood:'İvedikköy',priority:'KRİTİK',follow_date:'2026-10-23'}],meetings:[{customer_id:1,meeting_date:'2026-10-22',note:'İlk görüşme',result:'Beklemede'}],customerLocation:c=>c};
  vm.createContext(ctx);vm.runInContext(script,ctx);return {ctx,nodes,buttons,table,pager,observers,click(i){buttons[i].events.click({preventDefault(){},stopPropagation(){}})}};
 }
-test('live page loads view controller and removes card view',()=>{assert.match(html,/src="\/portfolio-views\.js\?v=20261022-views2"/);assert.doesNotMatch(html,/Kart Görünümü/);new vm.Script(script)});
+test('live page loads view controller and removes card view',()=>{assert.match(html,/src="\/portfolio-views\.js\?v=20261022-views3"/);assert.doesNotMatch(html,/Kart Görünümü/);new vm.Script(script)});
 test('analysis, map and timeline buttons render filtered data; list restores the table',()=>{
  const s=setup();s.click(1);assert.match(s.nodes.portfolioAltView.innerHTML,/Ankara|Toplam Firma/);assert.equal(s.table.style.display,'none');
  s.nodes.city.value='Ankara';s.nodes.district.value='Yenimahalle';s.click(2);assert.match(s.nodes.portfolioAltView.innerHTML,/Ankara \/ Yenimahalle \/ İvedikköy/);assert.match(s.nodes.portfolioAltView.innerHTML,/google.com\/maps\/search/);
@@ -29,4 +29,16 @@ test('location columns reveal district after province and neighborhood after dis
  values.city.value='Ankara';ctx.syncLocationColumns();assert.equal(state.classList.contains('show-location-district'),true);assert.equal(state.classList.contains('show-location-neighborhood'),false);
  values.district.value='Yenimahalle';ctx.syncLocationColumns();assert.equal(state.classList.contains('show-location-neighborhood'),true);
  values.city.value='';ctx.syncLocationColumns();assert.equal(state.classList.contains('show-location-district'),false);assert.equal(state.classList.contains('show-location-neighborhood'),false);
+});
+
+
+test('every firm name links to its own full location, even when only provinces are displayed',()=>{
+ const s=setup();s.ctx.visibleRows=Array.from({length:9},(_,i)=>({id:i+1,company:'Firma '+(i+1),city:'Ankara',district:'Yenimahalle',neighborhood:'İvedikköy',region:'Ankara'}));
+ s.click(2);const markup=s.nodes.portfolioAltView.innerHTML;
+ const links=[...markup.matchAll(/<a class="pv-map-link pv-firm-map-link"[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/g)];
+ assert.equal(links.length,9);
+ const url=new URL(links[0][1].replaceAll('&amp;','&'));
+ assert.equal(url.searchParams.get('query'),'Firma 1, İvedikköy, Yenimahalle, Ankara, Türkiye');
+ assert.match(links[8][2],/Firma 9/);
+ s.ctx.visibleRows=[{id:1,company:'<script>alert(1)</script>',city:'Ankara'}];s.click(2);assert.doesNotMatch(s.nodes.portfolioAltView.innerHTML,/<script>/);
 });

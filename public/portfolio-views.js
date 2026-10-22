@@ -95,10 +95,17 @@
     return `<div class="pv-title"><h2>⌁ Analiz</h2><span>Aktif filtrelerin özeti</span></div><div class="pv-analysis-grid"><div class="pv-stat"><b>${total}</b><span>Toplam Firma</span></div><div class="pv-stat"><b>${high}</b><span>Yüksek Potansiyel</span></div><div class="pv-stat"><b>${positive}</b><span>Olumlu Sonuç</span></div><div class="pv-stat"><b>${overdue}</b><span>Süresi Geçen Takip</span></div></div><div class="pv-panels"><section class="pv-panel"><h3>Potansiyel Dağılımı</h3>${barRows(countBy(rows,c=>priorityText(c)),total)}</section><section class="pv-panel"><h3>Sonuç Dağılımı</h3>${barRows(countBy(rows,c=>resultText(c)),total)}</section><section class="pv-panel"><h3>İş Alanları</h3>${barRows(countBy(rows,c=>sectorText(c)).slice(0,8),total)}</section><section class="pv-panel"><h3>Seçilen Bölgedeki Dağılım</h3>${barRows(countBy(rows,c=>locationLabel(c)).slice(0,8),total)}</section></div>`;
   }
 
+  function customerMapLink(c){
+    const loc=typeof customerLocation==='function'?customerLocation(c):{city:c.city||'',district:c.district||'',neighborhood:c.neighborhood||''};
+    const location=[loc.neighborhood,loc.district,loc.city,c.region,c.invoice_address].filter(Boolean);
+    const query=[c.company||'Müşteri',...new Set(location),'Türkiye'].join(', ');
+    const url='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);
+    return `<a class="pv-map-link pv-firm-map-link" target="_blank" rel="noopener noreferrer" href="${esc(url)}" title="Google Haritalar’da firmayı ara">${esc(c.company||'Müşteri')} ↗</a>`;
+  }
   function mapView(rows){
     const regions=countBy(rows,c=>locationLabel(c));if(!regions.length)return '<div class="pv-empty">Haritada gösterilecek konum bilgisi yok.</div>';
-    const byRegion=new Map();rows.forEach(c=>{const region=locationLabel(c);if(!byRegion.has(region))byRegion.set(region,[]);byRegion.get(region).push(c.company||'Müşteri')});
-    return `<div class="pv-title"><h2>⌖ Harita</h2><span>Seçilen il, ilçe ve mahalleye göre müşteri dağılımı</span></div><div class="pv-region-grid">${regions.map(([region,count])=>{const firms=(byRegion.get(region)||[]).slice(0,6),more=count-firms.length,link=region==='Belirtilmemiş'?'':`<a class="pv-map-link" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(region+', Türkiye')}">Haritada aç ↗</a>`;return `<section class="pv-region"><div class="pv-region-head"><b>${esc(region)}</b><span>${count}</span></div><div class="pv-region-firms">${firms.map(esc).join('<br>')}${more>0?`<br>+ ${more} firma daha`:''}</div>${link}</section>`}).join('')}</div>`;
+    const byRegion=new Map();rows.forEach(c=>{const region=locationLabel(c);if(!byRegion.has(region))byRegion.set(region,[]);byRegion.get(region).push(c)});
+    return `<div class="pv-title"><h2>⌖ Harita</h2><span>Seçilen il, ilçe ve mahalleye göre müşteri dağılımı</span></div><div class="pv-region-grid">${regions.map(([region,count])=>{const firms=byRegion.get(region)||[],link=region==='Belirtilmemiş'?'':`<a class="pv-map-link" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(region+', Türkiye')}">Bölgeyi haritada aç ↗</a>`;return `<section class="pv-region"><div class="pv-region-head"><b>${esc(region)}</b><span>${count}</span></div><div class="pv-region-firms">${firms.map(customerMapLink).join('<br>')}</div>${link}</section>`}).join('')}</div>`;
   }
 
   function timelineView(rows){
