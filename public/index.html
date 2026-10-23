@@ -1168,7 +1168,7 @@ let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole===
   const pad=n=>String(n).padStart(2,'0');
   const keyOf=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
   const dateOf=key=>{const p=String(key||'').split('-').map(Number);return p.length===3&&p[0]?new Date(p[0],p[1]-1,p[2],12):new Date()};
-  const todayKey=()=>keyOf(new Date());
+  const todayKey=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Istanbul'}).format(new Date());
   function selectedInput(){return document.getElementById('g_date')}
   function setGraphicCompactDay(key){
     const input=selectedInput();if(!input)return;
@@ -1186,11 +1186,11 @@ let activeCalendarDay=localDateKey();loadAll().then(()=>{if(currentAccessRole===
     if(title)title.textContent=d.getDate()+' '+trMonths[d.getMonth()]+' '+d.getFullYear()+' '+trDays[d.getDay()];
     if(sub)sub.textContent='Çalıştığın gün';
     if(picker&&picker.value!==key)picker.value=key;
-    const monday=new Date(d);const day=d.getDay();monday.setDate(d.getDate()-(day===0?6:day-1));
+    const weekStart=dateOf(today);
     const week=root.querySelector('.graphic-compact-week');if(!week)return;
     let html='';
     for(let i=0;i<7;i++){
-      const x=new Date(monday);x.setDate(monday.getDate()+i);const xKey=keyOf(x);
+      const x=new Date(weekStart);x.setDate(weekStart.getDate()+i);const xKey=keyOf(x);
       const classes=['graphic-compact-day'];if(xKey===key)classes.push('selected');if(xKey===today)classes.push('today');
       html+='<button type="button" class="'+classes.join(' ')+'" data-date="'+xKey+'"><span class="dow">'+trDays[x.getDay()]+'</span><span class="num">'+x.getDate()+'</span><span class="mini">'+(xKey===today?'Bugün':trMonths[x.getMonth()])+'</span></button>';
     }
