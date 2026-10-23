@@ -456,6 +456,7 @@ function ensurePortfolioFrameLoaded(){
 function requestedCrmPage(){
   const params=new URLSearchParams(location.search);
   const requested=params.get('page');
+  if(!requested)return 'notes';
   const saved=sessionStorage.getItem('crm_active_page');
   if(requested==='portfolio'||saved==='portfolio'){
     sessionStorage.setItem('crm_active_page','dash');

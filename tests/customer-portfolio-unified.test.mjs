@@ -34,7 +34,7 @@ test('dashboard menu is removed and old dashboard links open the shared customer
  assert.doesNotMatch(root,/<button data-page="dash"/);
  assert.doesNotMatch(portfolio,/>⌂ Ana Ekran<\/a>/);
  const fn=root.match(/function requestedCrmPage\(\)\{[\s\S]*?\n\}/)[0];
- for(const [search,saved,expected] of [['?page=dash','dash','portfolio'],['','dash','portfolio'],['','','portfolio'],['?page=graphicJobs','','graphicJobs']]){
+ for(const [search,saved,expected] of [['?page=dash','dash','portfolio'],['','dash','notes'],['','','notes'],['?page=graphicJobs','','graphicJobs']]){
   const c={URLSearchParams,location:{search},sessionStorage:{getItem:()=>saved},CRM_PAGES:new Set(['dash','portfolio','graphicJobs'])};vm.createContext(c);vm.runInContext(fn,c);assert.equal(c.requestedCrmPage(),expected);
  }
 });

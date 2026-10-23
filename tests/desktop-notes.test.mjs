@@ -2,21 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-const wrapper=readFileSync('public/desktop-notes.html','utf8');
-test('desktop notes uses the existing agenda, voice and reminder forms',()=>{
- assert.match(wrapper,/src="\/yeni-not.html\?desktop=1"/);assert.match(wrapper,/src="\/notlar-v2.html\?desktop=1"/);assert.match(wrapper,/allow="microphone"/);
- const form=readFileSync('public/yeni-not.html','utf8'),api=readFileSync('src/mobile_notes_latest_api.js','utf8');
- assert.match(form,/\/api\/notes-v3/);assert.match(form,/\/api\/mobile-voice\//);assert.match(form,/remind_at:remind/);assert.match(api,/INSERT INTO agenda_entries/);
-});
-for(const file of ['public/index.html','src/crm_safe_root_page.js'])test(file+' provides lazy desktop notes navigation and valid scripts',()=>{
- let html=readFileSync(file,'utf8');if(file.endsWith('.js'))html=JSON.parse(html.slice(html.indexOf('=')+1).trim().replace(/;$/,''));
- assert.match(html,/data-page="notes">NOTLAR/);assert.match(html,/data-src="\/desktop-notes.html"/);assert.match(html,/if\(page==='notes'\)/);
- for(const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))if(match[1].trim())new vm.Script(match[1]);
-});
-test('successful save refreshes the shared list and resets quick entry',()=>{
- const code=wrapper.match(/<script>([\s\S]*?)<\/script>/)[1];let refresh=0;const events={};
- const composer={addEventListener:(name,fn)=>events.composer=fn,contentWindow:{location:{href:'https://crm.test/notlar-v2.html?saved=1'}}};
- const notebook={addEventListener:(name,fn)=>events.notebook=fn,contentWindow:{location:{reload:()=>refresh++}}};const saved={style:{}};
- const ctx=vm.createContext({URL,console,setTimeout:()=>{},document:{getElementById:id=>({composer,notebook,saved,refresh:{}})[id]}});
- vm.runInContext(code,ctx);events.composer();assert.equal(refresh,1);assert.equal(composer.src,'/yeni-not.html?desktop=1');assert.equal(saved.style.display,'inline');
-});
+const html=readFileSync('public/desktop-notes.html','utf8'),code=html.match(/<script>([\s\S]*?)<\/script>/)[1];
+function setup(rows=[]){const nodes={},calls=[];const node=id=>nodes[id]??=( {value:'',style:{},textContent:'',innerHTML:'',disabled:false,focus(){},removeAttribute(){},addEventListener(type,fn){this[type]=fn}} );
+ const ctx=vm.createContext({Date,Intl,Set,JSON,Number,String,URL,console,confirm:()=>true,setInterval(){},document:{getElementById:node,addEventListener(){},hidden:false},window:{},fetch:async(path,options={})=>{calls.push({path,options});return {ok:true,json:async()=>options.method?{ok:true,id:99}:rows}}});
+ vm.runInContext(code,ctx);return {ctx,nodes,calls};}
+test('wide single notebook has no side agenda or notebook 2/3 selectors',()=>{assert.match(html,/max-width:none/);assert.doesNotMatch(html,/<iframe|Not 2|Not 3/);assert.match(html,/border-bottom:1px solid/);assert.match(html,/notebook_no:1/);new vm.Script(code)});
+test('open overdue notes carry to today without moving reminders or completed/future/locked notes',async()=>{const rows=[{id:1,entry_date:'2000-01-01',remind_at:'2000-01-01T10:30'},{id:2,entry_date:'2000-01-01',entry_status:'Yapıldı'},{id:3,entry_date:'2099-01-01'},{id:4,entry_date:'2000-01-01',is_locked:1}];const {ctx,calls}=setup(rows);await vm.runInContext('load()',ctx);const moves=calls.filter(x=>x.options.method==='PUT');assert.ok(moves.length);for(const move of moves){assert.equal(move.path,'/api/notes-v3/1');assert.deepEqual(Object.keys(JSON.parse(move.options.body)),['entry_date'])}});
+test('written quick note saves into shared mobile agenda notebook 1',async()=>{const {ctx,nodes,calls}=setup();await vm.runInContext('load()',ctx);vm.runInContext("$('title').value='Firma araması';$('note').value='Teklif gönder'",ctx);await vm.runInContext('save()',ctx);const call=calls.find(x=>x.path==='/api/notes-v3'&&x.options.method==='POST');const payload=JSON.parse(call.options.body);assert.equal(payload.notebook_no,1);assert.equal(payload.title,'Firma araması');assert.equal(payload.note,'Teklif gönder');assert.equal(nodes.note.value,'')});
+test('tick completes with confirmation; permanent delete is separate',async()=>{const {ctx,nodes,calls}=setup();await vm.runInContext('load()',ctx);await nodes.list.change({target:{dataset:{done:'7'},checked:true}});assert.ok(calls.some(x=>x.path==='/api/notes-v3/7/done'));await nodes.list.click({target:{dataset:{delete:'7'}}});assert.ok(calls.some(x=>x.path==='/api/notes-v3/7'&&x.options.method==='DELETE'))});
+for(const file of ['public/index.html','src/crm_safe_root_page.js'])test(file+' defaults to notes, keeps explicit navigation and valid scripts',()=>{let page=readFileSync(file,'utf8');if(file.endsWith('.js'))page=JSON.parse(page.slice(page.indexOf('=')+1).trim().replace(/;$/,''));const start=page.indexOf('function requestedCrmPage(){'),end=page.indexOf('function setCrmPageView',start);const source=page.slice(start,end);for(const [search,want] of [['','notes'],['?page=tracking','tracking']]){const ctx=vm.createContext({URLSearchParams,location:{search},sessionStorage:{getItem:()=>null},CRM_PAGES:new Set(['notes','tracking'])});assert.equal(vm.runInContext(source+';requestedCrmPage()',ctx),want)}for(const m of page.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))if(m[1].trim())new vm.Script(m[1])});
