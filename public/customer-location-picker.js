@@ -40,7 +40,8 @@
     const data=await loadData();if(generation!==revision)return;
     const city=findKey(data,inputs[0].value),districts=data[city]||{},district=districtKey(districts,inputs[1].value,city);
     options(selects[0],Object.keys(data),inputs[0].value,labels[0]);
-    options(selects[1],Object.keys(districts),inputs[1].value,labels[1]);
+    options(selects[1],Object.keys(districts),district||inputs[1].value,labels[1]);
+    if(district)inputs[1].value=district;
     options(selects[2],districts[district]||[],inputs[2].value,labels[2]);
     selects[1].disabled=!inputs[0].value;selects[2].disabled=!inputs[1].value;
    }catch(error){inputs.forEach(input=>{input.style.display=''});selects.forEach(select=>{select.style.display='none'});console.error(error)}
