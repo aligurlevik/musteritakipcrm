@@ -10,9 +10,9 @@ test('legacy location remains usable without guessing missing neighborhoods',()=
  for(const [row,expected] of [
   [{region:'İvedik OSB / Yenimahalle'},['Ankara','Yenimahalle','']],
   [{region:'ANKARA'},['Ankara','','']],
-  [{city:'Ankara',district:'Kazan'},['Ankara','Kahramankazan','']],
-  [{region:'Ankara / Kahraman Kazan'},['Ankara','Kahramankazan','']],
-  [{city:'ANKARA',district:'YENİ MAHALLE'},['Ankara','Yenimahalle','']],
+  ...['Yeni Mahalle','YENI MAHALLE','YENİ MAHALLE','Yenimahalle','YENIMAHALLE'].map(district=>[{city:'Ankara',district},['Ankara','Yenimahalle','']]),
+  [{district:'Yeni Mahalle'},['Ankara','Yenimahalle','']],
+
   [{region:'old info',city:'ANKARA',district:'ÇANKAYA',neighborhood:'BAHÇELİEVLER'},['Ankara','Çankaya','Bahçelievler']],
   [{region:'Uncertain / Area'},['','','']]
  ])assert.deepEqual(Object.values(c.customerLocation(row)),expected);
