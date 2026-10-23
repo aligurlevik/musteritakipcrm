@@ -206,17 +206,7 @@ async function api(request, env) {
     const requestedDate=url.searchParams.get('date');
     if(requestedDate&&(!/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)||Number.isNaN(dateAtNoon(requestedDate).getTime())||istanbulDate(dateAtNoon(requestedDate))!==requestedDate))return json({error:'Geçerli bir tarih seçin.'},400);
     const selectedDate=requestedDate||(url.searchParams.get('day')==='tomorrow'?tomorrow:today);
-    const nowInIstanbul=new Intl.DateTimeFormat('en-US',{timeZone:'Europe/Istanbul',weekday:'short',hour:'2-digit',hourCycle:'h23'}).formatToParts(new Date());
-    const weekday=nowInIstanbul.find(x=>x.type==='weekday')?.value;
-    const hour=Number(nowInIstanbul.find(x=>x.type==='hour')?.value||0);
-    if(selectedDate===today&&(isNonWorkingDate(today)||(weekday==='Sat'&&hour>=13))){
-      await env.DB.prepare(`INSERT INTO graphic_job_delays(graphic_job_id,delayed_from,delayed_to,note,delayed_by)
-        SELECT id,work_date,?,COALESCE(tracking_note,''),'Sistem' FROM graphic_jobs
-        WHERE work_date=? AND status LIKE 'İmalat%' AND status NOT LIKE '%Bitti'`).bind(tomorrow,today).run();
-      await env.DB.prepare(`UPDATE graphic_jobs SET work_date=?,remind_at='',tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP
-        WHERE work_date=? AND status LIKE 'İmalat%' AND status NOT LIKE '%Bitti'`).bind(tomorrow,today).run();
-    }
-    return json((await env.DB.prepare("SELECT g.id,g.work_date,g.original_work_date,(SELECT COUNT(*) FROM graphic_job_delays d WHERE d.graphic_job_id=g.id AND d.delayed_to>d.delayed_from) delay_count,(SELECT MIN(d.delayed_from) FROM graphic_job_delays d WHERE d.graphic_job_id=g.id AND d.delayed_to>d.delayed_from) first_delayed_from,g.job_no,g.customer_name,g.description,g.note,g.tracking_note,g.status,g.remind_at,COALESCE(NULLIF(g.delivery_place,''),(SELECT g2.delivery_place FROM graphic_jobs g2 WHERE lower(g2.job_no)=lower(g.job_no) AND COALESCE(g2.delivery_place,'')<>'' ORDER BY g2.id DESC LIMIT 1),'') delivery_place,g.tracking_status,g.tracked_by,g.tracked_at FROM graphic_jobs g WHERE g.work_date=? AND g.status LIKE 'İmalat%' AND g.status NOT LIKE '%Bitti' ORDER BY CASE WHEN COALESCE(g.remind_at,'')='' THEN 1 ELSE 0 END,g.remind_at,g.id").bind(selectedDate).all()).results)
+    return json((await env.DB.prepare("SELECT g.id,g.work_date,g.original_work_date,(SELECT COUNT(*) FROM graphic_job_delays d WHERE d.graphic_job_id=g.id AND d.delayed_to>d.delayed_from) delay_count,(SELECT MIN(d.delayed_from) FROM graphic_job_delays d WHERE d.graphic_job_id=g.id AND d.delayed_to>d.delayed_from) first_delayed_from,g.job_no,g.customer_name,g.description,g.note,g.tracking_note,g.status,g.remind_at,COALESCE(NULLIF(g.delivery_place,''),(SELECT g2.delivery_place FROM graphic_jobs g2 WHERE lower(g2.job_no)=lower(g.job_no) AND COALESCE(g2.delivery_place,'')<>'' ORDER BY g2.id DESC LIMIT 1),'') delivery_place,g.tracking_status,g.tracked_by,g.tracked_at FROM graphic_jobs g WHERE g.work_date=? AND (? < ? OR COALESCE(g.tracking_status,'') <> 'Görüşüldü') ORDER BY CASE WHEN COALESCE(g.remind_at,'')='' THEN 1 ELSE 0 END,g.remind_at,g.id").bind(selectedDate,selectedDate,today).all()).results)
   }
   const trackingJob=path.match(/^\/api\/tracking\/(\d+)$/);
   if(trackingJob&&request.method==='PUT'){
@@ -224,7 +214,7 @@ async function api(request, env) {
     const today=istanbulDate(new Date());
     const tomorrow=nextWorkingDate(today);
     const selectedDate=b.action==='today'||b.view_day==='tomorrow'?tomorrow:today;
-    const found=await env.DB.prepare("SELECT id FROM graphic_jobs WHERE id=? AND work_date=? AND status LIKE 'İmalat%'").bind(id,selectedDate).first();
+    const found=await env.DB.prepare("SELECT id FROM graphic_jobs WHERE id=? AND work_date=?").bind(id,selectedDate).first();
     if(!found)return json({error:'Bu iş seçilen takip listesinde değil.'},403);
     if(b.action==='note'){
       const trackingNote=String(b.tracking_note||'').trim().slice(0,1000);
