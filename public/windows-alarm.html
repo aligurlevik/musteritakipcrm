@@ -12,6 +12,7 @@ body{font-family:Arial,sans-serif;background:#eef4f8;color:#173f63;margin:0;padd
 <div class="card">
   <div class="title">💻 Windows EXE Alarmı</div>
   <div class="lead">Bu sürüm tarayıcıdan ve PowerShell alarmından bağımsızdır. Bilgisayar açık olduğu sürece arka planda çalışır; alarm zamanı geldiğinde sessiz tam ekran uyarıyı diğer normal Windows uygulamalarının üstüne getirir.</div>
+  <div class="box"><b>Alarm bağlantı kontrolü</b><p id="connectionState">Cihazlar kontrol ediliyor…</p><div id="alarmDevices"></div><button class="btn" id="checkConnection" type="button">↻ Bağlantıyı Kontrol Et</button><p class="small">Ajanda ve Notlar alarmları için cihaz programı arka planda çalışmalıdır. Bilgisayar uyurken veya kapalıyken bu program uyarı gösteremez. Notlar alarmları yalnızca bağladığınız kullanıcıya aittir.</p></div>
   <div id="status" class="box">1) Önce aşağıdaki düğmeden 6 haneli eşleştirme kodu oluştur.</div>
   <button id="codeBtn" class="btn">1 — EŞLEŞTİRME KODU OLUŞTUR</button>
   <div id="codeBox" class="box" style="display:none">
@@ -38,6 +39,20 @@ codeBtn.onclick=async()=>{
   }catch(e){status.className='box bad';status.textContent='❌ '+e.message}
   finally{codeBtn.disabled=false}
 };
+
+async function checkConnection(){
+ const state=document.getElementById('connectionState'),list=document.getElementById('alarmDevices');list.replaceChildren();state.textContent='Kontrol ediliyor…';
+ try{
+  const response=await fetch('/api/native-alarm/status',{credentials:'same-origin',cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'Bağlantı okunamadı.');
+  state.textContent=data.online?'Bilgisayar alarm programı bağlı ve çalışıyor.':data.installed?'Bilgisayar alarm programından güncel bağlantı alınamıyor. Programı yeniden başlatın.':'Bağlı bilgisayar alarm programı bulunamadı. Aşağıdan kurulum yapın.';
+  for(const device of data.devices||[]){
+   const row=document.createElement('div');row.className='box';const text=document.createElement('p');text.textContent=(device.label||'Alarm cihazı')+' — '+(device.online?'Bağlı':'Bağlantı yok')+' — '+(device.notesLinked?'Ajanda + Notlar bağlı':'Notlar için kullanıcı bağlantısı gerekli');row.append(text);
+   if(!device.notesLinked){const button=document.createElement('button');button.className='btn';button.textContent='Bu benim cihazım — Notlar alarmlarını bağla';button.onclick=async()=>{button.disabled=true;try{const r=await fetch('/api/native-alarm/claim',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({id:device.id})});if(!r.ok)throw new Error('Cihaz bağlanamadı.');await checkConnection()}catch(e){state.textContent=e.message;button.disabled=false}};row.append(button)}
+   list.append(row);
+  }
+ }catch(error){state.textContent=error.message}
+}
+document.getElementById('checkConnection').onclick=checkConnection;checkConnection();
 </script>
 </body>
 </html>

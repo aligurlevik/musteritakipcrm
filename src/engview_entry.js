@@ -1,3 +1,4 @@
+import {nativeAlarmBridge} from './native_alarm_bridge.js';
 import {scratchNotesApi} from './scratch_notes_api.js';
 import worker from './graphic_weekly_revenue_entry.js';
 
@@ -45,6 +46,12 @@ export default {
  async fetch(request,env,ctx){
   const path=new URL(request.url).pathname;
   if(path.startsWith('/api/engview/')||['/engview-sync.js','/engview-agent.ps1','/CRM-EngView-Kur.cmd'].includes(path))return json({error:'EngView ve EVD bağlantısı kaldırıldı.'},410);
+  if(path.startsWith('/api/native-alarm/')){
+   try{
+    const bridged=await nativeAlarmBridge(request,env,{forward:r=>worker.fetch(r,env,ctx),getRole:async()=>{const response=await worker.fetch(new Request(new URL('/api/session',request.url),{headers:request.headers}),env,ctx);return response.ok?(await response.json()).role:''}});
+    if(bridged)return bridged;
+   }catch(error){console.error('Native alarm bridge',error);return json({error:'Alarm bağlantısı yüklenemedi. Tekrar deneyin.'},500)}
+  }
   if(path.startsWith('/api/scratch-notes'))return scratchNotesApi(request,env,async()=>{const response=await worker.fetch(new Request(new URL('/api/session',request.url),{headers:request.headers}),env,ctx);return response.ok?(await response.json()).role:''});
   if(path==='/api/native-alarm/agenda'||path.startsWith('/api/native-alarm/agenda/')||path==='/api/native-alarm/reminders'||path==='/api/native-alarm/ack'){
    try{const hot=await nativeAgendaHotPath(request,env,path);if(hot)return hot}catch(error){console.error('AJANDAM hot path',error);const detail=String(error?.cause?.message||error?.message||error).replace(/^D1_ERROR:\s*/,'').slice(0,220);return json({error:'Android alarm sunucu hatası: '+detail},500)}
