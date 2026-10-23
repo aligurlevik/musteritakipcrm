@@ -86,7 +86,7 @@ public static class CrmAlarmWin32 {
     [xml]$xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         Title="CRM AJANDA UYARISI" Width="620" Height="390"
-        WindowStartupLocation="CenterScreen" Topmost="True" ShowActivated="True"
+        WindowStartupLocation="CenterScreen" WindowState="Maximized" Topmost="True" ShowActivated="True"
         ShowInTaskbar="True" ResizeMode="NoResize" WindowStyle="None"
         Background="#FFF8DC" Focusable="True">
   <Border BorderBrush="#DC2626" BorderThickness="7" CornerRadius="14" Padding="24" Background="#FFF8DC">
