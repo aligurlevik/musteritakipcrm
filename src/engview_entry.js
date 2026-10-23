@@ -52,7 +52,7 @@ export default {
   });if(result)return result;
   const response=await worker.fetch(request,env,ctx);
   if(request.method==='GET'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
-   const html=(await response.text()).replace(/<head([^>]*)>/i,'<head$1><script src="/silent-fullscreen-reminders.js?v=20261023"></script>');
+   const html=(await response.text()).replace(/<head([^>]*)>/i,'<head$1><script src="/silent-fullscreen-reminders.js?v=20261023"></script>').replace('</head>','<link rel="stylesheet" href="/tracking-compact.css?v=20261023-1"></head>');
    const headers=new Headers(response.headers);for(const h of ['content-length','content-encoding','etag'])headers.delete(h);
    return new Response(html.includes('id="graphicJobs"')?html.replace('</body>','<script src="/engview-sync.js" defer></script></body>'):html,{status:response.status,headers});
   }
