@@ -1,6 +1,8 @@
 import {scratchNotesApi} from './scratch_notes_api.js';
 import worker from './graphic_weekly_revenue_entry.js';
-import {drawingApi} from './engview_drawings.js';
+
+
+const SECTION_REFRESH_SCRIPT="(function(){\n'use strict';\nif(window.__crmSectionRefresh)return;window.__crmSectionRefresh=true;\nasync function refreshSection(){\n const button=document.getElementById('crmSectionRefresh');\n if(button.disabled)return;\n button.disabled=true;button.textContent='↻ Yenileniyor…';\n try{\n  const page=document.querySelector('.section.active')?.id;\n  if(page==='portfolio'){\n   const frame=document.getElementById('portfolioFrame');\n   if(frame?.contentWindow&&typeof frame.contentWindow.loadAll==='function')await frame.contentWindow.loadAll();\n   else if(typeof ensurePortfolioFrameLoaded==='function')ensurePortfolioFrameLoaded();\n  }else if(page==='notes'){\n   const frame=document.getElementById('desktopNotesFrame');\n   const refresh=frame?.contentDocument?.getElementById('refresh');\n   if(refresh)refresh.click();\n   else if(typeof ensureDesktopNotesFrameLoaded==='function')ensureDesktopNotesFrameLoaded();\n  }else{\n   const loaders={graphicJobs:()=>loadGraphicJobs(),tracking:()=>loadTrackingJobs(),reports:()=>loadProductionReport(),agenda:()=>loadAgenda(),customers:()=>loadCustomers(),dash:()=>loadDashboard(),meetings:()=>loadMeetings(),mails:()=>loadMails()};\n   if(loaders[page])await loaders[page]();\n  }\n }catch(error){if(typeof showMsg==='function')showMsg(error.message||'Yenilenemedi.','err');else console.error(error)}\n finally{button.disabled=false;button.textContent='↻ Yenile'}\n}\nfunction install(){\n const host=document.querySelector('.top > div:last-child');\n if(!host||document.getElementById('crmSectionRefresh'))return;\n const button=document.createElement('button');button.id='crmSectionRefresh';button.type='button';button.className='btn';button.textContent='↻ Yenile';button.setAttribute('aria-label','Açık bölümü yenile');button.addEventListener('click',refreshSection);host.prepend(button);\n}\nif(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();\n})();";
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 function bearer(request){const h=request.headers.get('Authorization')||'';return h.startsWith('Bearer ')?h.slice(7).trim():''}
@@ -42,19 +44,17 @@ async function nativeAgendaHotPath(request,env,path){
 export default {
  async fetch(request,env,ctx){
   const path=new URL(request.url).pathname;
+  if(path.startsWith('/api/engview/')||['/engview-sync.js','/engview-agent.ps1','/CRM-EngView-Kur.cmd'].includes(path))return json({error:'EngView ve EVD bağlantısı kaldırıldı.'},410);
   if(path.startsWith('/api/scratch-notes'))return scratchNotesApi(request,env,async()=>{const response=await worker.fetch(new Request(new URL('/api/session',request.url),{headers:request.headers}),env,ctx);return response.ok?(await response.json()).role:''});
   if(path==='/api/native-alarm/agenda'||path.startsWith('/api/native-alarm/agenda/')||path==='/api/native-alarm/reminders'||path==='/api/native-alarm/ack'){
    try{const hot=await nativeAgendaHotPath(request,env,path);if(hot)return hot}catch(error){console.error('AJANDAM hot path',error);const detail=String(error?.cause?.message||error?.message||error).replace(/^D1_ERROR:\s*/,'').slice(0,220);return json({error:'Android alarm sunucu hatası: '+detail},500)}
   }
-  const result=await drawingApi(request,env,async()=>{
-   const session=await worker.fetch(new Request(new URL('/api/session',request.url),{headers:request.headers}),env,ctx);
-   return session.ok?(await session.json()).role:'';
-  });if(result)return result;
+
   const response=await worker.fetch(request,env,ctx);
   if(request.method==='GET'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
    const html=(await response.text()).replace(/<head([^>]*)>/i,'<head$1><script src="/silent-fullscreen-reminders.js?v=20261023"></script>').replace('</head>','<link rel="stylesheet" href="/tracking-compact.css?v=20261023-1"></head>');
    const headers=new Headers(response.headers);for(const h of ['content-length','content-encoding','etag'])headers.delete(h);
-   return new Response(html.includes('id="graphicJobs"')?html.replace('</body>','<script src="/engview-sync.js" defer></script></body>'):html,{status:response.status,headers});
+   return new Response(html.includes('id="graphicJobs"')?html.replace('</body>',`<script data-crm-section-refresh="20261023">${SECTION_REFRESH_SCRIPT}</script></body>`):html,{status:response.status,headers});
   }
   return response;
  },
