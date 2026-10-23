@@ -8,7 +8,7 @@ test('delivery day includes finished and waiting jobs until tracking independent
  const start=backend.indexOf("if(path==='/api/tracking'&&request.method==='GET'){");
  const route=backend.slice(start,backend.indexOf('  const trackingJob=',start));
  const query=route.match(/prepare\("(SELECT g.id.*?)"\)/s)[1];
- const script=`import sqlite3,json,sys\ndb=sqlite3.connect(':memory:')\ndb.executescript('CREATE TABLE graphic_jobs(id,work_date,original_work_date,job_no,customer_name,description,note,tracking_note,status,remind_at,delivery_place,tracking_status,tracked_by,tracked_at); CREATE TABLE graphic_job_delays(graphic_job_id,delayed_from,delayed_to);')\nfor id,status,tracked,date in [(1,'İmalat Bitti','','2026-10-23'),(2,'İmalat','','2026-10-23'),(3,'Bekleme Bitti','','2026-10-23'),(4,'İmalat Bitti','Görüşüldü','2026-10-23'),(5,'İmalat','','2026-10-24')]:\n db.execute('INSERT INTO graphic_jobs(id,status,tracking_status,work_date) VALUES(?,?,?,?)',(id,status,tracked,date))\nquery=sys.argv[1]\nprint(json.dumps([[r[0] for r in db.execute(query,params)] for params in [('2026-10-23','2026-10-23','2026-10-23'),('2026-10-23','2026-10-23','2026-10-24')]]))`;
+ const script=`import sqlite3,json,sys\ndb=sqlite3.connect(':memory:')\ndb.executescript('CREATE TABLE graphic_jobs(id,work_date,original_work_date,job_no,customer_name,description,note,tracking_note,status,remind_at,delivery_place,tracking_status,tracked_by,tracked_at); CREATE TABLE graphic_job_delays(graphic_job_id,delayed_from,delayed_to);')\nfor id,status,tracked,date in [(1,'İmalat Bitti','','2026-10-23'),(2,'İmalat','','2026-10-23'),(3,'Bekleme Bitti','','2026-10-23'),(4,'İmalat Bitti','Görüşüldü','2026-10-23'),(5,'İmalat','','2026-10-24')]:\n db.execute('INSERT INTO graphic_jobs(id,status,tracking_status,work_date) VALUES(?,?,?,?)',(id,status,tracked,date))\nquery=sys.argv[1]\nprint(json.dumps([[r[0] for r in db.execute(query,params)] for params in [('2026-10-23','2026-10-23','2026-10-23',0),('2026-10-23','2026-10-23','2026-10-24',0)]]))`;
  const [active,history]=JSON.parse(execFileSync('python',['-c',script,query],{encoding:'utf8'}));
  assert.deepEqual(active,[1,2,3]);assert.deepEqual(history,[1,2,3,4]);
  assert.doesNotMatch(route,/UPDATE graphic_jobs|INSERT INTO graphic_job_delays/);
@@ -51,4 +51,13 @@ test('moving a tracking job leaves delivery place unchanged',()=>{
  const start=backend.indexOf('  const trackingJob=');const route=backend.slice(start,backend.indexOf("if(path===",start));
  const updates=[...route.matchAll(/prepare\("(UPDATE graphic_jobs SET work_date=.*?)"\)/g)].map(x=>x[1]);
  assert.equal(updates.length,3);for(const sql of updates)assert.doesNotMatch(sql,/delivery_place/);
+});
+for(const file of ['public/index.html','src/crm_safe_root_page.js'])test(file+' restores a checked job without changing its production status',async()=>{
+ let page=readFileSync(file,'utf8');if(file.endsWith('.js'))page=JSON.parse(page.slice(page.indexOf('=')+1).trim().replace(/;$/,''));
+ const source=page.slice(page.indexOf('async function setTrackingDone('),page.indexOf('async function saveTrackingTime('));
+ let payload;const job={id:1,status:'İmalat Bitti',tracking_status:'Görüşüldü'};
+ const ctx=vm.createContext({trackingJobs:[job],trackingViewDay:'today',req:async(url,options)=>{payload=JSON.parse(options.body)},renderTrackingJobs(){},showMsg(){},loadTrackingJobs:async()=>{}});
+ vm.runInContext(source,ctx);await ctx.setTrackingDone(1,false);
+ assert.equal(payload.done,false);assert.equal(job.status,'İmalat Bitti');assert.equal(job.tracking_status,'');assert.equal(ctx.trackingJobs.length,0);
+ assert.match(page,/Kontrol Edilenler \/ Geri Al/);assert.match(page,/Takibe Geri Al/);
 });
