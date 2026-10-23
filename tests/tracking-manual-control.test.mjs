@@ -20,3 +20,13 @@ for(const file of ['public/index.html','src/crm_safe_root_page.js'])test(file+' 
  vm.runInContext(source,ctx);await ctx.setTrackingDone(1,true);assert.deepEqual(Array.from(ctx.trackingJobs,x=>x.id),[2]);
  fail=true;await ctx.setTrackingDone(2,true);assert.deepEqual(Array.from(ctx.trackingJobs,x=>x.id),[2]);
 });
+test('all three tracking date moves preserve delivery time and replace its date',()=>{
+ const start=backend.indexOf('  const trackingJob=');
+ const route=backend.slice(start,backend.indexOf("if(path===",start));
+ const updates=[...route.matchAll(/prepare\("(UPDATE graphic_jobs SET work_date=.*?)"\)/g)].map(x=>x[1]);
+ assert.equal(updates.length,3);
+ for(const sql of updates){
+  const script=`import sqlite3,sys\ndb=sqlite3.connect(':memory:')\ndb.executescript("CREATE TABLE graphic_jobs(id,work_date,remind_at,tracking_status,tracked_by,tracked_at,updated_at); INSERT INTO graphic_jobs(id,work_date,remind_at) VALUES(1,'2026-10-23','2026-10-23T13:30');")\ndb.execute(sys.argv[1],('2026-10-24','2026-10-24',1))\nprint(db.execute('SELECT remind_at FROM graphic_jobs').fetchone()[0])`;
+  assert.equal(execFileSync('python',['-c',script,sql],{encoding:'utf8'}).trim(),'2026-10-24T13:30');
+ }
+});

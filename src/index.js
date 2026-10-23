@@ -206,7 +206,7 @@ async function api(request, env) {
     const requestedDate=url.searchParams.get('date');
     if(requestedDate&&(!/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)||Number.isNaN(dateAtNoon(requestedDate).getTime())||istanbulDate(dateAtNoon(requestedDate))!==requestedDate))return json({error:'Geçerli bir tarih seçin.'},400);
     const selectedDate=requestedDate||(url.searchParams.get('day')==='tomorrow'?tomorrow:today);
-    return json((await env.DB.prepare("SELECT g.id,g.work_date,g.original_work_date,(SELECT COUNT(*) FROM graphic_job_delays d WHERE d.graphic_job_id=g.id AND d.delayed_to>d.delayed_from) delay_count,(SELECT MIN(d.delayed_from) FROM graphic_job_delays d WHERE d.graphic_job_id=g.id AND d.delayed_to>d.delayed_from) first_delayed_from,g.job_no,g.customer_name,g.description,g.note,g.tracking_note,g.status,g.remind_at,COALESCE(NULLIF(g.delivery_place,''),(SELECT g2.delivery_place FROM graphic_jobs g2 WHERE lower(g2.job_no)=lower(g.job_no) AND COALESCE(g2.delivery_place,'')<>'' ORDER BY g2.id DESC LIMIT 1),'') delivery_place,g.tracking_status,g.tracked_by,g.tracked_at FROM graphic_jobs g WHERE g.work_date=? AND (? < ? OR COALESCE(g.tracking_status,'') <> 'Görüşüldü') ORDER BY CASE WHEN COALESCE(g.remind_at,'')='' THEN 1 ELSE 0 END,g.remind_at,g.id").bind(selectedDate,selectedDate,today).all()).results)
+    return json((await env.DB.prepare("SELECT g.id,g.work_date,g.original_work_date,(SELECT COUNT(*) FROM graphic_job_delays d WHERE d.graphic_job_id=g.id AND d.delayed_to>d.delayed_from) delay_count,(SELECT MIN(d.delayed_from) FROM graphic_job_delays d WHERE d.graphic_job_id=g.id AND d.delayed_to>d.delayed_from) first_delayed_from,g.job_no,g.customer_name,g.description,g.note,g.tracking_note,g.status,g.remind_at,COALESCE(NULLIF(g.delivery_place,''),(SELECT g2.delivery_place FROM graphic_jobs g2 WHERE lower(g2.job_no)=lower(g.job_no) AND COALESCE(g2.delivery_place,'')<>'' ORDER BY g2.id DESC LIMIT 1),'') delivery_place,g.tracking_status,g.tracked_by,g.tracked_at FROM graphic_jobs g WHERE g.work_date=? AND COALESCE(g.status,'') <> 'İptal' AND (? < ? OR COALESCE(g.tracking_status,'') <> 'Görüşüldü') ORDER BY CASE WHEN COALESCE(g.remind_at,'')='' THEN 1 ELSE 0 END,g.remind_at,g.id").bind(selectedDate,selectedDate,today).all()).results)
   }
   const trackingJob=path.match(/^\/api\/tracking\/(\d+)$/);
   if(trackingJob&&request.method==='PUT'){
@@ -216,6 +216,13 @@ async function api(request, env) {
     const selectedDate=b.action==='today'||b.view_day==='tomorrow'?tomorrow:today;
     const found=await env.DB.prepare("SELECT id FROM graphic_jobs WHERE id=? AND work_date=?").bind(id,selectedDate).first();
     if(!found)return json({error:'Bu iş seçilen takip listesinde değil.'},403);
+    if(b.action==='time'){
+      const time=String(b.time||'');
+      if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))return json({error:'Geçerli bir teslim saati seçin.'},400);
+      const remindAt=selectedDate+'T'+time;
+      await env.DB.prepare('UPDATE graphic_jobs SET remind_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(remindAt,id).run();
+      return json({ok:true,remind_at:remindAt})
+    }
     if(b.action==='note'){
       const trackingNote=String(b.tracking_note||'').trim().slice(0,1000);
       await env.DB.prepare('UPDATE graphic_jobs SET tracking_note=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(trackingNote,id).run();
@@ -229,7 +236,7 @@ async function api(request, env) {
     if(b.action==='tomorrow'){
       const job=await env.DB.prepare('SELECT tracking_note FROM graphic_jobs WHERE id=?').bind(id).first();
       await env.DB.prepare('INSERT INTO graphic_job_delays(graphic_job_id,delayed_from,delayed_to,note,delayed_by) VALUES(?,?,?,?,?)').bind(id,today,tomorrow,String(job?.tracking_note||''),trackingActor).run();
-      await env.DB.prepare("UPDATE graphic_jobs SET work_date=?,remind_at='',tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(tomorrow,id).run();
+      await env.DB.prepare("UPDATE graphic_jobs SET work_date=?,remind_at=CASE WHEN length(remind_at)>=16 THEN ?||substr(remind_at,11) ELSE remind_at END,tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(tomorrow,tomorrow,id).run();
       return json({ok:true,work_date:tomorrow})
     }
     if(b.action==='date'){
@@ -238,12 +245,12 @@ async function api(request, env) {
       if(isNonWorkingDate(target))return json({error:'Pazar ve resmî bayramlar çalışma günü değildir. Başka bir tarih seçin.'},400);
       const job=await env.DB.prepare('SELECT tracking_note,work_date FROM graphic_jobs WHERE id=?').bind(id).first();
       await env.DB.prepare('INSERT INTO graphic_job_delays(graphic_job_id,delayed_from,delayed_to,note,delayed_by) VALUES(?,?,?,?,?)').bind(id,String(job?.work_date||today),target,String(job?.tracking_note||''),trackingActor).run();
-      await env.DB.prepare("UPDATE graphic_jobs SET work_date=?,remind_at='',tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(target,id).run();
+      await env.DB.prepare("UPDATE graphic_jobs SET work_date=?,remind_at=CASE WHEN length(remind_at)>=16 THEN ?||substr(remind_at,11) ELSE remind_at END,tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(target,target,id).run();
       return json({ok:true,work_date:target})
     }
     if(b.action==='today'){
       await env.DB.prepare('DELETE FROM graphic_job_delays WHERE id=(SELECT id FROM graphic_job_delays WHERE graphic_job_id=? AND delayed_from=? AND delayed_to=? ORDER BY id DESC LIMIT 1)').bind(id,today,tomorrow).run();
-      await env.DB.prepare("UPDATE graphic_jobs SET work_date=?,tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(today,id).run();
+      await env.DB.prepare("UPDATE graphic_jobs SET work_date=?,remind_at=CASE WHEN length(remind_at)>=16 THEN ?||substr(remind_at,11) ELSE remind_at END,tracking_status='',tracked_by='',tracked_at='',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(today,today,id).run();
       return json({ok:true,work_date:today})
     }
     await env.DB.prepare("UPDATE graphic_jobs SET tracking_status=?,tracked_by=?,tracked_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(done?'Görüşüldü':'',done?trackingActor:'',done?new Date().toISOString():'',id).run();
