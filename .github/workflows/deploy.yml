@@ -54,17 +54,6 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-      - name: Apply archive retention now
-        run: |
-          cat > /tmp/archive-retention.sql <<'SQL'
-          DELETE FROM agenda_voice_notes WHERE agenda_id IN (SELECT id FROM agenda_entries WHERE COALESCE(source_type,'manual')='manual' AND is_archived=1 AND date(COALESCE(NULLIF(completed_date,''),entry_date)) < date('now','+3 hours','-35 days'));
-          DELETE FROM agenda_entries WHERE COALESCE(source_type,'manual')='manual' AND is_archived=1 AND date(COALESCE(NULLIF(completed_date,''),entry_date)) < date('now','+3 hours','-35 days');
-          SQL
-          npx wrangler d1 execute musteri-takip-crm --remote --file=/tmp/archive-retention.sql
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
       - name: Rich portfolio screen smoke
         run: |
           ok=0

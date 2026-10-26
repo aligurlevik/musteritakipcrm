@@ -69,7 +69,7 @@ export default {
  async scheduled(controller,env,ctx){
   const tasks=[];
   if(worker.scheduled)tasks.push(worker.scheduled(controller,env,ctx));
-  if(new Date(controller.scheduledTime||Date.now()).getUTCMinutes()===0)tasks.push(purgeArchivedNotes(env,controller.scheduledTime||Date.now()));
+  tasks.push(purgeArchivedNotes(env,controller.scheduledTime||Date.now()));
   const results=await Promise.allSettled(tasks);
   for(const result of results)if(result.status==='rejected')throw result.reason;
  }
