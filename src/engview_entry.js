@@ -1,3 +1,4 @@
+import {purgeArchivedNotes} from './archive_retention.js';
 import {nativeAlarmBridge} from './native_alarm_bridge.js';
 import {scratchNotesApi} from './scratch_notes_api.js';
 import worker from './graphic_weekly_revenue_entry.js';
@@ -65,5 +66,11 @@ export default {
   }
   return response;
  },
- async scheduled(controller,env,ctx){if(worker.scheduled)return worker.scheduled(controller,env,ctx)}
+ async scheduled(controller,env,ctx){
+  const tasks=[];
+  if(worker.scheduled)tasks.push(worker.scheduled(controller,env,ctx));
+  if(new Date(controller.scheduledTime||Date.now()).getUTCMinutes()===0)tasks.push(purgeArchivedNotes(env,controller.scheduledTime||Date.now()));
+  const results=await Promise.allSettled(tasks);
+  for(const result of results)if(result.status==='rejected')throw result.reason;
+ }
 };

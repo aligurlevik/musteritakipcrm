@@ -1,3 +1,4 @@
+import {purgeArchivedNotes} from './archive_retention.js';
 import worker from './blank_price_edit_fix.js';
 
 const enc=new TextEncoder();
@@ -68,6 +69,7 @@ async function notesApi(request,env,url){
   if(p==='/api/notes-v3'&&request.method==='GET'){
     const scope=url.searchParams.get('scope')||'all',notebook=notebookNo(url.searchParams.get('notebook'));
     await env.DB.prepare("UPDATE agenda_entries SET is_archived=1 WHERE COALESCE(source_type,'manual')='manual' AND COALESCE(is_archived,0)=0 AND entry_status='Yapıldı' AND entry_date<?").bind(todayTR()).run();
+    await purgeArchivedNotes(env);
     let w="COALESCE(a.source_type,'manual')='manual' AND COALESCE(a.notebook_no,1)="+notebook;
     w+=scope==='archive'?" AND COALESCE(a.is_archived,0)=1":" AND COALESCE(a.is_archived,0)=0";
     const rows=(await env.DB.prepare(`SELECT a.*,CASE WHEN v.agenda_id IS NULL THEN 0 ELSE 1 END has_voice
