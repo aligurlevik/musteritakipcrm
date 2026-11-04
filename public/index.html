@@ -573,8 +573,13 @@ async function loadDashboard(){const d=await req('/api/dashboard');$('k1').textC
 
 function agendaDateKey(){return agendaDate.getFullYear()+'-'+String(agendaDate.getMonth()+1).padStart(2,'0')+'-'+String(agendaDate.getDate()).padStart(2,'0')}
 function agendaMonthKey(){return agendaDateKey().slice(0,7)}
-function refreshTodayAgendaEntries(){const today=localDateKey();todayAgendaEntries=agendaEntries.filter(x=>{const d=String(x.entry_date||'');return d===today||(d>today&&x.entry_status!=='Yapıldı')}).sort((a,b)=>String(a.entry_date||'').localeCompare(String(b.entry_date||''))||agendaTaskSort(a,b))}
-async function loadAgenda(){const today=localDateKey();await req('/api/agenda/rollover',{method:'POST',body:JSON.stringify({today})});const [monthItems,activeItems]=await Promise.all([req('/api/agenda?month='+agendaMonthKey()),req('/api/agenda/active?from='+today)]);const byId=new Map();for(const x of [...monthItems,...activeItems])byId.set(Number(x.id),x);agendaEntries=[...byId.values()].sort((a,b)=>String(a.entry_date||'').localeCompare(String(b.entry_date||''))||Number(a.id)-Number(b.id));refreshTodayAgendaEntries();renderAgenda();setupAgendaTimeSelectors()}
+function refreshTodayAgendaEntries(){const today=localDateKey();todayAgendaEntries=agendaEntries.filter(x=>!Number(x.is_archived||0)&&Number(x.notebook_no||1)===1&&!/^[\u2063][\u200B\u200C]/.test(String(x.note||''))&&(x.entry_status!=='Yapıldı'||String(x.entry_date||'')>=today)).sort(agendaTaskSort)}
+async function loadAgenda(){agendaEntries=await req('/api/notes-v3?scope=all&notebook=1');refreshTodayAgendaEntries();renderAgenda();setupAgendaTimeSelectors()}
+let agendaSyncPending=false;
+async function syncAgendaAcrossDevices(){if(agendaSyncPending||!$('agenda')?.classList.contains('active')||document.hidden||document.querySelector('#agenda input:focus,#agenda textarea:focus,#agenda [contenteditable="true"]'))return;agendaSyncPending=true;try{const items=await req('/api/notes-v3?scope=all&notebook=1');if(JSON.stringify(items)!==JSON.stringify(agendaEntries)){agendaEntries=items;refreshTodayAgendaEntries();renderAgenda();setupAgendaTimeSelectors()}}catch(error){console.error('Ajanda yenilenemedi',error)}finally{agendaSyncPending=false}}
+setInterval(syncAgendaAcrossDevices,15000);
+window.addEventListener('focus',syncAgendaAcrossDevices);
+
 function safeAgendaImage(value){const image=String(value||'');return /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(image)?image:''}
 function agendaImageMarkup(x){const image=safeAgendaImage(x.image_data);return image?`<img class="agenda-thumb" src="${image}" alt="Not resmi" title="Büyütmek için tıklayın" onclick="openAgendaImage(this.src)">`:''}
 function openAgendaImage(src){const image=safeAgendaImage(src);if(!image)return;$('agendaImageFull').src=image;openM('agendaImageViewer')}

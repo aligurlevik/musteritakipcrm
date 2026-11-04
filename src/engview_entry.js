@@ -13,7 +13,7 @@ async function nativeAgendaHotPath(request,env,path){
  const device=await env.DB.prepare('SELECT device_token FROM native_alarm_devices_v2 WHERE device_token=?').bind(token).first();
  if(!device)return json({error:'Cihaz eşleşmemiş.'},401);
  if(path==='/api/native-alarm/agenda'&&request.method==='GET'){
-  const r=await env.DB.prepare("SELECT id,entry_date,note,remind_at,entry_status,completed_date FROM agenda_entries ORDER BY CASE WHEN COALESCE(entry_status,'Yapılacak')='Yapıldı' THEN 1 ELSE 0 END, entry_date DESC, id DESC LIMIT 500").all();
+  const r=await env.DB.prepare("SELECT id,entry_date,note,remind_at,entry_status,completed_date,COALESCE(is_archived,0) is_archived FROM agenda_entries WHERE COALESCE(source_type,'manual')='manual' ORDER BY CASE WHEN COALESCE(entry_status,'Yapılacak')='Yapıldı' THEN 1 ELSE 0 END, entry_date DESC, id DESC LIMIT 1200").all();
   return json({ok:true,entries:r.results||[]});
  }
  if(path==='/api/native-alarm/agenda'&&request.method==='POST'){
@@ -26,7 +26,7 @@ async function nativeAgendaHotPath(request,env,path){
  const m=path.match(/^\/api\/native-alarm\/agenda\/(\d+)$/);
  if(m&&request.method==='PUT'){
   let b={};try{b=await request.json()}catch{}const note=String(b.note||'').trim();if(!note)return json({error:'Not boş olamaz.'},400);
-  await env.DB.prepare("UPDATE agenda_entries SET entry_date=?,note=?,remind_at=?,reminder_status='' WHERE id=?").bind(String(b.entry_date||''),note,String(b.remind_at||''),Number(m[1])).run();return json({ok:true});
+  await env.DB.prepare("UPDATE agenda_entries SET entry_date=?,note=?,remind_at=?,title=?,reminder_status=? WHERE id=?").bind(String(b.entry_date||''),note,String(b.remind_at||''),note.replace(/^[\u2063][\u200B\u200C]/,'').split('\n')[0].trim(),b.remind_at?'Açık':'',Number(m[1])).run();return json({ok:true});
  }
  if(m&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM agenda_entries WHERE id=?').bind(Number(m[1])).run();return json({ok:true});}
  if(m&&request.method==='POST'){let b={};try{b=await request.json()}catch{}const archived=!!b.archived;await env.DB.prepare("UPDATE agenda_entries SET entry_status=?,completed_date=? WHERE id=?").bind(archived?'Yapıldı':'Yapılacak',archived?new Date().toISOString().slice(0,10):'',Number(m[1])).run();return json({ok:true});}
