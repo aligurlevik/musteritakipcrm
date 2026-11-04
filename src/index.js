@@ -504,7 +504,7 @@ async function api(request, env) {
   if(path==='/api/agenda/rollover'&&request.method==='POST'){
     const b=await body(request),today=String(b.today||'');
     if(!/^\d{4}-\d{2}-\d{2}$/.test(today))return json({error:'Geçerli gün bilgisi zorunlu.'},400);
-    const moved=await env.DB.prepare("UPDATE agenda_entries SET entry_date=?, remind_at=CASE WHEN COALESCE(remind_at,'')<>'' THEN ?||substr(remind_at,11) ELSE COALESCE(remind_at,'') END, reminder_status=CASE WHEN COALESCE(remind_at,'')<>'' THEN 'Açık' ELSE COALESCE(reminder_status,'') END WHERE COALESCE(source_type,'manual')='manual' AND entry_date<? AND COALESCE(entry_status,'Yapılacak')<>'Yapıldı'").bind(today,today,today).run();
+    const moved=await env.DB.prepare("UPDATE agenda_entries SET entry_date=? WHERE COALESCE(source_type,'manual')='manual' AND entry_date<? AND COALESCE(entry_status,'Yapılacak')<>'Yapıldı'").bind(today,today).run();
     return json({ok:true,moved:Number(moved.meta?.changes||0)});
   }
   if(path==='/api/agenda/day'&&request.method==='GET'){const date=url.searchParams.get('date')||new Date().toISOString().slice(0,10);return json((await env.DB.prepare("SELECT * FROM agenda_entries WHERE COALESCE(source_type,'manual')='manual' AND entry_date=? ORDER BY sort_order,id").bind(date).all()).results)}
