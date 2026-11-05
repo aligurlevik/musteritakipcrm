@@ -256,7 +256,7 @@ body.crm-embedded #buildMarker{bottom:6px!important;right:6px!important}
 <main class="main">
   <div class="head">
     <div><h1>Müşteri Portföyü</h1><div class="sub">Şehir özelinde müşteri analizleri, görüşme notları ve satış potansiyeli</div></div>
-    <div class="head-actions"><span id="rangeBox" class="datebox"></span><button class="btn primary" onclick="loadAll()">↻ Yenile</button><a class="btn primary" href="/?page=customers" onclick="if(window.parent!==window&&typeof window.parent.activateCrmPage==='function'){event.preventDefault();window.parent.activateCrmPage('customers')}">＋ Yeni Müşteri</a></div>
+    <div id="customerDeleteNotice" role="status" hidden><span id="customerDeleteMessage"></span><button class="btn small" type="button" onclick="undoCustomerDelete()">Geri Al</button></div><div class="head-actions"><span id="rangeBox" class="datebox"></span><button class="btn primary" onclick="loadAll()">↻ Yenile</button><a class="btn primary" href="/?page=customers" onclick="if(window.parent!==window&&typeof window.parent.activateCrmPage==='function'){event.preventDefault();window.parent.activateCrmPage('customers')}">＋ Yeni Müşteri</a></div>
   </div>
 
   <div class="filter-grid">
@@ -294,7 +294,7 @@ body.crm-embedded #buildMarker{bottom:6px!important;right:6px!important}
     <aside id="detail" class="detail">
       <div id="detailEmpty" class="empty-detail">Listeden bir müşteri seçin.</div>
       <div id="detailContent" class="hidden">
-        <div class="detail-head"><div class="detail-title"><span class="status-dot"></span><span id="dCompany">Firma</span></div><div class="detail-actions"><button type="button" class="btn small detail-close" onclick="closeCustomerDetail()">← Müşteri Listesine Dön</button><button class="btn small" onclick="focusEdit()">✎ Düzenle</button></div></div>
+        <div class="detail-head"><div class="detail-title"><span class="status-dot"></span><span id="dCompany">Firma</span></div><div class="detail-actions"><button id="deleteCustomerButton" class="btn small" type="button" hidden onclick="deleteSelectedCustomer()" style="color:#b91c1c;border-color:#fecaca">🗑 Sil</button><button type="button" class="btn small detail-close" onclick="closeCustomerDetail()">← Müşteri Listesine Dön</button><button class="btn small" onclick="focusEdit()">✎ Düzenle</button></div></div>
         <div class="tabs"><button class="tab active" data-tab="general">Genel</button><button class="tab" data-tab="notes">Görüşmeler & Notlar</button><button class="tab" data-tab="offers">Teklifler</button><button class="tab" data-tab="analysis">Analiz</button><button class="tab" data-tab="mails">Mailler</button></div>
         <div class="detail-body">
           <div id="tabGeneral" class="tabpane">
@@ -695,6 +695,50 @@ async function refreshPortfolioDataSilently(){
     portfolioLoadInFlight=false;
   }
 }
+let portfolioCanDelete=false,customerDeleteBusy=false,lastDeletedCustomer=null;
+async function loadCustomerDeleteAccess(){
+  try{
+    const session=await api('/api/session');
+    portfolioCanDelete=session.role==='admin'&&session.user==='Ali';
+  }catch{portfolioCanDelete=false}
+  const button=$('deleteCustomerButton');
+  if(button)button.hidden=!portfolioCanDelete;
+}
+async function deleteSelectedCustomer(){
+  if(!portfolioCanDelete||!selected||customerDeleteBusy)return;
+  const customer=selected;
+  if(!confirm(customer.company+' kaydını silmek istiyor musunuz? Kayıt Silinenler’e taşınacak; notlar ve geçmiş korunacak.'))return;
+  const button=$('deleteCustomerButton');
+  customerDeleteBusy=true;button.disabled=true;
+  try{
+    await api('/api/customers/'+Number(customer.id)+'/trash',{method:'POST'});
+    lastDeletedCustomer=customer;
+    customers=customers.filter(c=>Number(c.id)!==Number(customer.id));
+    writeCustomerCache(customers);
+    selected=null;selectedHistory=null;historyLoadedId=0;
+    $('detailContent').classList.add('hidden');
+    $('detailEmpty').classList.remove('hidden');
+    closeCustomerDetail();fillFilters();counts();render();
+    $('customerDeleteNotice').hidden=false;
+    $('customerDeleteMessage').textContent=customer.company+' kaydı silindi. ';
+  }catch(error){alert('Kayıt silinemedi: '+error.message)}
+  finally{customerDeleteBusy=false;button.disabled=false}
+}
+async function undoCustomerDelete(){
+  if(!portfolioCanDelete||!lastDeletedCustomer||customerDeleteBusy)return;
+  const customer=lastDeletedCustomer;
+  customerDeleteBusy=true;
+  try{
+    await api('/api/customers/'+Number(customer.id)+'/restore',{method:'POST'});
+    customers=customers.filter(c=>Number(c.id)!==Number(customer.id));
+    customers.push({...customer,record_status:'Aktif'});
+    writeCustomerCache(customers);
+    lastDeletedCustomer=null;$('customerDeleteNotice').hidden=true;
+    fillFilters();counts();render();
+  }catch(error){alert('Kayıt geri alınamadı: '+error.message)}
+  finally{customerDeleteBusy=false}
+}
+
 async function loadAll(reselect){
   if(portfolioLoadInFlight)return;
 
@@ -746,6 +790,7 @@ monthRange();
   const el=document.getElementById('dailyEvalDate');
   if(el)el.textContent=new Intl.DateTimeFormat('tr-TR',{timeZone:'Europe/Istanbul',day:'2-digit',month:'long',year:'numeric'}).format(new Date());
 })();
+loadCustomerDeleteAccess();
 loadAll();
 </script>
 </body>
