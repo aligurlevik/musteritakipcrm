@@ -220,6 +220,19 @@ body.crm-embedded .app{display:block!important}
 body.crm-embedded .side{display:none!important}
 body.crm-embedded .main{padding:10px!important}
 body.crm-embedded #buildMarker{bottom:6px!important;right:6px!important}
+
+/* This browser can opt into showing customers before the daily summary. */
+#laptopListToggle{white-space:nowrap;border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}
+@media(max-width:1023px){#laptopListToggle{display:none!important}}
+@media(min-width:1024px){
+  body.portfolio-laptop-first .main{display:flex;flex-direction:column;align-items:stretch}
+  body.portfolio-laptop-first .head{order:0}
+  body.portfolio-laptop-first .filter-grid{order:1}
+  body.portfolio-laptop-first .workbar{order:2}
+  body.portfolio-laptop-first .workspace{order:3}
+  body.portfolio-laptop-first .daily-eval-title{order:4;margin-top:22px}
+  body.portfolio-laptop-first .cards{order:5}
+}
 </style>
 <link rel="prefetch" href="/">
 </head>
@@ -256,7 +269,7 @@ body.crm-embedded #buildMarker{bottom:6px!important;right:6px!important}
 <main class="main">
   <div class="head">
     <div><h1>Müşteri Portföyü</h1><div class="sub">Şehir özelinde müşteri analizleri, görüşme notları ve satış potansiyeli</div></div>
-    <div class="head-actions"><span id="rangeBox" class="datebox"></span><button class="btn primary" onclick="loadAll()">↻ Yenile</button><a class="btn primary" href="/?page=customers" onclick="if(window.parent!==window&&typeof window.parent.activateCrmPage==='function'){event.preventDefault();window.parent.activateCrmPage('customers')}">＋ Yeni Müşteri</a></div>
+    <div class="head-actions"><button type="button" id="laptopListToggle" class="btn" onclick="toggleLaptopListFirst()">⇧ Firma Listesi Üste</button><span id="rangeBox" class="datebox"></span><button class="btn primary" onclick="loadAll()">↻ Yenile</button><a class="btn primary" href="/?page=customers" onclick="if(window.parent!==window&&typeof window.parent.activateCrmPage==='function'){event.preventDefault();window.parent.activateCrmPage('customers')}">＋ Yeni Müşteri</a></div>
   </div>
 
   <div class="filter-grid">
@@ -741,6 +754,26 @@ async function loadAll(reselect){
   if(meetingDelayTimer)clearTimeout(meetingDelayTimer);
   meetingDelayTimer=setTimeout(()=>{meetingDelayTimer=null;loadMeetingData()},700);
 }
+
+const laptopListKey='crm_portfolio_laptop_list_first_v1';
+function syncLaptopListFirst(){
+  const enabled=localStorage.getItem(laptopListKey)==='1' && window.matchMedia('(min-width:1024px)').matches;
+  document.body.classList.toggle('portfolio-laptop-first',enabled);
+  const button=document.getElementById('laptopListToggle');
+  if(button){
+    button.textContent=enabled?'↩ Eski Görünüm':'⇧ Firma Listesi Üste';
+    button.setAttribute('aria-pressed',enabled?'true':'false');
+    button.title='Yalnızca bu bilgisayardaki bu tarayıcıda geçerlidir';
+  }
+}
+function toggleLaptopListFirst(){
+  const enabled=localStorage.getItem(laptopListKey)==='1';
+  localStorage.setItem(laptopListKey,enabled?'0':'1');
+  syncLaptopListFirst();
+  if(!enabled){document.querySelector('.workbar')?.scrollIntoView({behavior:'smooth',block:'start'});}
+}
+window.addEventListener('resize',syncLaptopListFirst);
+syncLaptopListFirst();
 monthRange();
 (function(){
   const el=document.getElementById('dailyEvalDate');
