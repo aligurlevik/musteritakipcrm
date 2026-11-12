@@ -551,6 +551,7 @@ function selectCustomer(id){
   if($('activityLatest'))$('activityLatest').textContent='Kayıtlar yükleniyor...';if($('activityHistory'))$('activityHistory').innerHTML='';
   historyLoadedId=0;
   loadSelected();
+  ensureSelectedHistory();
   document.body.classList.add('customer-open');
   window.scrollTo({top:0,behavior:'instant'});
 }
