@@ -511,10 +511,14 @@ async function api(request, env) {
   }
   if(md&&request.method==='PATCH'){
     const b=await body(request),meetingId=Number(md[1]);
-    const existing=await env.DB.prepare('SELECT id FROM meetings WHERE id=?').bind(meetingId).first();
+    const existing=await env.DB.prepare('SELECT id,customer_id FROM meetings WHERE id=?').bind(meetingId).first();
     if(!existing)return json({error:'Görüşme bulunamadı'},404);
-    await env.DB.prepare('UPDATE meetings SET note=COALESCE(?,note),meeting_date=COALESCE(?,meeting_date) WHERE id=?')
-      .bind(b.note===undefined?null:String(b.note),b.meeting_date===undefined?null:String(b.meeting_date),meetingId).run();
+    if(b.next_follow_date!==undefined&&b.next_follow_date!==''&&!/^\d{4}-\d{2}-\d{2}$/.test(String(b.next_follow_date)))return json({error:'Tekrar arama tarihi geçersiz.'},400);
+    await env.DB.prepare('UPDATE meetings SET note=COALESCE(?,note),meeting_date=COALESCE(?,meeting_date),next_follow_date=COALESCE(?,next_follow_date) WHERE id=?')
+      .bind(b.note===undefined?null:String(b.note),b.meeting_date===undefined?null:String(b.meeting_date),b.next_follow_date===undefined?null:String(b.next_follow_date),meetingId).run();
+    if(b.next_follow_date!==undefined){
+      await env.DB.prepare('UPDATE customers SET follow_date=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(String(b.next_follow_date),existing.customer_id).run();
+    }
     return json({ok:true});
   }
   if(md&&request.method==='PUT'){
