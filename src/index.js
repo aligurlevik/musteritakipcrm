@@ -370,6 +370,17 @@ async function api(request, env) {
       ).run();
     return json({id:r.meta.last_row_id},201);
   }
+  const firstMeetingDateRoute=path.match(/^\/api\/customers\/(\d+)\/first-meeting-date$/);
+  if(firstMeetingDateRoute&&request.method==='PUT'){
+    const b=await body(request);
+    const date=String(b.first_meeting_date||'');
+    if(date && !/^\d{4}-\d{2}-\d{2}$/.test(date))return json({error:'Geçerli bir tarih girin.'},400);
+    const id=Number(firstMeetingDateRoute[1]);
+    const existing=await env.DB.prepare('SELECT id FROM customers WHERE id=?').bind(id).first();
+    if(!existing)return json({error:'Müşteri bulunamadı.'},404);
+    await env.DB.prepare('UPDATE customers SET first_meeting_date=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(date,id).run();
+    return json({ok:true,first_meeting_date:date});
+  }
   const cm=path.match(/^\/api\/customers\/(\d+)$/);
   if(cm && request.method==='PUT') {
     const b=await body(request);
