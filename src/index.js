@@ -370,6 +370,16 @@ async function api(request, env) {
       ).run();
     return json({id:r.meta.last_row_id},201);
   }
+  const customerPotentialRoute=path.match(/^\/api\/customers\/(\d+)\/potential$/);
+  if(customerPotentialRoute&&request.method==='PUT'){
+    const b=await body(request),priority=String(b.priority||'');
+    if(!['KRİTİK','YÜKSEK','NORMAL'].includes(priority))return json({error:'Geçersiz potansiyel değeri.'},400);
+    const id=Number(customerPotentialRoute[1]);
+    const customer=await env.DB.prepare('SELECT id FROM customers WHERE id=?').bind(id).first();
+    if(!customer)return json({error:'Müşteri bulunamadı.'},404);
+    await env.DB.prepare('UPDATE customers SET priority=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(priority,id).run();
+    return json({ok:true,priority});
+  }
   const firstMeetingDateRoute=path.match(/^\/api\/customers\/(\d+)\/first-meeting-date$/);
   if(firstMeetingDateRoute&&request.method==='PUT'){
     const b=await body(request);
