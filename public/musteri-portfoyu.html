@@ -338,7 +338,21 @@ body.crm-embedded #buildMarker{bottom:6px!important;right:6px!important}
               </div>
               <div id="contactPeople" class="contacts-list"></div>
             </div>
-            <div class="notes-panel"><div class="notes-title"><span>✓ Notlar</span><span>↗</span></div><div id="noteList" class="note-list"></div><div class="add-note"><input id="newNote" placeholder="Yeni not yazın..."><button class="btn small primary" onclick="addNote()">＋ Ekle</button></div></div>
+            <div class="contacts-panel" id="activityPanel" style="margin-top:9px">
+ <div class="contacts-head"><h3>📅 Arama / Ziyaret Geçmişi</h3><span id="activityLatest" class="small">Kayıtlar yükleniyor...</span></div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:9px 12px">
+  <button class="btn small" type="button" id="activityPhone" onclick="selectActivityType('Telefon')">📞 Telefonla Aradım</button>
+  <button class="btn small" type="button" id="activityVisit" onclick="selectActivityType('Ziyaret')">🚗 Ziyaret Ettim</button>
+  <input id="activityDate" type="date" title="İşlem tarihi" aria-label="İşlem tarihi" style="max-width:160px;padding:7px;border:1px solid #dce5ef;border-radius:8px">
+ </div>
+ <div id="activityTypeLabel" class="small" style="padding:0 12px 6px">İşlem türünü seçin.</div>
+ <div style="padding:0 12px 10px;display:flex;gap:8px;align-items:center">
+  <input id="activityNote" placeholder="Görüşme notu (isteğe bağlı)" style="flex:1;min-width:0;padding:9px;border:1px solid #dce5ef;border-radius:8px">
+  <button class="btn small primary" id="activitySave" onclick="saveActivity()">＋ Kaydet</button>
+ </div>
+ <div id="activityHistory" style="max-height:220px;overflow:auto;padding:0 12px 9px"></div>
+</div>
+<div class="notes-panel"><div class="notes-title"><span>✓ Notlar</span><span>↗</span></div><div id="noteList" class="note-list"></div><div class="add-note"><input id="newNote" placeholder="Yeni not yazın..."><button class="btn small primary" onclick="addNote()">＋ Ekle</button></div></div>
             <div class="follow-grid"><div><label>Sonraki İşlem Tarihi</label><input id="dFollow" type="date"></div><div><label>Saat</label><input id="dFollowTime" type="time" value="10:00"></div><div class="wide"><label>Hatırlatma Notu</label><input id="dReminderNote" placeholder="Örn. Teklif sonucunu sor"></div><button class="btn primary" onclick="createReminder()">🔔 Bildirim Ekle</button></div>
             <div class="savebar"><button class="btn soft" onclick="loadSelected()">İptal</button><button class="btn primary" onclick="saveCustomer()">Kaydet</button></div>
             <div id="overdueAlert" class="alert">🔔 Bu müşterinin takip süresi geçti.</div>
@@ -534,6 +548,7 @@ function selectCustomer(id){
   selected=customers.find(c=>Number(c.id)===Number(id));
   if(!selected)return;
   selectedHistory={meetings:[],offers:[],mails:[]};
+  if($('activityLatest'))$('activityLatest').textContent='Kayıtlar yükleniyor...';if($('activityHistory'))$('activityHistory').innerHTML='';
   historyLoadedId=0;
   loadSelected();
   document.body.classList.add('customer-open');
@@ -553,6 +568,7 @@ async function ensureSelectedHistory(){
     if(!selected||Number(selected.id)!==id)return;
     selectedHistory=data||{meetings:[],offers:[],mails:[]};
     historyLoadedId=id;
+    renderActivityHistory();
     renderHistory();
     renderAnalysis();
   }catch(e){
@@ -564,11 +580,39 @@ async function ensureSelectedHistory(){
     historyLoadInFlight=false;
   }
 }
+let selectedActivityType='';
+function selectActivityType(type){
+ selectedActivityType=type;
+ $('activityTypeLabel').textContent='Seçilen: '+(type==='Telefon'?'📞 Telefonla arandı':'🚗 Ziyaret edildi');
+ $('activityPhone').style.fontWeight=type==='Telefon'?'900':'400';
+ $('activityVisit').style.fontWeight=type==='Ziyaret'?'900':'400';
+}
+function renderActivityHistory(){
+ const latest=$('activityLatest'),box=$('activityHistory');if(!latest||!box)return;
+ const entries=[...(selectedHistory.meetings||[])].sort((a,b)=>String(b.meeting_date||b.created_at||'').localeCompare(String(a.meeting_date||a.created_at||'')));
+ const displayDate=x=>{const raw=String(x.meeting_date||x.created_at||'').slice(0,10),p=raw.split('-');return p.length===3?p.reverse().join('.'):raw};
+ const kind=x=>String(x.note||'').startsWith('[Telefon]')?'📞 Telefon':String(x.note||'').startsWith('[Ziyaret]')?'🚗 Ziyaret':'💬 Görüşme';
+ if(!entries.length){latest.textContent='Henüz kayıt yok';box.innerHTML='<div class="small">Henüz arama veya ziyaret kaydı yok.</div>';return}
+ latest.textContent='Son görüşme: '+displayDate(entries[0])+' — '+kind(entries[0]);
+ box.innerHTML=entries.map(x=>'<div style="border-top:1px solid #dce5ef;padding:7px 0"><b>'+esc(displayDate(x))+'</b> &nbsp;'+esc(kind(x))+(x.note?'<div class="small">'+esc(String(x.note).replace(/^\\[(Telefon|Ziyaret)\\]\\s*/,''))+'</div>':'')+'</div>').join('');
+}
+async function saveActivity(){
+ if(!selected)return;
+ const type=selectedActivityType,date=$('activityDate').value||today(),note=$('activityNote').value.trim();
+ if(!type){$('activityTypeLabel').textContent='Önce Telefonla Aradım veya Ziyaret Ettim seçin.';return}
+ const btn=$('activitySave');btn.disabled=true;
+ try{
+  const id=Number(selected.id);
+  await api('/api/meetings',{method:'POST',body:JSON.stringify({customer_id:id,meeting_date:date,note:'['+type+']'+(note?' '+note:''),result:'Beklemede'})});
+  $('activityNote').value='';selectActivityType('');$('activityTypeLabel').textContent='Kayıt eklendi.';
+  historyLoadedId=0;await ensureSelectedHistory();loadMeetingData();
+ }catch(e){$('activityTypeLabel').textContent='Kaydedilemedi: '+(e?.message||e)}finally{btn.disabled=false}
+}
 function closeCustomerDetail(){
   document.body.classList.remove('customer-open');
   window.scrollTo({top:0,behavior:'instant'});
 }
-function loadSelected(){if(!selected)return;$('detailEmpty').classList.add('hidden');$('detailContent').classList.remove('hidden');$('dCompany').textContent=selected.company;$('dContact').value=selected.contact_name||'';$('dPhone').value=selected.phone||parsed(selected.phones_json)[0]||'';$('dEmail').value=selected.email||parsed(selected.emails_json)[0]||'';$('dRegion').value=selected.region||'';$('dCategories').value=selected.categories||selected.sector||'';$('dPriority').value=selected.priority||'NORMAL';$('dResultSelect').value=resultOf(selected);$('dMachine').value=selected.machine_info||'';$('dFollow').value=selected.follow_date||'';$('dLastMeeting').textContent=(lastMeeting(selected)?.meeting_date||'—').slice(0,10);$('dResultLabel').textContent=resultLabel(selected);$('dFollowLabel').textContent=selected.follow_date||'—';$('dPotential').textContent=priorityLabel(selected);if($('meetingNoteDate'))$('meetingNoteDate').value=today();if($('meetingNoteStatus'))$('meetingNoteStatus').textContent='';contacts=customerContacts(selected);openContactIndex=-1;renderContacts();syncPrimaryFromContacts();notes=parseNotes(selected.special_notes);renderNotes();loadAnalysisFields();$('overdueAlert').classList.toggle('show',isOverdue(selected));const mb=$('meetingHistory'),ob=$('offerHistory'),mailb=$('mailHistory');if(mb)mb.innerHTML='<div class="history-item">Sekme açıldığında yüklenecek.</div>';if(ob)ob.innerHTML='<div class="history-item">Sekme açıldığında yüklenecek.</div>';if(mailb)mailb.innerHTML='<div class="history-item">Sekme açıldığında yüklenecek.</div>';renderAnalysis()}
+function loadSelected(){if(!selected)return;if($('activityDate'))$('activityDate').value=today();if($('activityTypeLabel'))$('activityTypeLabel').textContent='İşlem türünü seçin.';selectedActivityType='';$('detailEmpty').classList.add('hidden');$('detailContent').classList.remove('hidden');$('dCompany').textContent=selected.company;$('dContact').value=selected.contact_name||'';$('dPhone').value=selected.phone||parsed(selected.phones_json)[0]||'';$('dEmail').value=selected.email||parsed(selected.emails_json)[0]||'';$('dRegion').value=selected.region||'';$('dCategories').value=selected.categories||selected.sector||'';$('dPriority').value=selected.priority||'NORMAL';$('dResultSelect').value=resultOf(selected);$('dMachine').value=selected.machine_info||'';$('dFollow').value=selected.follow_date||'';$('dLastMeeting').textContent=(lastMeeting(selected)?.meeting_date||'—').slice(0,10);$('dResultLabel').textContent=resultLabel(selected);$('dFollowLabel').textContent=selected.follow_date||'—';$('dPotential').textContent=priorityLabel(selected);if($('meetingNoteDate'))$('meetingNoteDate').value=today();if($('meetingNoteStatus'))$('meetingNoteStatus').textContent='';contacts=customerContacts(selected);openContactIndex=-1;renderContacts();syncPrimaryFromContacts();notes=parseNotes(selected.special_notes);renderNotes();loadAnalysisFields();$('overdueAlert').classList.toggle('show',isOverdue(selected));const mb=$('meetingHistory'),ob=$('offerHistory'),mailb=$('mailHistory');if(mb)mb.innerHTML='<div class="history-item">Sekme açıldığında yüklenecek.</div>';if(ob)ob.innerHTML='<div class="history-item">Sekme açıldığında yüklenecek.</div>';if(mailb)mailb.innerHTML='<div class="history-item">Sekme açıldığında yüklenecek.</div>';renderAnalysis()}
 function renderHistory(){const h=selectedHistory||{meetings:[],offers:[],mails:[]};$('meetingHistory').innerHTML=h.meetings?.length?h.meetings.slice().reverse().map(m=>`<div class="history-item"><b>${esc((m.meeting_date||m.created_at||'').slice(0,10))}</b> · ${esc(m.result||'Beklemede')}<div style="margin-top:4px">${esc(m.note||'Not yok')}</div></div>`).join(''):'<div class="history-item">Görüşme kaydı yok.</div>';$('offerHistory').innerHTML=h.offers?.length?h.offers.map(o=>`<div class="history-item"><b>${esc(o.offer_no||'Teklif')}</b> · ${esc(o.status||'')} · ${Number(o.amount||0).toLocaleString('tr-TR')} ${esc(o.currency||'TRY')}<div style="margin-top:4px">${esc(o.subject||o.note||'')}</div></div>`).join(''):'<div class="history-item">Teklif kaydı yok.</div>';const mails=Array.isArray(h.mails)?h.mails:[];$('mailHistory').innerHTML=mails.length?mails.map(mail=>{const raw=String(mail.direction||'').toLocaleLowerCase('tr');const incoming=raw.includes('gelen')||raw.includes('in');const dir=incoming?'Gelen':'Giden';const cls=incoming?'incoming':'outgoing';return `<div class="mail-item ${cls}"><div class="mail-head"><div class="mail-subject">${esc(mail.subject||'(Konu yok)')}</div><span class="mail-dir ${cls}">${dir}</span></div><div class="mail-meta">${esc((mail.mail_date||mail.created_at||'').slice(0,16))} · ${esc(mail.email||'')}</div><div class="mail-summary">${esc(mail.summary||'İçerik özeti yok.')}</div></div>`}).join(''):'<div class="history-item">Bu müşteriye ait mail kaydı yok.</div>'}
 function renderAnalysis(){if(!selected)return;const lm=lastMeeting(selected),offerCount=selectedHistory?.offers?.length||0,meetingCount=selectedHistory?.meetings?.length||0;let lines=[];lines.push(`<b>${esc(selected.company)}</b> için ${meetingCount} görüşme ve ${offerCount} teklif kaydı var.`);lines.push(`Potansiyel: <b>${priorityLabel(selected)}</b>. Sonuç: <b>${resultLabel(selected)}</b>.`);if(isOverdue(selected))lines.push(`<span style="color:#c51e34"><b>Takip süresi geçmiş.</b> Öncelikli işlem gerekiyor.</span>`);else if(selected.follow_date)lines.push(`Sonraki takip: <b>${esc(selected.follow_date)}</b>.`);if(lm?.note)lines.push(`Son görüşme notu: ${esc(String(lm.note).slice(0,180))}`);$('analysisBox').innerHTML=lines.join('<br>')}
 async function saveMeetingNote(){
