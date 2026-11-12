@@ -370,6 +370,24 @@ async function api(request, env) {
       ).run();
     return json({id:r.meta.last_row_id},201);
   }
+  const meetingStatusRoute=path.match(/^\/api\/customers\/(\d+)\/meeting-status$/);
+  if(meetingStatusRoute&&request.method==='PUT'){
+    const b=await body(request);
+    const mapped={
+      open:{stage:'Yeni Lead',record_status:'Aktif'},
+      waiting:{stage:'Beklemede',record_status:'Aktif'},
+      positive:{stage:'Kazanıldı',record_status:'Aktif'},
+      negative:{stage:'Kaybedildi',record_status:'Pasif'}
+    };
+    const value=String(b.status||''),next=mapped[value];
+    if(!next)return json({error:'Geçersiz müşteri sonucu.'},400);
+    const id=Number(meetingStatusRoute[1]);
+    const old=await env.DB.prepare('SELECT id,record_status FROM customers WHERE id=?').bind(id).first();
+    if(!old||old.record_status==='Silindi')return json({error:'Müşteri bulunamadı.'},404);
+    await env.DB.prepare('UPDATE customers SET stage=?,record_status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
+      .bind(next.stage,next.record_status,id).run();
+    return json({ok:true,stage:next.stage,record_status:next.record_status});
+  }
   const customerPotentialRoute=path.match(/^\/api\/customers\/(\d+)\/potential$/);
   if(customerPotentialRoute&&request.method==='PUT'){
     const b=await body(request),priority=String(b.priority||'');
