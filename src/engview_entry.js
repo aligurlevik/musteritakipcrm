@@ -6,6 +6,31 @@ import worker from './graphic_weekly_revenue_entry.js';
 
 const SECTION_REFRESH_SCRIPT="(function(){\n'use strict';\nif(window.__crmSectionRefresh)return;window.__crmSectionRefresh=true;\nasync function refreshSection(){\n const button=document.getElementById('crmSectionRefresh');\n if(button.disabled)return;\n button.disabled=true;button.textContent='↻ Yenileniyor…';\n try{\n  const page=document.querySelector('.section.active')?.id;\n  if(page==='portfolio'){\n   const frame=document.getElementById('portfolioFrame');\n   if(frame?.contentWindow&&typeof frame.contentWindow.loadAll==='function')await frame.contentWindow.loadAll();\n   else if(typeof ensurePortfolioFrameLoaded==='function')ensurePortfolioFrameLoaded();\n  }else if(page==='notes'){\n   const frame=document.getElementById('desktopNotesFrame');\n   const refresh=frame?.contentDocument?.getElementById('refresh');\n   if(refresh)refresh.click();\n   else if(typeof ensureDesktopNotesFrameLoaded==='function')ensureDesktopNotesFrameLoaded();\n  }else{\n   const loaders={graphicJobs:()=>loadGraphicJobs(),tracking:()=>loadTrackingJobs(),reports:()=>loadProductionReport(),agenda:()=>loadAgenda(),customers:()=>loadCustomers(),dash:()=>loadDashboard(),meetings:()=>loadMeetings(),mails:()=>loadMails()};\n   if(loaders[page])await loaders[page]();\n  }\n }catch(error){if(typeof showMsg==='function')showMsg(error.message||'Yenilenemedi.','err');else console.error(error)}\n finally{button.disabled=false;button.textContent='↻ Yenile'}\n}\nfunction install(){\n const host=document.querySelector('.top > div:last-child');\n if(!host||document.getElementById('crmSectionRefresh'))return;\n const button=document.createElement('button');button.id='crmSectionRefresh';button.type='button';button.className='btn';button.textContent='↻ Yenile';button.setAttribute('aria-label','Açık bölümü yenile');button.addEventListener('click',refreshSection);host.prepend(button);\n}\nif(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();\n})();";
 
+const CUSTOMER_CARD_DATES_HIDE_SCRIPT=String.raw`(function(){
+  if(window.__crmHideNewCustomerDates)return;
+  window.__crmHideNewCustomerDates=true;
+  function hideDateRows(){
+    var modal=document.getElementById('customerModal');
+    if(!modal)return;
+    var follow=modal.querySelector('#c_follow');
+    if(follow){var row=follow.closest('.field-row')||follow.parentElement;if(row)row.style.setProperty('display','none','important')}
+    modal.querySelectorAll('label').forEach(function(label){
+      var title=(label.textContent||'').trim().toLocaleLowerCase('tr-TR');
+      if(title==='ilk görüşme tarihi'||title==='takip tarihi'||title==='sonraki görüşme tarihi'){
+        var row=label.closest('.field-row')||label.closest('.info-row')||label.parentElement;
+        if(row&&row.style.display!=='none')row.style.setProperty('display','none','important');
+      }
+    });
+  }
+  function install(){
+    hideDateRows();
+    var modal=document.getElementById('customerModal');
+    if(modal)new MutationObserver(hideDateRows).observe(modal,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+    document.addEventListener('click',function(){setTimeout(hideDateRows,0)},true);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+})();`;
+
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 function bearer(request){const h=request.headers.get('Authorization')||'';return h.startsWith('Bearer ')?h.slice(7).trim():''}
 async function nativeAgendaHotPath(request,env,path){
@@ -62,7 +87,8 @@ export default {
   if(request.method==='GET'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
    const html=(await response.text()).replace(/<head([^>]*)>/i,'<head$1><script src="/silent-fullscreen-reminders.js?v=20261023"></script>').replace('</head>','<link rel="stylesheet" href="/tracking-compact.css?v=20261023-1"></head>');
    const headers=new Headers(response.headers);for(const h of ['content-length','content-encoding','etag'])headers.delete(h);
-   return new Response(html.includes('id="graphicJobs"')?html.replace('</body>',`<script data-crm-section-refresh="20261023">${SECTION_REFRESH_SCRIPT}</script></body>`):html,{status:response.status,headers});
+   const withCustomerDateFix=html.includes('id="customerModal"')?html.replace('</body>',`<script data-customer-card-dates-hide="20261112">${CUSTOMER_CARD_DATES_HIDE_SCRIPT}</script></body>`):html;
+   return new Response(withCustomerDateFix.includes('id="graphicJobs"')?withCustomerDateFix.replace('</body>',`<script data-crm-section-refresh="20261023">${SECTION_REFRESH_SCRIPT}</script></body>`):withCustomerDateFix,{status:response.status,headers});
   }
   return response;
  },
