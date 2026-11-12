@@ -628,7 +628,7 @@ async function saveFirstMeetingDate(){
  const btn=$('meetingFirstDateSave'),date=$('meetingFirstDate').value,status=$('meetingFirstDateStatus');
  btn.disabled=true;status.textContent='Kaydediliyor...';
  try{
-  await api('/api/customers/'+selected.id,{method:'PUT',body:JSON.stringify({first_meeting_date:date})});
+  await api('/api/customers/'+selected.id+'/first-meeting-date',{method:'PUT',body:JSON.stringify({first_meeting_date:date})});
   selected.first_meeting_date=date;
   const i=customers.findIndex(c=>Number(c.id)===Number(selected.id));
   if(i>=0)customers[i].first_meeting_date=date;
