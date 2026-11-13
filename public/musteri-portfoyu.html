@@ -366,9 +366,9 @@ body.crm-embedded #buildMarker{bottom:6px!important;right:6px!important}
                 <label class="card-field">Fatura Adresi<textarea id="dInvoiceAddress" rows="2"></textarea></label>
               </section>
               <section class="panel communication-panel"><h3>☎ İletişim Bilgileri</h3>
-                <label class="card-field">Görüşülen Kişi<input id="dContact"></label>
-                <label class="card-field">Telefon<input id="dPhone" type="tel"></label>
-                <label class="card-field">E-Posta<input id="dEmail" type="email"></label>
+                <label class="card-field">Görüşülen Kişi<input id="dContact" oninput="updatePrimaryContact('name',this.value)"></label>
+                <label class="card-field">Telefon<input id="dPhone" type="tel" oninput="updatePrimaryContact('phone',this.value)"></label>
+                <label class="card-field">E-Posta<input id="dEmail" type="email" oninput="updatePrimaryContact('email',this.value)"></label>
                 <label class="card-field">Web<input id="dWebsite" readonly title="Kayıtlı web adresi"></label>
               </section>
               <section class="panel location-panel"><h3>⌖ Konum Bilgileri</h3>
@@ -557,6 +557,7 @@ function removeContactPerson(i){
   renderContacts();
   syncPrimaryFromContacts();
 }
+function updatePrimaryContact(key,value){if(!contacts.length)contacts.push({name:'',role:'',phone:'',email:''});contacts[0][key]=value;renderContacts();populateMeetingContacts()}
 function syncPrimaryFromContacts(){
   const first=contacts[0]||{name:'',phone:'',email:''};
   $('dContact').value=first.name||'';

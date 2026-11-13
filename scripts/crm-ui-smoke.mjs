@@ -43,6 +43,7 @@ fs.mkdirSync(screenshotDir,{recursive:true});
  }
  await page.locator('#dPaymentDays').fill('30');await page.locator('#dPaymentMethod').fill('Havale / EFT');await page.locator('#dPaymentCurrency').fill('TL');await page.locator('#dPaymentLimit').fill('1000000');await page.locator('#dPaymentRisk').selectOption('Düşük');
  await page.locator('#dCustomerRequests').fill('Hızlı teslim ve çizim desteği');
+ await page.locator('#dPhone').fill('0532 111 22 33');
  await page.locator('#contactPeople input').nth(1).fill('Üretim Müdürü');
  await page.locator('#newNote').fill('Yeni numune notu');await page.getByRole('button',{name:'＋ Not Ekle',exact:true}).click();
  await page.locator('.detail-head').getByRole('button',{name:'✓ Kaydet',exact:true}).click();
@@ -50,6 +51,7 @@ fs.mkdirSync(screenshotDir,{recursive:true});
  const payload=saves.at(-1);
  for(const key of ['cargo_enabled','cargo_company','cargo_code','cargo_note','service_requested','service_type','service_description','service_date','first_meeting_date','note_image_data'])if(payload[key]!==customer[key])throw Error('lost field '+key);
  if(!payload.special_notes.includes('CRM_PAYMENT')||!payload.special_notes.includes('Yeni numune notu')||!payload.special_notes.includes('Numune desteği'))throw Error('notes/payment lost');
+ if(payload.contacts[0].phone!=='0532 111 22 33')throw Error('primary phone edit lost');
  if(payload.contacts[0].role!=='Üretim Müdürü')throw Error('contact edit lost');
  if(await page.locator('#dPaymentDays').inputValue()!=='30')throw Error('payment roundtrip lost');
  for(const [tab,target,text] of [['notes','#meetingHistory','Numune'],['offers','#offerHistory','T-001'],['analysis','#analysisBox','ÖRNEK MATBAA'],['mails','#mailHistory','Numune talebi']]){
