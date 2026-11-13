@@ -33,6 +33,8 @@ fs.mkdirSync(screenshotDir,{recursive:true});
  page=host.frames().find(frame=>frame.parentFrame());
  await page.getByRole('button',{name:'ÖRNEK MATBAA',exact:true}).click();
  await page.locator('#dCustomerRequests').waitFor();
+ const colors=await page.locator('.tabs>.tab').evaluateAll(tabs=>tabs.map(tab=>getComputedStyle(tab).backgroundColor));
+ if(new Set(colors).size!==5||colors.includes('rgb(255, 255, 255)'))throw Error('five colored tabs missing');
  for(const key of ['name','role','phone','email'])if(!await page.locator('#contactPeople input').nth(['name','role','phone','email'].indexOf(key)).isVisible())throw Error('contact not visible '+key);
  for(const sel of ['.work-accordion','.machine-accordion','.payment-accordion']){
   if(await page.locator(sel).getAttribute('open')!==null)throw Error('accordion initially open');
@@ -57,6 +59,10 @@ fs.mkdirSync(screenshotDir,{recursive:true});
  // Show the normal collapsed layout.
  for(const sel of ['.work-accordion','.machine-accordion','.payment-accordion'])if(await page.locator(sel).getAttribute('open')!==null)await page.locator(sel+' summary').click();
  await host.screenshot({path:path.join(screenshotDir,'crm-desktop-preview.png'),fullPage:true});
+ await page.locator('.customer-special-panel').scrollIntoViewIfNeeded();
+ if(!await page.locator('#customerNoteImage').isVisible())throw Error('customer image missing');
+ await host.screenshot({path:path.join(screenshotDir,'crm-notes-preview.png'),fullPage:true});
+ await page.evaluate(()=>document.querySelector('.detail-body').scrollTo(0,0));
  await host.setViewportSize({width:390,height:844});
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+2);
  if(overflow)throw Error('mobile horizontal overflow');
