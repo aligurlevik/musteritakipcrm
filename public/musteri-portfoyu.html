@@ -262,6 +262,8 @@ body.crm-embedded #buildMarker{bottom:6px!important;right:6px!important}
 @media(max-width:1050px){.customer-info-grid{grid-template-columns:1fr 1fr}.location-panel{grid-column:1/-1}.contact-fields{grid-template-columns:1fr 1fr}.payment-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.customer-info-grid,.special-grid{grid-template-columns:1fr}.location-panel{grid-column:auto}.customer-image-panel{border-left:0;padding:0}.contact-fields,.card-field-pair{grid-template-columns:1fr}.customer-card-banner{align-items:flex-start;flex-direction:column}.card-accordion summary{flex-wrap:wrap}.card-accordion summary span{max-width:85%}.crm-meeting-two-columns{grid-template-columns:1fr!important}.customer-info-grid h3{font-size:16px}}
 
+
+@media(max-width:650px){body.customer-open .detail-head{flex-wrap:wrap;gap:8px}body.customer-open .detail-title{order:-1;flex:1 0 100%;font-size:19px}body.customer-open .detail-actions{margin-left:auto}body.customer-open .summary4{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 </style>
 <link rel="prefetch" href="/">
 </head>
@@ -488,7 +490,7 @@ body.crm-embedded #buildMarker{bottom:6px!important;right:6px!important}
 <script>
 const $=id=>document.getElementById(id);let customers=[],meetings=[],selected=null,selectedHistory=null,notes=[],contacts=[],visibleRows=[],openContactIndex=-1,portfolioLoadInFlight=false,meetingLoadInFlight=false,historyLoadInFlight=false,historyLoadedId=0,meetingDelayTimer=null;
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 async function api(url,opt={}){const r=await fetch(url,{credentials:'same-origin',headers:{'content-type':'application/json',...(opt.headers||{})},...opt});if(r.status===401){location.href='/';throw new Error('Oturum gerekli')}let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||'İşlem başarısız');return d}
 function parsed(v){try{const a=JSON.parse(v||'');return Array.isArray(a)?a:[]}catch{return []}}
 function customerContacts(c){
@@ -640,6 +642,7 @@ function selectCustomer(id){
   selectedHistory={meetings:[],offers:[],mails:[]};
   historyLoadedId=0;
   loadSelected();
+  switchTab('general');
   document.body.classList.add('customer-open');
   window.scrollTo({top:0,behavior:'instant'});
 }
