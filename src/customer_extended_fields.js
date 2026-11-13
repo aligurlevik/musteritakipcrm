@@ -28,7 +28,7 @@ export async function ensureCustomerExtendedFields(env){
 }
 
 function cleanContacts(value){
-  return (Array.isArray(value)?value:[]).slice(0,4).map(item=>({
+  return (Array.isArray(value)?value:[]).slice(0,20).map(item=>({
     name:String(item?.name||'').trim().slice(0,180),
     role:String(item?.role||'').trim().slice(0,180),
     phone:String(item?.phone||'').trim().slice(0,80),

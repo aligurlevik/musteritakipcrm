@@ -62,7 +62,7 @@ test('zengin portföy ekranı günlük değerlendirmeyi ve tam müşteri kartın
     assert.match(source, /document\.body\.classList\.add\('customer-open'\)/);
     assert.doesNotMatch(source, /portfolio-fullscreen-detail\.js/);
     assert.doesNotMatch(source, /portfolio-fullscreen-stable\.js/);
-    assert.match(source, /Yetkili Kişiler/);
+    assert.match(source, /Görevli Personel|Yetkili Kişiler/);
     assert.match(source, /Yeni Görüşme \/ Not Ekle/);
     assert.match(source, /function saveMeetingNote\(\)/);
     assert.match(source, /note-date/);

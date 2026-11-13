@@ -122,7 +122,7 @@ jobs:
           grep -Fq 'id="tabMails"' /tmp/portfolio.html || (echo 'mail pane missing'; exit 1)
           grep -Fq 'id="mailHistory"' /tmp/portfolio.html || (echo 'mail history missing'; exit 1)
           grep -Fq 'grid-template-columns:repeat(5,minmax(120px,1fr))' /tmp/portfolio.html || (echo 'five-column tabs missing'; exit 1)
-          grep -Fq 'Yetkili Kişiler' /tmp/portfolio.html || (echo 'contact people panel missing'; exit 1)
+          grep -Fq 'Görevli Personel' /tmp/portfolio.html || (echo 'contact people panel missing'; exit 1)
           grep -Fq 'Yetkili Adı Soyadı' /tmp/portfolio.html || (echo 'contact name field missing'; exit 1)
           grep -Fq 'function toggleContactPerson(i)' /tmp/portfolio.html || (echo 'contact expand function missing'; exit 1)
           grep -Fq 'contacts:cleanContacts' /tmp/portfolio.html || (echo 'contact save payload missing'; exit 1)

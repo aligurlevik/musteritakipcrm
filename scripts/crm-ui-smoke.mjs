@@ -10,9 +10,10 @@ fs.mkdirSync(screenshotDir,{recursive:true});
  let page=host;
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const img='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jxWQAAAAASUVORK5CYII=';
- let customer={id:289,company:'ÖRNEK MATBAA',invoice_title:'Örnek Matbaacılık San. ve Tic. Ltd. Şti.',city:'Ankara',district:'Yenimahalle',neighborhood:'İvedik OSB',region:'İvedik OSB / Yenimahalle',contact_name:'Mustafa Bey',phone:'0312 000 00 00',email:'info@example.com',contacts_json:JSON.stringify([{name:'Mustafa Bey',role:'Satın Alma',phone:'0532 000 00 00',email:'mustafa@example.com'}]),categories:'Matbaa, Ambalaj, Etiket',machine_info:'Bobst kesim makinesi\nPedallı kesim',special_notes:'[ ] 2026-11-13 | Numune desteği',customer_requests:'Maket kesimlerinde hızlı teslim',cargo_enabled:1,cargo_company:'Örnek Kargo',cargo_code:'K123',cargo_note:'Teslim notu',service_requested:1,service_type:'Teknik destek',service_description:'Örnek açıklama',service_date:'2026-12-01',first_meeting_date:'2026-10-01',note_image_data:img,priority:'YÜKSEK',stage:'Yeni Lead',record_status:'Aktif'};
+ let customer={id:289,company:'ÖRNEK MATBAA',invoice_title:'Örnek Matbaacılık San. ve Tic. Ltd. Şti.',city:'Ankara',district:'Yenimahalle',neighborhood:'İvedik OSB',region:'İvedik OSB / Yenimahalle',contact_name:'Mustafa Bey',phone:'0312 000 00 00',email:'info@example.com',contacts_json:JSON.stringify([{name:'Mustafa Bey',role:'Satın Alma',phone:'0532 000 00 00',email:'mustafa@example.com'},{name:'Örnek Personel',role:'Üretim',phone:'0533 000 00 00',email:'personel@example.com'}]),categories:'Matbaa, Ambalaj, Etiket',machine_info:'Bobst kesim makinesi\nPedallı kesim',special_notes:'[ ] 2026-11-13 | Numune desteği',customer_requests:'Maket kesimlerinde hızlı teslim',cargo_enabled:1,cargo_company:'Örnek Kargo',cargo_code:'K123',cargo_note:'Teslim notu',service_requested:1,service_type:'Teknik destek',service_description:'Örnek açıklama',service_date:'2026-12-01',first_meeting_date:'2026-10-01',note_image_data:img,priority:'YÜKSEK',stage:'Yeni Lead',record_status:'Aktif'};
  const originalCustomer=structuredClone(customer);
- const saves=[],meetingSaves=[];
+ const saves=[],meetingSaves=[],statusSaves=[];
+ const passiveCustomer={...originalCustomer,id:290,company:'PASİF ÖRNEK',record_status:'Pasif'};
  await page.route('**/*',async route=>{
   const req=route.request(),u=new URL(req.url());let body={ok:true};
   if(!u.pathname.startsWith('/api/')){
@@ -22,9 +23,10 @@ fs.mkdirSync(screenshotDir,{recursive:true});
    if(fs.existsSync(file))return route.fulfill({path:file,contentType:file.endsWith('.js')?'application/javascript':undefined});
    return route.fulfill({status:404,body:''});
   }
-  if(u.pathname==='/api/portfolio-bootstrap')body={customers:[customer]};
+  if(u.pathname==='/api/portfolio-bootstrap')body={customers:[customer,passiveCustomer]};
   else if(u.pathname==='/api/portfolio-meetings')body={meetings:[]};
   else if(u.pathname.includes('/history'))body={meetings:[{id:1,meeting_date:'2026-11-01',note:'[GERCEK_GORUSME] Numune görüşüldü',participants_json:'[{"name":"Mustafa Bey"}]',result:'Olumlu'}],offers:[{id:2,offer_no:'T-001',amount:1500,currency:'TL',status:'Açık'}],mails:[{id:3,subject:'Numune talebi',direction:'Gelen',summary:'Örnek posta',email:'mustafa@example.com'}]};
+  else if(req.method()==='PUT'&&u.pathname==='/api/customers/289/record-status'){const payload=JSON.parse(req.postData());statusSaves.push(payload);customer.record_status=payload.record_status;body={ok:true,record_status:payload.record_status};}
   else if(req.method()==='POST'&&u.pathname==='/api/meetings'){const payload=JSON.parse(req.postData());meetingSaves.push(payload);customer.follow_date=payload.next_follow_date;body={ok:true,alarm_created:true,meeting_id:10};}
   else if(req.method()==='PUT'&&u.pathname==='/api/customers/289'){body=JSON.parse(req.postData());saves.push(body);customer={...customer,...body,contacts_json:JSON.stringify(body.contacts),categories:body.categories.join(',')};body={ok:true};}
   else if(u.pathname.includes('delete-access'))body={can_delete:false};
@@ -33,6 +35,7 @@ fs.mkdirSync(screenshotDir,{recursive:true});
  await host.goto('https://crm.example.test/');
  await host.locator('#crm').waitFor();
  page=host.frames().find(frame=>frame.parentFrame());
+ if(await page.getByRole('button',{name:'PASİF ÖRNEK',exact:true}).count())throw Error('passive customer visible by default');
  await page.getByRole('button',{name:'ÖRNEK MATBAA',exact:true}).click();
  await page.locator('#dCustomerRequests').waitFor();
  const colors=await page.locator('.tabs>.tab').evaluateAll(tabs=>tabs.map(tab=>getComputedStyle(tab).backgroundColor));
@@ -46,6 +49,7 @@ fs.mkdirSync(screenshotDir,{recursive:true});
  await page.locator('#dPaymentDays').fill('30');await page.locator('#dPaymentMethod').fill('Havale / EFT');await page.locator('#dPaymentCurrency').fill('TL');await page.locator('#dPaymentLimit').fill('1000000');await page.locator('#dPaymentRisk').selectOption('Düşük');
  await page.locator('#dCustomerRequests').fill('Hızlı teslim ve çizim desteği');
  await page.locator('#dPhone').fill('0532 111 22 33');
+ await page.locator('#dContactRole').fill('Firma Sahibi');
  await page.locator('#contactPeople input').nth(1).fill('Üretim Müdürü');
  await page.locator('#newNote').fill('Yeni numune notu');await page.getByRole('button',{name:'＋ Not Ekle',exact:true}).click();
  await page.locator('.detail-head').getByRole('button',{name:'✓ Kaydet',exact:true}).click();
@@ -54,7 +58,7 @@ fs.mkdirSync(screenshotDir,{recursive:true});
  for(const key of ['cargo_enabled','cargo_company','cargo_code','cargo_note','service_requested','service_type','service_description','service_date','first_meeting_date','note_image_data'])if(payload[key]!==originalCustomer[key])throw Error('lost field '+key);
  if(!payload.special_notes.includes('CRM_PAYMENT')||!payload.special_notes.includes('Yeni numune notu')||!payload.special_notes.includes('Numune desteği'))throw Error('notes/payment lost');
  if(payload.contacts[0].phone!=='0532 111 22 33')throw Error('primary phone edit lost');
- if(payload.contacts[0].role!=='Üretim Müdürü')throw Error('contact edit lost');
+ if(payload.contacts[0].role!=='Firma Sahibi'||payload.contacts[0].name!=='Mustafa Bey'||payload.contacts[1].role!=='Üretim Müdürü'||payload.contacts[1].name!=='Örnek Personel')throw Error('primary/staff separation lost');
  if(await page.locator('#dPaymentDays').inputValue()!=='30')throw Error('payment roundtrip lost');
  for(const [tab,target,text] of [['notes','#meetingHistory','Numune'],['offers','#offerHistory','T-001'],['analysis','#analysisBox','ÖRNEK MATBAA'],['mails','#mailHistory','Numune talebi']]){
   await page.locator('[data-tab='+tab+']').click();await page.locator(target).filter({hasText:text}).waitFor();
@@ -87,6 +91,18 @@ fs.mkdirSync(screenshotDir,{recursive:true});
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+2);
  if(overflow)throw Error('mobile horizontal overflow');
  await host.screenshot({path:path.join(screenshotDir,'crm-mobile-preview.png'),fullPage:true});
+ await page.locator('#dRecordStatus').selectOption('Pasif');await page.locator('#saveRecordStatus').click();
+ await page.locator('#recordStatusMessage').filter({hasText:'Pasife alındı.'}).waitFor();
+ await page.locator('.detail-close').click();
+ if(await page.getByRole('button',{name:'ÖRNEK MATBAA',exact:true}).count())throw Error('inactive customer remains in active list');
+ await page.locator('#recordFilter').selectOption('Pasif');
+ await page.getByRole('button',{name:'ÖRNEK MATBAA',exact:true}).click();
+ if(await page.locator('#dContact').inputValue()!=='Mustafa Bey'||await page.locator('#contactPeople input').first().inputValue()!=='Örnek Personel')throw Error('contacts lost on passive/reopen');
+ await page.locator('#dRecordStatus').selectOption('Aktif');await page.locator('#saveRecordStatus').click();
+ await page.locator('#recordStatusMessage').filter({hasText:'Müşteri aktifleştirildi.'}).waitFor();await page.locator('.detail-close').click();
+ await page.locator('#recordFilter').selectOption('Aktif');
+ if(!await page.getByRole('button',{name:'ÖRNEK MATBAA',exact:true}).count())throw Error('reactivated customer missing');
+ if(statusSaves.length!==2||statusSaves.some(p=>Object.keys(p).join(',')!=='record_status'))throw Error('status change sent other customer data');
  if(errors.length)throw Error(errors.join('\n'));
  console.log(JSON.stringify({desktop:'OK',mobile:'OK',contacts:'OK',accordions:'OK',save:'OK',payment_roundtrip:'OK',preserved_fields:'OK',tabs:'OK',page_errors:errors}));
  await browser.close();

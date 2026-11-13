@@ -388,6 +388,15 @@ async function api(request, env) {
       .bind(next.stage,next.record_status,id).run();
     return json({ok:true,stage:next.stage,record_status:next.record_status});
   }
+  const recordStatusRoute=path.match(/^\/api\/customers\/(\d+)\/record-status$/);
+  if(recordStatusRoute&&request.method==='PUT'){
+    const b=await body(request),id=Number(recordStatusRoute[1]);
+    if(!['Aktif','Pasif'].includes(b.record_status))return json({error:'Müşteri durumu Aktif veya Pasif olmalıdır.'},400);
+    const customer=await env.DB.prepare("SELECT id FROM customers WHERE id=? AND COALESCE(record_status,'Aktif')<>'Silindi'").bind(id).first();
+    if(!customer)return json({error:'Müşteri bulunamadı.'},404);
+    await env.DB.prepare('UPDATE customers SET record_status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.record_status,id).run();
+    return json({ok:true,record_status:b.record_status});
+  }
   const customerPotentialRoute=path.match(/^\/api\/customers\/(\d+)\/potential$/);
   if(customerPotentialRoute&&request.method==='PUT'){
     const b=await body(request),priority=String(b.priority||'');
