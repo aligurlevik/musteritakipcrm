@@ -8,9 +8,11 @@
     "predeploy": "npm test",
     "deploy": "wrangler deploy",
     "db:init:local": "wrangler d1 execute musteri-takip-crm --local --file=./schema.sql",
-    "db:init:remote": "wrangler d1 execute musteri-takip-crm --remote --file=./schema.sql"
+    "db:init:remote": "wrangler d1 execute musteri-takip-crm --remote --file=./schema.sql",
+    "test:ui": "node scripts/crm-ui-smoke.mjs"
   },
   "devDependencies": {
+    "playwright": "1.58.2",
     "wrangler": "^4.0.0"
   },
   "dependencies": {
