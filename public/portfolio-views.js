@@ -21,7 +21,7 @@
   function resultText(c){
     const stage=String(c?.stage||'').toLocaleLowerCase('tr');
     if(stage.includes('kazan'))return 'Olumlu';
-    if(stage.includes('kaybed')||String(c?.record_status||'')==='Pasif')return 'Olumsuz';
+    if(stage.includes('kaybed'))return 'Olumsuz';
     if(stage.includes('bekle'))return 'Beklemede';
     return 'Sonuçlanmamış';
   }
