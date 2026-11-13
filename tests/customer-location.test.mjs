@@ -32,7 +32,7 @@ test('customer POST and PUT persist separate location columns; old clients prese
  db.exec(`CREATE TABLE customers(id INTEGER PRIMARY KEY,company TEXT,contact_name TEXT,phone TEXT,email TEXT,region TEXT,sector TEXT,priority TEXT,stage TEXT,follow_date TEXT,invoice_title TEXT,tax_office TEXT,tax_number TEXT,invoice_address TEXT,record_status TEXT,special_notes TEXT,machine_info TEXT,phones_json TEXT,emails_json TEXT,contacts_json TEXT,categories TEXT,note_image_data TEXT,city TEXT,district TEXT,neighborhood TEXT,first_meeting_date TEXT,updated_at TEXT)`);
  const env={DB:{prepare(sql){return {bind(...values){const stmt=db.prepare(sql);return {run:async()=>({meta:{last_row_id:stmt.run(...values).lastInsertRowid}}),first:async()=>stmt.get(...values)};}};}}};
  const ctx={env,request:{},body:async()=>ctx.payload,json:x=>x,validAgendaImage:()=>'',cm:[null,'1']};vm.createContext(ctx);
- const post=source.split("if(path==='/api/customers' && request.method==='POST') {")[1].split('\n  const cm=')[0].replace(/\n  }\s*$/,'');
+ const post=source.split("if(path==='/api/customers' && request.method==='POST') {")[1].split('\n  const meetingStatusRoute=')[0].replace(/\n  }\s*$/,'');
  const put=source.split("if(cm && request.method==='PUT') {")[1].split('\n  const customerResult=')[0].replace(/\n  }\s*$/,'');
  const run=code=>vm.runInContext('(async()=>{'+code+'})()',ctx);
  ctx.payload={company:'ANOLSAN',city:'Ankara',district:'Yenimahalle',neighborhood:'İvedikköy',first_meeting_date:'2026-09-10'};await run(post);

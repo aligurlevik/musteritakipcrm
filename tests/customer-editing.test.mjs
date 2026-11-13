@@ -14,11 +14,11 @@ test('potential selection synchronizes editable values and notes can be correcte
  assert.doesNotMatch(html,/<th>Not<\/th>|<span class="note-check">/);assert.match(html,/id="dPotential"[^>]+onchange=/);assert.match(html,/onclick="saveCustomerChanges\(\)"/);
 });
 test('editing a meeting note changes only its text and date, preserving reminders and outcome',async()=>{
- const db=new DatabaseSync(':memory:');db.exec("CREATE TABLE meetings(id INTEGER PRIMARY KEY,note TEXT,meeting_date TEXT,remind_at TEXT,result TEXT,participants_json TEXT);INSERT INTO meetings VALUES(1,'Eski','2026-10-01','2026-10-30T10:00','Olumlu','[{\"name\":\"Ali\"}]')");
+ const db=new DatabaseSync(':memory:');db.exec("CREATE TABLE meetings(id INTEGER PRIMARY KEY,note TEXT,meeting_date TEXT,remind_at TEXT,result TEXT,participants_json TEXT,customer_id INTEGER,next_follow_date TEXT);INSERT INTO meetings VALUES(1,'Eski','2026-10-01','2026-10-30T10:00','Olumlu','[{\"name\":\"Ali\"}]',9,'2026-10-30')");
  const env={DB:{prepare(sql){return {bind(...v){const stmt=db.prepare(sql);return {first:async()=>stmt.get(...v),run:async()=>stmt.run(...v)}}}}}};
  const ctx={env,request:{},md:[null,'1'],body:async()=>({note:'Yeni not',meeting_date:'2026-09-15'}),json:(d,status=200)=>({d,status})};vm.createContext(ctx);
  const code=source.split("if(md&&request.method==='PATCH'){")[1].split("  if(md&&request.method==='PUT')")[0].replace(/\n  }\s*$/,'');
- await vm.runInContext('(async()=>{'+code+'})()',ctx);const row=db.prepare('SELECT * FROM meetings').get();assert.equal(row.note,'Yeni not');assert.equal(row.meeting_date,'2026-09-15');assert.equal(row.remind_at,'2026-10-30T10:00');assert.equal(row.result,'Olumlu');assert.match(row.participants_json,/Ali/);db.close();
+ await vm.runInContext('(async()=>{'+code+'})()',ctx);const row=db.prepare('SELECT * FROM meetings').get();assert.equal(row.note,'Yeni not');assert.equal(row.meeting_date,'2026-09-15');assert.equal(row.remind_at,'2026-10-30T10:00');assert.equal(row.result,'Olumlu');assert.match(row.participants_json,/Ali/);assert.equal(row.next_follow_date,'2026-10-30');db.close();
 });
 test('offer and mail notes update without replacing other record fields',async()=>{
  const db=new DatabaseSync(':memory:');db.exec("CREATE TABLE offers(id INTEGER PRIMARY KEY,note TEXT,amount INTEGER);INSERT INTO offers VALUES(1,'Eski teklif notu',1500);CREATE TABLE mails(id INTEGER PRIMARY KEY,summary TEXT,subject TEXT);INSERT INTO mails VALUES(2,'Eski mail notu','Konu')");
