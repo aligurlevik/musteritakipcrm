@@ -275,6 +275,10 @@ body.crm-embedded #buildMarker{bottom:6px!important;right:6px!important}
 #detailContent>.tabs>.tab.active{box-shadow:inset 0 -3px currentColor,0 2px 6px #0f172a15}
 #detailContent>.tabs>.tab.active[data-tab=general]{background:#1557ff;color:#fff}
 @media(max-width:750px){#detailContent>.tabs{display:flex;overflow-x:auto}#detailContent>.tabs>.tab{flex:0 0 140px}}
+
+.customer-special-panel .note-row{grid-template-columns:18px minmax(0,1fr) 52px}
+.customer-special-panel .delete-note{border:1px solid #fecaca;border-radius:6px;background:#fff0f1;color:#b91c1c;padding:6px 8px;font-size:12px;font-weight:800;cursor:pointer}
+.customer-special-panel .delete-note:hover{background:#fee2e2}
 </style>
 <link rel="prefetch" href="/">
 </head>
@@ -399,7 +403,7 @@ body.crm-embedded #buildMarker{bottom:6px!important;right:6px!important}
               <label class="card-field">Özel İstekler<textarea id="dCustomerRequests" rows="3" placeholder="Müşterinin özel talepleri…"></textarea></label>
               <div class="notes-panel"><div class="notes-title">Notlar</div><div id="noteList" class="note-list"></div><div class="add-note"><input id="newNote" placeholder="Yeni not yazın…"><button type="button" class="btn primary small" onclick="addNote()">＋ Not Ekle</button></div></div>
             </div><div class="customer-image-panel"><label class="card-field">Resim Ekle<input id="customerImageInput" type="file" accept="image/jpeg,image/png,image/webp" onchange="readCustomerImage(this)"></label><img id="customerNoteImage" alt="Müşteri notuna eklenen resim" hidden><span id="customerImageStatus" role="status"></span></div></div></section>
-            <div class="follow-grid"><div><label>Sonraki İşlem Tarihi</label><input id="dFollow" type="date"></div><div><label>Saat</label><input id="dFollowTime" type="time" value="10:00"></div><div class="wide"><label>Hatırlatma Notu</label><input id="dReminderNote" placeholder="Örn. Teklif sonucunu sor"></div><button class="btn primary" onclick="createReminder()">🔔 Bildirim Ekle</button></div>
+            <input id="dFollow" type="hidden">
             <div class="savebar"><button class="btn soft" onclick="loadSelected()">İptal</button><button class="btn primary" onclick="saveCustomerChanges()">Kaydet</button></div>
             <div id="overdueAlert" class="alert">🔔 Bu müşterinin takip süresi geçti.</div>
           </div>
@@ -423,6 +427,7 @@ body.crm-embedded #buildMarker{bottom:6px!important;right:6px!important}
   <div class="crm-meeting-right" style="display:grid;gap:7px;min-width:0">
    <div class="crm-meeting-side-field"><label for="meetingNoteDate" style="font-weight:800;display:block;margin-bottom:5px">📅 Görüşmenin Yapıldığı Tarih</label><input id="meetingNoteDate" type="date" style="width:100%;height:36px;border:1px solid #dce5ef;border-radius:7px;padding:6px"></div>
    <div class="crm-meeting-side-field"><label for="meetingNextCallDate" style="font-weight:800;display:block;margin-bottom:5px">📞 Tekrar Arama Tarihi</label><input id="meetingNextCallDate" type="date" required aria-required="true" style="width:100%;height:36px;border:1px solid #dce5ef;border-radius:7px;padding:6px"></div>
+   <div class="crm-meeting-side-field"><label for="meetingReminderTime" style="font-weight:800;display:block;margin-bottom:5px">🔔 Alarm Saati</label><input id="meetingReminderTime" type="time" value="10:00" required style="width:100%;height:36px;border:1px solid #dce5ef;border-radius:7px;padding:6px"><span class="small">Görüşmeyi kaydedince tekrar arama tarihi için alarm kurulur.</span></div>
    <div class="crm-meeting-side-field"><label for="meetingNoteResult" style="font-weight:800;display:block;margin-bottom:5px">Görüşme Sonucu</label><select id="meetingNoteResult" style="width:100%;height:36px;border:1px solid #dce5ef;border-radius:7px;padding:6px"><option>Beklemede</option><option>Tekrar Görüşülecek</option><option>Olumlu</option><option>Olumsuz</option></select></div>
    <div class="crm-meeting-side-field" style="padding:7px;border:1px solid #cfe0fb;border-radius:8px;background:#f8fbff">
     <label for="dPotential" style="font-weight:800;display:block;margin-bottom:6px">📊 Görüşme Sonrası Müşteri Potansiyeli</label>
@@ -628,7 +633,7 @@ function filterRows(){const q=$('search').value.trim().toLocaleLowerCase('tr'),c
 function syncLocationColumns(){const city=Boolean($('city').value),district=Boolean($('district').value);document.body.classList.toggle('show-location-district',city);document.body.classList.toggle('show-location-neighborhood',city&&district)}
 function render(){syncLocationColumns();visibleRows=filterRows();$('rowCount').textContent=`${visibleRows.length} firma`;const tbody=$('rows');tbody.innerHTML=visibleRows.map(c=>{const lm=lastMeeting(c),note=firstNote(c),statusClass=isOverdue(c)?'follow-overdue ':isToday(c)?'follow-today ':isFuture(c)?'follow-future ':'';const sel=selected&&Number(selected.id)===Number(c.id)?'selected':'';const followClass=isOverdue(c)?'over':isToday(c)?'today':'';return `<tr class="${statusClass}${sel}"><td><span class="dot ${resultOf(c)==='negative'?'red':resultOf(c)==='waiting'?'amber':''}"></span><button type="button" class="company company-open-btn" onclick="selectCustomer(${c.id})">${esc(c.company)}</button></td><td>${esc(c.contact_name||'—')}<span class="person-role">${esc(c.invoice_title||'')}</span></td><td>${esc(c.phone||parsed(c.phones_json)[0]||'—')}</td><td>${esc(customerLocation(c).city||'—')}</td><td data-location-column="district">${esc(customerLocation(c).district||'—')}</td><td data-location-column="neighborhood">${esc(customerLocation(c).neighborhood||'—')}</td><td>${esc(c.categories||c.sector||'—')}</td><td>${esc((lm?.meeting_date||'—').slice(0,10))}</td><td><span class="badge ${priorityClass(c)}">${priorityLabel(c)}</span></td><td><span class="badge ${resultBadge(c)}">${resultLabel(c)}</span></td><td class="follow ${followClass}">${esc(c.follow_date||'—')}</td><td><button class="btn small" onclick="event.stopPropagation();selectCustomer(${c.id})">Detay</button></td></tr>`}).join('');if(selected&&!visibleRows.some(c=>Number(c.id)===Number(selected.id))){selected=null;$('detailContent').classList.add('hidden');$('detailEmpty').classList.remove('hidden')}}
 function clearFilters(){['search','city','district','neighborhood','sector','priority','result','followFilter'].forEach(id=>$(id).value='');fillLocationFilters();render()}
-function renderNotes(){if(!notes.length){$('noteList').innerHTML='<div style="font-size:10px;color:#64748b">Henüz not yok.</div>';return}$('noteList').innerHTML=notes.map((n,i)=>`<div class="note-row"><input type="checkbox" ${n.done?'checked':''} onchange="toggleNote(${i},this.checked)"><span class="note-main" style="${n.done?'text-decoration:line-through;color:#94a3b8':''}"><input class="customer-note-edit" aria-label="Not metni" value="${esc(n.text)}" oninput="updateNoteText(${i},this.value)"><label class="note-date">Not tarihi <input type="date" value="${esc(n.date||'')}" onchange="updateNoteDate(${i},this.value)"></label></span><button onclick="removeNote(${i})">×</button></div>`).join('')}
+function renderNotes(){if(!notes.length){$('noteList').innerHTML='<div style="font-size:10px;color:#64748b">Henüz not yok.</div>';return}$('noteList').innerHTML=notes.map((n,i)=>`<div class="note-row"><input type="checkbox" ${n.done?'checked':''} onchange="toggleNote(${i},this.checked)"><span class="note-main" style="${n.done?'text-decoration:line-through;color:#94a3b8':''}"><input class="customer-note-edit" aria-label="Not metni" value="${esc(n.text)}" oninput="updateNoteText(${i},this.value)"><label class="note-date">Not tarihi <input type="date" value="${esc(n.date||'')}" onchange="updateNoteDate(${i},this.value)"></label></span><button type="button" class="delete-note" aria-label="Notu sil" onclick="removeNote(${i})">Sil</button></div>`).join('')}
 function parseNotes(text){return stripAnalysisMeta(text).split('\n').map(x=>x.trim()).filter(Boolean).map(x=>{const done=/^\[[xX]\]/.test(x);const raw=x.replace(/^\[[ xX]\]\s*/,'');const m=raw.match(/^(\d{4}-\d{2}-\d{2})\s*\|\s*(.*)$/);return {done,date:m?m[1]:'',text:m?m[2]:raw}})}
 function notesText(){
   const normal=notes.map(n=>`[${n.done?'x':' '}] ${n.date?n.date+' | ':''}${n.text}`).join('\n');
@@ -647,7 +652,7 @@ function loadAnalysisFields(){
 function addNote(){const v=$('newNote').value.trim();if(!v)return;notes.push({done:false,date:today(),text:v});$('newNote').value='';renderNotes()}
 function updateNoteText(i,value){if(notes[i])notes[i].text=value}
 function updateNoteDate(i,value){if(notes[i])notes[i].date=value}
-function toggleNote(i,v){notes[i].done=v;renderNotes()}function removeNote(i){notes.splice(i,1);renderNotes()}
+function toggleNote(i,v){notes[i].done=v;renderNotes()}function removeNote(i){if(!confirm('Bu notu silmek istiyor musunuz? Değişiklik Kaydet ile uygulanır.'))return;notes.splice(i,1);renderNotes();$('customerSaveStatus').textContent='Not kaldırıldı. Kaydet ile saklayın.'}
 function selectCustomer(id){
   selected=customers.find(c=>Number(c.id)===Number(id));
   if(!selected)return;
@@ -826,16 +831,18 @@ async function saveMeetingNote(){
     $('meetingNextCallDate').focus();
     return;
   }
+  const nextDate=$('meetingNextCallDate').value,alarmTime=$('meetingReminderTime').value||'10:00';
   $('meetingNoteStatus').style.color='';
   const btn=$('meetingNoteSave');
   btn.disabled=true;
   $('meetingNoteStatus').textContent='Kaydediliyor...';
   try{
-    await api('/api/meetings',{method:'POST',body:JSON.stringify({customer_id:selected.id,meeting_date:date,next_follow_date:$('meetingNextCallDate').value,note:'[GERCEK_GORUSME] '+note,result,participants:[{name:chosenName}]})});
+    await api('/api/meetings',{method:'POST',body:JSON.stringify({customer_id:selected.id,meeting_date:date,next_follow_date:nextDate,remind_at:nextDate+'T'+alarmTime,remind_note:selected.company+' — '+note,alarm_channel:'agenda',note:'[GERCEK_GORUSME] '+note,result,participants:[{name:chosenName}]})});
     $('meetingNoteText').value='';
     $('meetingNoteDate').value=today();
+    selected.follow_date=nextDate;$('dFollow').value=nextDate;$('dFollowLabel').textContent=nextDate;writeCustomerCache(customers);
     $('meetingNextCallDate').value='';
-    $('meetingNoteStatus').textContent='Kaydedildi.';
+    $('meetingNoteStatus').textContent='Görüşme kaydedildi. Alarm: '+nextDate.split('-').reverse().join('.')+' '+alarmTime;
     historyLoadedId=0;
     historyLoadInFlight=false;
     await ensureSelectedHistory();
@@ -918,7 +925,6 @@ async function saveCustomer(){
   loadSelected();
   setTimeout(refreshPortfolioDataSilently,0);
 }
-async function createReminder(){if(!selected)return;const date=$('dFollow').value,time=$('dFollowTime').value||'10:00';if(!date){alert('Önce sonraki işlem tarihini seçin.');return}const note=$('dReminderNote').value.trim()||selected.company+' takip';await api('/api/meetings',{method:'POST',body:JSON.stringify({customer_id:selected.id,meeting_date:today(),note:'Takip hatırlatması oluşturuldu: '+note,next_follow_date:date,remind_at:date+'T'+time,remind_note:note,result:'Beklemede'})});selected.follow_date=date;const pos=customers.findIndex(c=>Number(c.id)===Number(selected.id));if(pos>=0)customers[pos]=selected;writeCustomerCache(customers);loadSelected();setTimeout(loadMeetingData,0)}
 function switchTab(name){if(name==='notes')populateMeetingContacts();document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));document.querySelectorAll('.tabpane').forEach(x=>x.classList.add('hidden'));$('tab'+name[0].toUpperCase()+name.slice(1)).classList.remove('hidden');if(name!=='general')ensureSelectedHistory()}
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));['search','city','district','neighborhood','sector','priority','result','followFilter'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',()=>{if(id==='city'){$('district').value='';$('neighborhood').value='';fillLocationFilters()}if(id==='district'){$('neighborhood').value='';fillLocationFilters()}render()}));
 function exportCsv(){const head=['Firma','Kişi','Telefon','Mail','İl','İlçe','Mahalle','Adres / Eski Bölge','İş Alanı','Sonuç','Takip'];const body=visibleRows.map(c=>[c.company,c.contact_name,c.phone,c.email,...Object.values(customerLocation(c)),c.region,c.categories||c.sector,resultLabel(c),c.follow_date]);const csv=[head,...body].map(r=>r.map(v=>'"'+String(v||'').replaceAll('"','""')+'"').join(';')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download='musteri-portfoyu.csv';a.click();URL.revokeObjectURL(a.href)}

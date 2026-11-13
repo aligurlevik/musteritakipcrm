@@ -12,7 +12,7 @@ fs.mkdirSync(screenshotDir,{recursive:true});
  const img='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jxWQAAAAASUVORK5CYII=';
  let customer={id:289,company:'ÖRNEK MATBAA',invoice_title:'Örnek Matbaacılık San. ve Tic. Ltd. Şti.',city:'Ankara',district:'Yenimahalle',neighborhood:'İvedik OSB',region:'İvedik OSB / Yenimahalle',contact_name:'Mustafa Bey',phone:'0312 000 00 00',email:'info@example.com',contacts_json:JSON.stringify([{name:'Mustafa Bey',role:'Satın Alma',phone:'0532 000 00 00',email:'mustafa@example.com'}]),categories:'Matbaa, Ambalaj, Etiket',machine_info:'Bobst kesim makinesi\nPedallı kesim',special_notes:'[ ] 2026-11-13 | Numune desteği',customer_requests:'Maket kesimlerinde hızlı teslim',cargo_enabled:1,cargo_company:'Örnek Kargo',cargo_code:'K123',cargo_note:'Teslim notu',service_requested:1,service_type:'Teknik destek',service_description:'Örnek açıklama',service_date:'2026-12-01',first_meeting_date:'2026-10-01',note_image_data:img,priority:'YÜKSEK',stage:'Yeni Lead',record_status:'Aktif'};
  const originalCustomer=structuredClone(customer);
- const saves=[];
+ const saves=[],meetingSaves=[];
  await page.route('**/*',async route=>{
   const req=route.request(),u=new URL(req.url());let body={ok:true};
   if(!u.pathname.startsWith('/api/')){
@@ -25,6 +25,7 @@ fs.mkdirSync(screenshotDir,{recursive:true});
   if(u.pathname==='/api/portfolio-bootstrap')body={customers:[customer]};
   else if(u.pathname==='/api/portfolio-meetings')body={meetings:[]};
   else if(u.pathname.includes('/history'))body={meetings:[{id:1,meeting_date:'2026-11-01',note:'[GERCEK_GORUSME] Numune görüşüldü',participants_json:'[{"name":"Mustafa Bey"}]',result:'Olumlu'}],offers:[{id:2,offer_no:'T-001',amount:1500,currency:'TL',status:'Açık'}],mails:[{id:3,subject:'Numune talebi',direction:'Gelen',summary:'Örnek posta',email:'mustafa@example.com'}]};
+  else if(req.method()==='POST'&&u.pathname==='/api/meetings'){const payload=JSON.parse(req.postData());meetingSaves.push(payload);customer.follow_date=payload.next_follow_date;body={ok:true,alarm_created:true,meeting_id:10};}
   else if(req.method()==='PUT'&&u.pathname==='/api/customers/289'){body=JSON.parse(req.postData());saves.push(body);customer={...customer,...body,contacts_json:JSON.stringify(body.contacts),categories:body.categories.join(',')};body={ok:true};}
   else if(u.pathname.includes('delete-access'))body={can_delete:false};
   await route.fulfill({json:body});
@@ -58,7 +59,23 @@ fs.mkdirSync(screenshotDir,{recursive:true});
  for(const [tab,target,text] of [['notes','#meetingHistory','Numune'],['offers','#offerHistory','T-001'],['analysis','#analysisBox','ÖRNEK MATBAA'],['mails','#mailHistory','Numune talebi']]){
   await page.locator('[data-tab='+tab+']').click();await page.locator(target).filter({hasText:text}).waitFor();
  }
+ await page.locator('[data-tab=notes]').click();
+ await page.locator('#meetingNoteText').fill('Alarm kurma testi');
+ await page.locator('#meetingContactSelect').selectOption('Mustafa Bey');
+ await page.locator('#meetingNoteSave').click();
+ if(meetingSaves.length)throw Error('meeting saved without a next call date');
+ await page.locator('#meetingNextCallDate').fill('2030-11-14');await page.locator('#meetingReminderTime').fill('09:45');
+ await page.locator('#meetingNoteSave').click();
+ await page.locator('#meetingNoteStatus').filter({hasText:'Alarm: 14.11.2030 09:45'}).waitFor();
+ if(meetingSaves.length!==1||meetingSaves[0].remind_at!=='2030-11-14T09:45'||meetingSaves[0].alarm_channel!=='agenda')throw Error('automatic meeting alarm missing');
  await page.locator('[data-tab=general]').click();
+ if(await page.locator('#dFollow').isVisible()||await page.getByText('Bildirim Ekle',{exact:false}).count())throw Error('old card reminder form remains');
+ await page.locator('#newNote').fill('Silinecek test notu');await page.getByRole('button',{name:'＋ Not Ekle',exact:true}).click();
+ host.once('dialog',dialog=>dialog.accept());await page.locator('#noteList .delete-note').last().click();
+ await page.locator('.detail-head').getByRole('button',{name:'✓ Kaydet',exact:true}).click();
+ await page.locator('#customerSaveStatus').filter({hasText:'Kaydedildi.'}).waitFor();
+ if(saves.at(-1).special_notes.includes('Silinecek test notu')||!saves.at(-1).special_notes.includes('Numune desteği'))throw Error('note delete changed the wrong notes');
+ if(saves.at(-1).follow_date!=='2030-11-14')throw Error('card save reverted meeting follow date');
  // Show the normal collapsed layout.
  for(const sel of ['.work-accordion','.machine-accordion','.payment-accordion'])if(await page.locator(sel).getAttribute('open')!==null)await page.locator(sel+' summary').click();
  await host.screenshot({path:path.join(screenshotDir,'crm-desktop-preview.png'),fullPage:true});
