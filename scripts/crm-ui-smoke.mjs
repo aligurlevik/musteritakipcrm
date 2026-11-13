@@ -11,6 +11,7 @@ fs.mkdirSync(screenshotDir,{recursive:true});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const img='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jxWQAAAAASUVORK5CYII=';
  let customer={id:289,company:'ÖRNEK MATBAA',invoice_title:'Örnek Matbaacılık San. ve Tic. Ltd. Şti.',city:'Ankara',district:'Yenimahalle',neighborhood:'İvedik OSB',region:'İvedik OSB / Yenimahalle',contact_name:'Mustafa Bey',phone:'0312 000 00 00',email:'info@example.com',contacts_json:JSON.stringify([{name:'Mustafa Bey',role:'Satın Alma',phone:'0532 000 00 00',email:'mustafa@example.com'}]),categories:'Matbaa, Ambalaj, Etiket',machine_info:'Bobst kesim makinesi\nPedallı kesim',special_notes:'[ ] 2026-11-13 | Numune desteği',customer_requests:'Maket kesimlerinde hızlı teslim',cargo_enabled:1,cargo_company:'Örnek Kargo',cargo_code:'K123',cargo_note:'Teslim notu',service_requested:1,service_type:'Teknik destek',service_description:'Örnek açıklama',service_date:'2026-12-01',first_meeting_date:'2026-10-01',note_image_data:img,priority:'YÜKSEK',stage:'Yeni Lead',record_status:'Aktif'};
+ const originalCustomer=structuredClone(customer);
  const saves=[];
  await page.route('**/*',async route=>{
   const req=route.request(),u=new URL(req.url());let body={ok:true};
@@ -49,7 +50,7 @@ fs.mkdirSync(screenshotDir,{recursive:true});
  await page.locator('.detail-head').getByRole('button',{name:'✓ Kaydet',exact:true}).click();
  await page.locator('#customerSaveStatus').filter({hasText:'Kaydedildi.'}).waitFor();
  const payload=saves.at(-1);
- for(const key of ['cargo_enabled','cargo_company','cargo_code','cargo_note','service_requested','service_type','service_description','service_date','first_meeting_date','note_image_data'])if(payload[key]!==customer[key])throw Error('lost field '+key);
+ for(const key of ['cargo_enabled','cargo_company','cargo_code','cargo_note','service_requested','service_type','service_description','service_date','first_meeting_date','note_image_data'])if(payload[key]!==originalCustomer[key])throw Error('lost field '+key);
  if(!payload.special_notes.includes('CRM_PAYMENT')||!payload.special_notes.includes('Yeni numune notu')||!payload.special_notes.includes('Numune desteği'))throw Error('notes/payment lost');
  if(payload.contacts[0].phone!=='0532 111 22 33')throw Error('primary phone edit lost');
  if(payload.contacts[0].role!=='Üretim Müdürü')throw Error('contact edit lost');
