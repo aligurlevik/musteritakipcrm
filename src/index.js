@@ -470,15 +470,25 @@ async function api(request, env) {
     const b=await body(request);
     const customerId=Number(b.customer_id||0);
     if(!customerId)return json({error:'Firma seçimi zorunlu'},400);
+    const agendaAlarm=b.alarm_channel==='agenda';
+    if(agendaAlarm&&(!/^\d{4}-\d{2}-\d{2}$/.test(String(b.next_follow_date||''))||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(String(b.remind_at||''))||String(b.remind_at).slice(0,10)!==b.next_follow_date||!Number.isFinite(Date.parse(b.remind_at+':00+03:00'))))return json({error:'Alarm için geçerli tekrar arama tarihi ve saat zorunlu.'},400);
+    const customer=agendaAlarm?await env.DB.prepare("SELECT company FROM customers WHERE id=? AND COALESCE(record_status,'Aktif')<>'Silindi'").bind(customerId).first():null;
+    if(agendaAlarm&&!customer)return json({error:'Müşteri bulunamadı.'},404);
     const last=await env.DB.prepare('SELECT COALESCE(MAX(meeting_no),0) last_no FROM meetings WHERE customer_id=?').bind(customerId).first();
     const meetingNo=Number(last?.last_no||0)+1;
-    const created=await env.DB.prepare(`INSERT INTO meetings(customer_id,meeting_no,meeting_date,note,next_follow_date,remind_at,remind_note,reminder_status,result,result_note,participants_json) VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
-      .bind(customerId,meetingNo,b.meeting_date||'',b.note||'',b.next_follow_date||'',b.remind_at||'',b.remind_note||'',b.remind_at?'Açık':'',b.result||'Beklemede',b.result_note||'',JSON.stringify((Array.isArray(b.participants)?b.participants:[]).slice(0,4).map(p=>({name:String(p?.name||'').trim(),phone:String(p?.phone||'').trim()})).filter(p=>p.name||p.phone))).run();
+    const meetingStatement=env.DB.prepare(`INSERT INTO meetings(customer_id,meeting_no,meeting_date,note,next_follow_date,remind_at,remind_note,reminder_status,result,result_note,participants_json) VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
+      .bind(customerId,meetingNo,b.meeting_date||'',b.note||'',b.next_follow_date||'',b.remind_at||'',b.remind_note||'',b.remind_at?(agendaAlarm?'Ajandada':'Açık'):'',b.result||'Beklemede',b.result_note||'',JSON.stringify((Array.isArray(b.participants)?b.participants:[]).slice(0,4).map(p=>({name:String(p?.name||'').trim(),phone:String(p?.phone||'').trim()})).filter(p=>p.name||p.phone)));
+    // D1 batch is atomic: a failed agenda write must not leave a meeting without its alarm.
+    const created=agendaAlarm?(await env.DB.batch([
+      meetingStatement,
+      env.DB.prepare("INSERT INTO agenda_entries(entry_date,sort_order,title,note,remind_at,reminder_status,image_data,source_type,entry_status,notebook_no) VALUES(?,1,?,?,?,'Açık','','manual','Yapılacak',1)")
+        .bind(b.next_follow_date,customer.company+' — Tekrar arama',customer.company+' — Tekrar arama\n'+String(b.remind_note||b.note||'').replace(/^\[GERCEK_GORUSME\]\s*/,''),b.remind_at)
+    ]))[0]:await meetingStatement.run();
     if(b.next_follow_date) await env.DB.prepare('UPDATE customers SET follow_date=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(b.next_follow_date,customerId).run();
     if(b.result==='Olumsuz') await env.DB.prepare("UPDATE customers SET record_status='Pasif',stage='Kaybedildi',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
     else if(b.result==='Olumlu') await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage='Kazanıldı',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
     else if(b.result==='Tekrar Görüşülecek') await env.DB.prepare("UPDATE customers SET record_status='Aktif',stage=CASE WHEN stage IN ('Kaybedildi','Kazanıldı') THEN 'İlk Görüşme' ELSE stage END,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(customerId).run();
-    return json({ok:true,meeting_id:created.meta.last_row_id,meeting_no:meetingNo},201);
+    return json({ok:true,meeting_id:created.meta.last_row_id,meeting_no:meetingNo,alarm_created:agendaAlarm},201);
   }
   const md=path.match(/^\/api\/meetings\/(\d+)$/);
   const reminderDone=path.match(/^\/api\/meetings\/(\d+)\/reminder-complete$/);
