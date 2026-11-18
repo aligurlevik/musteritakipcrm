@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS customers (
   contact_name TEXT,
   phone TEXT,
   email TEXT,
+  website TEXT DEFAULT '',
   region TEXT,
   first_meeting_date TEXT DEFAULT '',
   city TEXT DEFAULT '',
