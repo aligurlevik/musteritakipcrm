@@ -377,7 +377,7 @@ body.crm-embedded #buildMarker{bottom:6px!important;right:6px!important}
                 <label class="card-field">Görevi<input id="dContactRole" oninput="updatePrimaryContact('role',this.value)"></label>
                 <label class="card-field">Telefon<input id="dPhone" type="tel" oninput="updatePrimaryContact('phone',this.value)"></label>
                 <label class="card-field">E-Posta<input id="dEmail" type="email" oninput="updatePrimaryContact('email',this.value)"></label>
-                <label class="card-field">Web<input id="dWebsite" readonly title="Kayıtlı web adresi"></label>
+                <label class="card-field">Web<input id="dWebsite" type="url" placeholder="https://www.ornek.com" autocomplete="url"></label>
               </section>
               <section class="panel location-panel"><h3>⌖ Konum Bilgileri</h3>
                 <label class="card-field">İl<input id="dCity" autocomplete="address-level1"></label>
@@ -937,7 +937,7 @@ async function saveCustomer(){
   if(desired==='waiting')stage='Beklemede';
   else if(desired==='open'&&['Kazanıldı','Kaybedildi','Beklemede'].includes(stage))stage='İlk Görüşme';
   const primary=cleanContacts[0]||{name:$('dContact').value.trim(),phone:$('dPhone').value.trim(),email:$('dEmail').value.trim()};
-  const payload={company,first_meeting_date:$('dFirstMeetingDate').value,contact_name:primary.name||'',phones,emails,contacts:cleanContacts,city:$('dCity').value.trim(),district:$('dDistrict').value.trim(),neighborhood:$('dNeighborhood').value.trim(),region:$('dRegion').value.trim()||$('dCity').value.trim(),categories:$('dCategories').value.split(',').map(x=>x.trim()).filter(Boolean),priority:$('dPriority').value,stage,follow_date:$('dFollow').value,invoice_title:$('dInvoiceTitle').value.trim(),tax_office:$('dTaxOffice').value.trim(),tax_number:$('dTaxNumber').value.trim(),invoice_address:$('dInvoiceAddress').value.trim(),customer_requests:$('dCustomerRequests').value.trim(),note_image_data:customerImageData,...Object.fromEntries(['cargo_enabled','cargo_company','cargo_code','cargo_note','service_requested','service_type','service_description','service_date'].map(key=>[key,selected[key]])),special_notes:notesText(),machine_info:$('dMachine').value.trim()};
+  const payload={company,first_meeting_date:$('dFirstMeetingDate').value,contact_name:primary.name||'',phones,emails,contacts:cleanContacts,city:$('dCity').value.trim(),district:$('dDistrict').value.trim(),neighborhood:$('dNeighborhood').value.trim(),region:$('dRegion').value.trim()||$('dCity').value.trim(),categories:$('dCategories').value.split(',').map(x=>x.trim()).filter(Boolean),priority:$('dPriority').value,stage,follow_date:$('dFollow').value,invoice_title:$('dInvoiceTitle').value.trim(),tax_office:$('dTaxOffice').value.trim(),tax_number:$('dTaxNumber').value.trim(),invoice_address:$('dInvoiceAddress').value.trim(),website:$('dWebsite').value.trim(),customer_requests:$('dCustomerRequests').value.trim(),note_image_data:customerImageData,...Object.fromEntries(['cargo_enabled','cargo_company','cargo_code','cargo_note','service_requested','service_type','service_description','service_date'].map(key=>[key,selected[key]])),special_notes:notesText(),machine_info:$('dMachine').value.trim()};
 
   await api('/api/customers/'+selected.id,{method:'PUT',body:JSON.stringify(payload)});
   if(resultChanged&&(desired==='positive'||desired==='negative'))await api('/api/customers/'+selected.id+'/result',{method:'PUT',body:JSON.stringify({result:desired==='positive'?'Olumlu':'Olumsuz'})});
