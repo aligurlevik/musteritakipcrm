@@ -87,7 +87,7 @@ async function ensureSchema(env) {
 
   for (const [name,def] of [
     ['first_meeting_date',"TEXT DEFAULT ''"],['city',"TEXT DEFAULT ''"],['district',"TEXT DEFAULT ''"],['neighborhood',"TEXT DEFAULT ''"],['invoice_title',"TEXT DEFAULT ''"],['tax_office',"TEXT DEFAULT ''"],['tax_number',"TEXT DEFAULT ''"],
-    ['invoice_address',"TEXT DEFAULT ''"],['record_status',"TEXT DEFAULT 'Aktif'"],
+    ['invoice_address',"TEXT DEFAULT ''"],['website',"TEXT DEFAULT ''"],['record_status',"TEXT DEFAULT 'Aktif'"],
     ['special_notes',"TEXT DEFAULT ''"],['machine_info',"TEXT DEFAULT ''"],
     ['phones_json',"TEXT DEFAULT '[]'"],['emails_json',"TEXT DEFAULT '[]'"],['contacts_json',"TEXT DEFAULT '[]'"],
     ['categories',"TEXT DEFAULT ''"],['note_image_data',"TEXT DEFAULT ''"]
@@ -359,13 +359,13 @@ async function api(request, env) {
     const imageData=validAgendaImage(b.note_image_data);if(imageData===null)return json({error:'Resim geçersiz veya çok büyük.'},400);
     const r=await env.DB.prepare(`INSERT INTO customers(
       company,contact_name,phone,email,region,sector,priority,stage,follow_date,
-      invoice_title,tax_office,tax_number,invoice_address,record_status,
+      invoice_title,tax_office,tax_number,invoice_address,website,record_status,
       special_notes,machine_info,phones_json,emails_json,contacts_json,categories,note_image_data,city,district,neighborhood,first_meeting_date
-    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
       .bind(
         b.company,b.contact_name||'',phones[0]||'',emails[0]||'',b.region||'',categories,
         b.priority||'NORMAL',b.stage||'Yeni Lead',b.follow_date||'',
-        b.invoice_title||'',b.tax_office||'',b.tax_number||'',b.invoice_address||'','Aktif',
+        b.invoice_title||'',b.tax_office||'',b.tax_number||'',b.invoice_address||'',String(b.website||'').trim(),'Aktif',
         b.special_notes||'',b.machine_info||'',JSON.stringify(phones),JSON.stringify(emails),JSON.stringify(contacts),categories,imageData,String(b.city||'').trim(),String(b.district||'').trim(),String(b.neighborhood||'').trim(),String(b.first_meeting_date||'').trim()
       ).run();
     return json({id:r.meta.last_row_id},201);
@@ -428,13 +428,13 @@ async function api(request, env) {
     const imageData=b.note_image_data===undefined?String(existingCustomer?.note_image_data||''):validAgendaImage(b.note_image_data);if(imageData===null)return json({error:'Resim geçersiz veya çok büyük.'},400);
     await env.DB.prepare(`UPDATE customers SET
       company=?,contact_name=?,phone=?,email=?,region=?,sector=?,priority=?,stage=?,follow_date=?,
-      invoice_title=?,tax_office=?,tax_number=?,invoice_address=?,
+      invoice_title=?,tax_office=?,tax_number=?,invoice_address=?,website=COALESCE(?,website),
       special_notes=?,machine_info=?,phones_json=?,emails_json=?,contacts_json=?,categories=?,note_image_data=?,city=COALESCE(?,city),district=COALESCE(?,district),neighborhood=COALESCE(?,neighborhood),first_meeting_date=COALESCE(?,first_meeting_date),
       updated_at=CURRENT_TIMESTAMP WHERE id=?`)
       .bind(
         b.company||'',b.contact_name||'',phones[0]||'',emails[0]||'',b.region||'',categories,
         b.priority||'NORMAL',b.stage||'Yeni Lead',b.follow_date||'',
-        b.invoice_title||'',b.tax_office||'',b.tax_number||'',b.invoice_address||'',
+        b.invoice_title||'',b.tax_office||'',b.tax_number||'',b.invoice_address||'',b.website===undefined?null:String(b.website||'').trim(),
         b.special_notes||'',b.machine_info||'',JSON.stringify(phones),JSON.stringify(emails),JSON.stringify(contacts),categories,imageData,
         ...['city','district','neighborhood','first_meeting_date'].map(k=>b[k]===undefined?null:String(b[k]||'').trim()),
         Number(cm[1])
