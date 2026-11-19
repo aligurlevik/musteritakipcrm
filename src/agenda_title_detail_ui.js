@@ -170,7 +170,7 @@ export const AGENDA_TITLE_DETAIL_LIVE = String.raw`
     var detail=String(document.getElementById('agendaTitleDetailLiveEditDetail').value||'').trim();
     if(!title){if(typeof showMsg==='function')showMsg('Başlık boş bırakılamaz.','err');return}
     try{
-      var payload={entry_date:item.entry_date,note:combineNote(title,detail),remind_at:document.getElementById('agendaTitleDetailLiveAlarm')?.value||''};
+      var payload={entry_date:item.entry_date,note:combineNote(title,detail),remind_at:document.getElementById('agendaTitleDetailLiveAlarm')?.value??item.remind_at??''};
       if(Object.prototype.hasOwnProperty.call(item,'image_data'))payload.image_data=item.image_data||'';
       if(String(item.title||'').trim()){payload.title=title;payload.note=detail||title;await req('/api/notes-v3/'+item.id,{method:'PUT',body:JSON.stringify(payload)})}else{await req('/api/agenda/'+item.id,{method:'PUT',body:JSON.stringify(payload)})}
       if(typeof showMsg==='function')showMsg('Ajanda notu güncellendi.');
