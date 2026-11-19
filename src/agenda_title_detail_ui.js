@@ -97,6 +97,7 @@ export const AGENDA_TITLE_DETAIL_LIVE = String.raw`
       '<div id="agendaTitleDetailLiveEdit">'+
         '<label>BAŞLIK</label><input id="agendaTitleDetailLiveEditTitle" type="text" autocomplete="off">'+
         '<label>AÇIKLAMA</label><textarea id="agendaTitleDetailLiveEditDetail" placeholder="Her maddeyi ayrı satıra yazabilirsiniz"></textarea>'+
+        '<label>ALARM TARİHİ VE SAATİ (boş bırakılırsa alarm yok)</label><input id="agendaTitleDetailLiveAlarm" type="datetime-local">'+
         '<div id="agendaTitleDetailLiveActions"><button type="button" class="btn green" id="agendaTitleDetailLiveSaveBtn">Kaydet</button><button type="button" class="btn" id="agendaTitleDetailLiveCancelBtn">Vazgeç</button></div>'+
       '</div>'+
     '</div>';
@@ -132,6 +133,7 @@ export const AGENDA_TITLE_DETAIL_LIVE = String.raw`
     document.getElementById('agendaTitleDetailLiveMeta').textContent=formatMeta(item);
     document.getElementById('agendaTitleDetailLiveEditTitle').value=parts.title||'';
     document.getElementById('agendaTitleDetailLiveEditDetail').value=parts.detail||'';
+    var alarmInput=document.getElementById('agendaTitleDetailLiveAlarm');if(alarmInput)alarmInput.value=String(item.remind_at||'').replace(' ','T').slice(0,16);
     return true;
   }
   function openOverlay(id,editNow,item){
@@ -168,7 +170,7 @@ export const AGENDA_TITLE_DETAIL_LIVE = String.raw`
     var detail=String(document.getElementById('agendaTitleDetailLiveEditDetail').value||'').trim();
     if(!title){if(typeof showMsg==='function')showMsg('Başlık boş bırakılamaz.','err');return}
     try{
-      var payload={entry_date:item.entry_date,note:combineNote(title,detail),remind_at:item.remind_at||''};
+      var payload={entry_date:item.entry_date,note:combineNote(title,detail),remind_at:document.getElementById('agendaTitleDetailLiveAlarm')?.value||''};
       if(Object.prototype.hasOwnProperty.call(item,'image_data'))payload.image_data=item.image_data||'';
       if(String(item.title||'').trim()){payload.title=title;payload.note=detail||title;await req('/api/notes-v3/'+item.id,{method:'PUT',body:JSON.stringify(payload)})}else{await req('/api/agenda/'+item.id,{method:'PUT',body:JSON.stringify(payload)})}
       if(typeof showMsg==='function')showMsg('Ajanda notu güncellendi.');
