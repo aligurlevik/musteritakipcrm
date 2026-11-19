@@ -305,7 +305,7 @@ internal sealed class AlarmApplicationContext : ApplicationContext
             var data = await response.Content.ReadFromJsonAsync<ReminderResponse>();
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             var due = (data?.Reminders ?? [])
-                .Where(r => r.When <= now + 10000 && r.When >= now - 300000)
+                .Where(r => r.When <= now + 10000 && r.When >= now - 7L * 86400000)
                 .OrderBy(r => r.When)
                 .ThenBy(r => r.Id)
                 .ToList();
@@ -316,7 +316,8 @@ internal sealed class AlarmApplicationContext : ApplicationContext
                 var result = alarm.ShowDialog();
                 if (result == DialogResult.OK)
                 {
-                    await Acknowledge(reminder);
+                    if (alarm.SnoozeMinutes == 0) await Acknowledge(reminder);
+                    else await Snooze(reminder, alarm.SnoozeMinutes);
                 }
             }
         }
@@ -328,6 +329,18 @@ internal sealed class AlarmApplicationContext : ApplicationContext
         {
             _busy = false;
         }
+    }
+
+    private async Task Snooze(Reminder reminder, int minutes)
+    {
+        try
+        {
+            using var response = await _client.PostAsJsonAsync(
+                _config.BaseUrl.TrimEnd('/') + "/api/native-alarm/snooze",
+                new { id = reminder.Id, remind_at = reminder.RemindAt, minutes });
+            response.EnsureSuccessStatusCode();
+        }
+        catch { MessageBox.Show("Alarm ertelenemedi. Tekrar gösterilecektir.", "CRM Alarm"); }
     }
 
     private async Task Acknowledge(Reminder reminder)
@@ -357,6 +370,7 @@ internal sealed class AlarmForm : Form
 {
     private readonly System.Windows.Forms.Timer _frontTimer = new() { Interval = 350 };
     private bool _allowClose;
+    internal int SnoozeMinutes { get; private set; }
 
     private static readonly IntPtr HwndTopmost = new(-1);
     private const uint SwpNoSize = 0x0001;
@@ -378,7 +392,7 @@ internal sealed class AlarmForm : Form
         var card = new Panel
         {
             Width = 720,
-            Height = 420,
+            Height = 490,
             BackColor = Color.FromArgb(255, 248, 220)
         };
 
@@ -442,6 +456,23 @@ internal sealed class AlarmForm : Form
         };
 
         card.Controls.AddRange([header, title, body, stop]);
+        foreach (var minutes in new[] { 5, 10, 15 })
+        {
+            var snooze = new Button
+            {
+                Text = minutes + " DK ERTELE", Left = 65 + (minutes / 5 - 1) * 200,
+                Top = 405, Width = 190, Height = 54,
+                Font = new Font("Segoe UI", 12, FontStyle.Bold)
+            };
+            snooze.Click += (_, _) =>
+            {
+                SnoozeMinutes = minutes;
+                _allowClose = true;
+                DialogResult = DialogResult.OK;
+                Close();
+            };
+            card.Controls.Add(snooze);
+        }
         Controls.Add(card);
 
         void CenterCard()
