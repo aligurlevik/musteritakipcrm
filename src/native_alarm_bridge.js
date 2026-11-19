@@ -71,7 +71,7 @@ export async function nativeAlarmBridge(request,env,{forward,getRole,now=Date.no
   return json({ok:true});
  }
  if(request.method!=='GET')return json({error:'Geçersiz işlem.'},405);
- const reminders=[],from=now-300000,to=now+48*3600000;
+ const reminders=[],from=now-7*86400000,to=now+48*3600000;
  if(await hasTable(db,'agenda_entries')){
   const rows=(await db.prepare("SELECT a.id,a.remind_at,a.note FROM agenda_entries a WHERE COALESCE(a.remind_at,'')<>'' AND COALESCE(a.reminder_status,'')<>'Tamamlandı' AND COALESCE(a.entry_status,'')<>'Yapıldı' AND COALESCE(a.is_archived,0)=0 AND COALESCE(a.notebook_no,1)=1 AND NOT EXISTS (SELECT 1 FROM native_alarm_acks_v2 k WHERE k.device_token=? AND k.agenda_id=a.id AND k.remind_at=a.remind_at)").bind(token).all()).results||[];
   for(const row of rows){const when=alarmTime(row.remind_at);if(when>=from&&when<=to)reminders.push({id:Number(row.id),remind_at:row.remind_at,when,title:'Ajanda Hatırlatması',body:String(row.note||'Hatırlatma zamanı geldi.')});}
