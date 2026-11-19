@@ -87,7 +87,9 @@ export default {
   if(request.method==='GET'&&response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
    const html=(await response.text()).replace(/<head([^>]*)>/i,'<head$1><script src="/silent-fullscreen-reminders.js?v=20261023"></script>').replace('</head>','<link rel="stylesheet" href="/tracking-compact.css?v=20261023-1"></head>');
    const headers=new Headers(response.headers);for(const h of ['content-length','content-encoding','etag'])headers.delete(h);
-   const withCustomerDateFix=html.includes('id="customerModal"')?html.replace('</body>',`<script data-customer-card-dates-hide="20261112">${CUSTOMER_CARD_DATES_HIDE_SCRIPT}</script></body>`):html;
+   const alarmStatusScript = '<script src="/agenda-alarm-status.js?v=20261119"></script>';
+   const withAlarmStatus=html.includes('id="agendaDays"')?html.replace('</body>',alarmStatusScript+'</body>'):html;
+   const withCustomerDateFix=withAlarmStatus.includes('id="customerModal"')?withAlarmStatus.replace('</body>',`<script data-customer-card-dates-hide="20261112">${CUSTOMER_CARD_DATES_HIDE_SCRIPT}</script></body>`):withAlarmStatus;
    return new Response(withCustomerDateFix.includes('id="graphicJobs"')?withCustomerDateFix.replace('</body>',`<script data-crm-section-refresh="20261023">${SECTION_REFRESH_SCRIPT}</script></body>`):withCustomerDateFix,{status:response.status,headers});
   }
   return response;
