@@ -15,7 +15,7 @@ export function alarmTime(value){const s=String(value||'').trim().replace(' ','T
 async function body(request){try{return await request.json()}catch{return {}}}
 export async function nativeAlarmBridge(request,env,{forward,getRole,now=Date.now()}){
  const path=new URL(request.url).pathname;
- const handled=['pair-code','code','pair','reminders','ack','ping','status','claim'].some(x=>path==='/api/native-alarm/'+x);
+ const handled=['pair-code','code','pair','reminders','ack','ping','status','claim','snooze'].some(x=>path==='/api/native-alarm/'+x);
  if(!handled)return null;
  const db=env.DB;await schema(db);
  if(['/api/native-alarm/pair-code','/api/native-alarm/code'].includes(path)){
@@ -62,6 +62,22 @@ export async function nativeAlarmBridge(request,env,{forward,getRole,now=Date.no
  await db.prepare("UPDATE native_alarm_devices_v2 SET last_seen_at=datetime('now') WHERE device_token=?").bind(token).run();
  const owner=(await db.prepare('SELECT owner FROM native_alarm_device_owners WHERE token_hash=?').bind(await hash(token)).first())?.owner;
  if(path==='/api/native-alarm/ping')return json({ok:true,notesLinked:!!owner});
+ if(path==='/api/native-alarm/snooze'){
+  if(request.method!=='POST')return json({error:'Geçersiz işlem.'},405);
+  const b=await body(request),id=Number(b.id),old=String(b.remind_at||''),minutes=Number(b.minutes);
+  if(!Number.isSafeInteger(id)||!id||!Number.isFinite(alarmTime(old))||![5,10,15].includes(minutes))return json({error:'Geçersiz alarm veya erteleme süresi.'},400);
+  const next=new Date(now+minutes*60000+10800000).toISOString().slice(0,19);
+  let result;
+  if(id<0){
+   if(!owner||!await hasTable(db,'scratch_notes'))return json({error:'Not bulunamadı.'},404);
+   result=await db.prepare("UPDATE scratch_notes SET remind_at=? WHERE id=? AND owner=? AND remind_at=? AND done=0").bind(next,-id,owner,old).run();
+  }else{
+   if(!await hasTable(db,'agenda_entries'))return json({error:'Not bulunamadı.'},404);
+   result=await db.prepare("UPDATE agenda_entries SET remind_at=?,reminder_status='Açık' WHERE id=? AND remind_at=? AND COALESCE(reminder_status,'')<>'Tamamlandı' AND COALESCE(entry_status,'')<>'Yapıldı' AND COALESCE(is_archived,0)=0 AND COALESCE(notebook_no,1)=1").bind(next,id,old).run();
+  }
+  if(!result.meta?.changes)return json({error:'Alarm değişmiş veya tamamlanmış.'},409);
+  return json({ok:true,remind_at:next});
+ }
  if(path==='/api/native-alarm/ack'){
   if(request.method!=='POST')return json({error:'Geçersiz işlem.'},405);
   const b=await body(request),id=Number(b.id),remind=String(b.remind_at||'');
