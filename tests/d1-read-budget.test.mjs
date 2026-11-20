@@ -11,17 +11,17 @@ function database(){
   return {bind(...values){args=values;return this},async run(){reads++;statement.run(...args);return {success:true}},async all(){reads++;return {results:statement.all(...args)}},async first(){reads++;return statement.get(...args)||null}};
  }};
 }
-test('portfolio recovery coalesces concurrent requests and skips repeat scans, independently per database',async()=>{
+test('customer recovery hook never reads or writes the database, even concurrently',async()=>{
  const db=database(),other=database();
- await Promise.all(Array.from({length:10},()=>restorePortfolioCustomers({DB:db})));
- const initial=db.reads;assert.ok(initial>0);
- await restorePortfolioCustomers({DB:db});assert.equal(db.reads,initial);
- await restorePortfolioCustomers({DB:other});assert.ok(other.reads>0);
+ const results=await Promise.all(Array.from({length:10},()=>restorePortfolioCustomers({DB:db})));
+ assert.ok(results.every(x=>x.ok&&!x.restored));
+ await restorePortfolioCustomers({DB:other});
+ assert.equal(db.reads,0);assert.equal(other.reads,0);
 });
-test('failed recovery backs off repeated quota errors',async()=>{
+test('disabled recovery cannot resurrect customers or trigger quota errors',async()=>{
  let attempts=0;const db={prepare(){attempts++;throw Error('D1 daily limit')}};
- await assert.rejects(restorePortfolioCustomers({DB:db}));
- await assert.rejects(restorePortfolioCustomers({DB:db}));assert.equal(attempts,1);
+ assert.equal((await restorePortfolioCustomers({DB:db})).restored,false);
+ assert.equal(attempts,0);
 });
 test('login quota failure is a service error and never falls back to an older password',async()=>{
  const request=new Request('https://crm.test/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({user:'Ali',password:'test-old-password'})});
