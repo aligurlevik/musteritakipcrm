@@ -1,3 +1,4 @@
+import {prospectsApi} from './prospects_api.js';
 import {purgeArchivedNotes} from './archive_retention.js';
 import {nativeAlarmBridge} from './native_alarm_bridge.js';
 import {scratchNotesApi} from './scratch_notes_api.js';
@@ -71,6 +72,7 @@ async function nativeAgendaHotPath(request,env,path){
 export default {
  async fetch(request,env,ctx){
   const path=new URL(request.url).pathname;
+  if(path==='/api/prospects'||path.startsWith('/api/prospects/'))return prospectsApi(request,env,async()=>{const response=await worker.fetch(new Request(new URL('/api/session',request.url),{headers:request.headers}),env,ctx);return response.ok?(await response.json()).role:''});
   if(path.startsWith('/api/engview/')||['/engview-sync.js','/engview-agent.ps1','/CRM-EngView-Kur.cmd'].includes(path))return json({error:'EngView ve EVD bağlantısı kaldırıldı.'},410);
   if(path.startsWith('/api/native-alarm/')){
    try{
@@ -89,7 +91,8 @@ export default {
    const headers=new Headers(response.headers);for(const h of ['content-length','content-encoding','etag'])headers.delete(h);
    const alarmStatusScript = '<script src="/agenda-alarm-status.js?v=20261119"></script>';
    const withAlarmStatus=html.includes('id="agendaDays"')?html.replace('</body>',alarmStatusScript+'</body>'):html;
-   const withCustomerDateFix=withAlarmStatus.includes('id="customerModal"')?withAlarmStatus.replace('</body>',`<script data-customer-card-dates-hide="20261112">${CUSTOMER_CARD_DATES_HIDE_SCRIPT}</script></body>`):withAlarmStatus;
+   const withProspectsMenu=withAlarmStatus.includes('id="customerModal"')?withAlarmStatus.replace('</body>',`<script>(function(){const host=document.querySelector('.menu button[data-page="portfolio"]');if(!host)return;const b=document.createElement('button');b.type='button';b.textContent='Potansiyel Müşteriler';b.style.display='none';b.onclick=()=>location.href='/potential-customers.html';host.after(b);function sync(){b.style.display=typeof currentAccessRole!=='undefined'&&currentAccessRole==='admin'?'':'none'}sync();setInterval(sync,500)})();</script></body>`):withAlarmStatus;
+   const withCustomerDateFix=withProspectsMenu.includes('id="customerModal"')?withProspectsMenu.replace('</body>',`<script data-customer-card-dates-hide="20261112">${CUSTOMER_CARD_DATES_HIDE_SCRIPT}</script></body>`):withProspectsMenu;
    return new Response(withCustomerDateFix.includes('id="graphicJobs"')?withCustomerDateFix.replace('</body>',`<script data-crm-section-refresh="20261023">${SECTION_REFRESH_SCRIPT}</script></body>`):withCustomerDateFix,{status:response.status,headers});
   }
   return response;
