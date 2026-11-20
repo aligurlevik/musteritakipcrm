@@ -46,6 +46,6 @@ test('first meeting date is editable and never filled from card creation; back c
  assert.match(portfolio,/selected.first_meeting_date\|\|''/);
  assert.doesNotMatch(root,/customerCreatedAt|Kart Açılış Tarihi|İlk Kayıt Tarihi/);
  assert.doesNotMatch(portfolio,/dCardCreatedAt|Kart Açılış Tarihi/);
- assert.match(portfolio,/<div class="detail-head"><button[^>]+onclick="closeCustomerDetail\(\)"[^>]*>← Liste/);
+ assert.match(portfolio,/<div class="detail-head"><button[^>]+onclick="closeCustomerDetail\(\)"[^>]*>⬅ GERİ DÖN/);
  assert.match(root,/left:20px;bottom:20px/);
 });
