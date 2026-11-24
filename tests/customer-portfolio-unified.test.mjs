@@ -40,10 +40,11 @@ test('dashboard menu is removed and old dashboard links open the shared customer
 });
 
 
-test('first meeting date is editable and never filled from card creation; back controls are on the left',()=>{
+test('note registration date is automatic and read-only; back controls are on the left',()=>{
  assert.match(root,/id="c_first_meeting_date" type="date"/);
- assert.match(portfolio,/id="dFirstMeetingDate" type="date"/);
- assert.match(portfolio,/selected.first_meeting_date\|\|''/);
+ assert.match(portfolio,/Not Kayıt Tarihi<input id="meetingNoteRecordedDate" type="date" readonly>/);
+ assert.match(portfolio,/\$\('meetingNoteRecordedDate'\)\.value=today\(\)/);
+ assert.doesNotMatch(portfolio,/dFirstMeetingDate/);
  assert.doesNotMatch(root,/customerCreatedAt|Kart Açılış Tarihi|İlk Kayıt Tarihi/);
  assert.doesNotMatch(portfolio,/dCardCreatedAt|Kart Açılış Tarihi/);
  assert.match(portfolio,/<div class="detail-head"><button[^>]+onclick="closeCustomerDetail\(\)"[^>]*>⬅ GERİ DÖN/);
